@@ -1,0 +1,18 @@
+version: '3.4'
+
+services:
+  marketanalyzer:
+    image: ${DOCKER_REGISTRY-}marketanalyzer
+    build:
+      context: .
+      dockerfile: MarketAnalyzer/Dockerfile
+
+  redis:
+    image: redis:latest
+    volumes:
+      - redis-data:/data
+    ports:
+      - 6379:6379
+
+volumes:
+  redis-data:
