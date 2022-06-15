@@ -1,4 +1,4 @@
-namespace MarketAnalyzer
+namespace WebApi
 {
     public class WeatherForecast
     {

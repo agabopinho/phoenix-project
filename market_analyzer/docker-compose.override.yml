@@ -1,7 +1,7 @@
 version: '3.4'
 
 services:
-  marketanalyzer:
+  webapi:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80

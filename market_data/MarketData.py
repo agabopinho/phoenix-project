@@ -20,8 +20,9 @@ logging.getLogger("chardet.charsetprober").disabled = True
 logger = logging.getLogger("areq")
 
 DEFAULT_OFFSET_DAYS = 30
-DEFAULT_TIMEFRAME_MT5 = mt5.TIMEFRAME_M1
-DEFAULT_TIMEFRAME_KEY_PART = 'm1'
+DEFAULT_OFFSET_MINUTES = 30
+DEFAULT_TIMEFRAME_MT5 = mt5.TIMEFRAME_M10
+DEFAULT_TIMEFRAME_KEY_PART = 'M10'
 
 
 def getheaddatakey() -> str:
@@ -72,8 +73,9 @@ async def cleandata(symbols: list[str], redis: aioredis.Redis):
 async def initdata(symbol: list[str], redis: aioredis.Redis):
     logger.info('starting symbol %s', symbol)
 
-    fromdate = (datetime.now() - timedelta(days=DEFAULT_OFFSET_DAYS)
-                ).replace(tzinfo=pytz.utc)
+    offset = timedelta(days=DEFAULT_OFFSET_DAYS)
+
+    fromdate = (datetime.now() - offset).replace(tzinfo=pytz.utc)
     todate = (datetime.now() + timedelta(days=1)).replace(tzinfo=pytz.utc)
 
     rates = mt5.copy_rates_range(
@@ -88,7 +90,9 @@ async def initdata(symbol: list[str], redis: aioredis.Redis):
 
 
 async def pollingsymbols(symbols: list[str], redis: aioredis.Redis):
-    fromdate = (datetime.now() - timedelta(minutes=3)).replace(tzinfo=pytz.utc)
+    offset = timedelta(minutes=DEFAULT_OFFSET_MINUTES)
+
+    fromdate = (datetime.now() - offset).replace(tzinfo=pytz.utc)
     todate = (datetime.now() + timedelta(days=1)).replace(tzinfo=pytz.utc)
 
     await asyncio.gather(*(pollingsymbol(symbol, fromdate, todate, redis) for symbol in symbols))
@@ -105,7 +109,7 @@ async def pollingsymbol(symbol: str, fromdate: datetime, todate: datetime, redis
     await puttocache(symbol, DEFAULT_TIMEFRAME_KEY_PART, rates, None, redis)
 
 
-async def puttocache(symbol: list[str], timeframe: str, rates: any, basemetadata: dict[any, any], redis: aioredis.Redis):
+async def puttocache(symbol: list[str], timeframe: str, rates: any, metainfo: dict[any, any], redis: aioredis.Redis):
     rates_frame = pd.DataFrame(rates)
     exp = timedelta(minutes=5)
 
@@ -122,29 +126,34 @@ async def puttocache(symbol: list[str], timeframe: str, rates: any, basemetadata
 
         return
 
-    dict = {}
+    mapping = {}
     for _, row in rates_frame.iterrows():
-        jsonvalue = row.to_json(orient='values')
-        dict[row['time']] = jsonvalue
+        score = float(row['time'])
+        data = row.to_json(orient='values')
 
-    jsonmetadata = await redis.get(symbolmetakey)
-    metadata = json.loads(jsonmetadata) if jsonmetadata else {}
+        mapping[score] = data
+
+    metajson = await redis.get(symbolmetakey)
+    metadata = json.loads(metajson) if metajson else {}
 
     metadata.update({
         'updated_at': datetime.now().timestamp(),
-        'updated_count': len(dict)
+        'updated_count': len(mapping),
+        'available_rates_timeframes': [timeframe]
     })
 
-    if basemetadata:
-        metadata.update(basemetadata)
-        metadata = basemetadata
+    if metainfo:
+        metainfo.update(metadata)
+        metadata = metainfo
 
     await redis.set(headkey, rates_frame.columns.to_series().to_json(orient='values'), ex=exp)
 
-    await redis.hset(symbolkey, mapping=dict)
+    await redis.hmset(symbolkey, mapping)
     await redis.expire(symbolkey, exp)
 
-    metadata.update({'current_count': await redis.hlen(symbolkey)})
+    metadata.update({
+        'current_count': await redis.hlen(symbolkey)
+    })
 
     await redis.set(symbolmetakey, json.dumps(metadata), ex=exp)
 
@@ -166,10 +175,11 @@ async def main():
             logger.exception('CancelledError', exc_info=True, stack_info=True)
             quit()
         except KeyboardInterrupt:
-            logger.exception('KeyboardInterrupt', exc_info=True, stack_info=True)
+            logger.exception('KeyboardInterrupt',
+                             exc_info=True, stack_info=True)
             quit()
-        except:
-            logger.exception('polling error', exc_info=True, stack_info=True)
+        except Exception:
+            logger.exception('Exception', exc_info=True, stack_info=True)
 
 if __name__ == "__main__":
     if platform.system() == 'Windows':

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
 
-namespace MarketAnalyzer.Controllers
+namespace WebApi.Controllers
 {
     // [Authorize]
     [ApiController]

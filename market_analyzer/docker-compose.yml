@@ -1,11 +1,11 @@
 version: '3.4'
 
 services:
-  marketanalyzer:
-    image: ${DOCKER_REGISTRY-}marketanalyzer
+  webapi:
+    image: ${DOCKER_REGISTRY-}webapi
     build:
       context: .
-      dockerfile: MarketAnalyzer/Dockerfile
+      dockerfile: WebApi/Dockerfile
 
   redis:
     image: redis:latest
