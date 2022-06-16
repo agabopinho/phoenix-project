@@ -19,10 +19,14 @@ logging.basicConfig(
 logging.getLogger("chardet.charsetprober").disabled = True
 logger = logging.getLogger("areq")
 
-DEFAULT_OFFSET_DAYS = 30
-DEFAULT_OFFSET_MINUTES = 30
-DEFAULT_TIMEFRAME_MT5 = mt5.TIMEFRAME_M10
-DEFAULT_TIMEFRAME_KEY_PART = 'M10'
+
+DEFAULT_OFFSET_DAYS: int = 60
+DEFAULT_OFFSET_MINUTES: int = 30
+DEFAULT_TIMEFRAME_MT5: int = mt5.TIMEFRAME_M10
+DEFAULT_TIMEFRAME_KEY_PART: str = 'M10'
+
+lastsymbols: list[str] = []
+lastsymbolsreadaat: datetime = datetime.now()
 
 
 def getheaddatakey() -> str:
@@ -37,21 +41,36 @@ def getsymbolmetakey(symbol: str) -> str:
     return f'mkt:{symbol.lower()}:meta'
 
 
-def getsymbols():
+def getsymbols() -> list[str]:
+    global lastsymbols
+    global lastsymbolsreadaat
+
+    if lastsymbols and lastsymbolsreadaat and datetime.now() - lastsymbolsreadaat < timedelta(seconds=2):
+        return lastsymbols
+
+    lastsymbols = symbolsfromfile()
+    lastsymbolsreadaat = datetime.now()
+
+    return lastsymbols
+
+
+def symbolsfromfile() -> list[str]:
+    s: list[str] = []
     for symbol in open('symbols.txt', mode='r').read().split('\n'):
         if not symbol.startswith('#'):
-            yield symbol
+            s.append(symbol)
+    return s
 
 
-def init_platform():
+def initplatform():
     if not mt5.initialize():
-        logging.error("initialize() failed, error code = %s", mt5.last_error())
+        logger.error("initialize() failed, error code = %s", mt5.last_error())
         return False
 
     return True
 
 
-def get_redis() -> aioredis.Redis:
+def getredis() -> aioredis.Redis:
     pool = aioredis.ConnectionPool(
         host='127.0.0.1', port=6379, db=0)
     return aioredis.Redis(connection_pool=pool)
@@ -70,6 +89,26 @@ async def cleandata(symbols: list[str], redis: aioredis.Redis):
         await redis.delete(symbolmetakey)
 
 
+async def polling(symbols: list[str], redis: aioredis.Redis):
+    offset = timedelta(minutes=DEFAULT_OFFSET_MINUTES)
+
+    fromdate = (datetime.now() - offset).replace(tzinfo=pytz.utc)
+    todate = (datetime.now() + timedelta(days=1)).replace(tzinfo=pytz.utc)
+
+    await asyncio.gather(*(updatesymbol(symbol, fromdate, todate, redis) for symbol in symbols))
+
+
+async def updatesymbol(symbol: str, fromdate: datetime, todate: datetime, redis: aioredis.Redis):
+    if await redis.exists(getsymbolmetakey(symbol)) == 0:
+        await initdata(symbol, redis)
+        return
+
+    rates = mt5.copy_rates_range(
+        symbol.upper(), DEFAULT_TIMEFRAME_MT5, fromdate, todate)
+
+    await updatecache(symbol, DEFAULT_TIMEFRAME_KEY_PART, rates, None, redis)
+
+
 async def initdata(symbol: list[str], redis: aioredis.Redis):
     logger.info('starting symbol %s', symbol)
 
@@ -86,30 +125,10 @@ async def initdata(symbol: list[str], redis: aioredis.Redis):
         'init_count': len(rates) if rates is not None else 0
     }
 
-    await puttocache(symbol, DEFAULT_TIMEFRAME_KEY_PART, rates, metadata, redis)
+    await updatecache(symbol, DEFAULT_TIMEFRAME_KEY_PART, rates, metadata, redis)
 
 
-async def pollingsymbols(symbols: list[str], redis: aioredis.Redis):
-    offset = timedelta(minutes=DEFAULT_OFFSET_MINUTES)
-
-    fromdate = (datetime.now() - offset).replace(tzinfo=pytz.utc)
-    todate = (datetime.now() + timedelta(days=1)).replace(tzinfo=pytz.utc)
-
-    await asyncio.gather(*(pollingsymbol(symbol, fromdate, todate, redis) for symbol in symbols))
-
-
-async def pollingsymbol(symbol: str, fromdate: datetime, todate: datetime, redis: aioredis.Redis):
-    if await redis.exists(getsymbolmetakey(symbol)) == 0:
-        await initdata(symbol, redis)
-        return
-
-    rates = mt5.copy_rates_range(
-        symbol.upper(), DEFAULT_TIMEFRAME_MT5, fromdate, todate)
-
-    await puttocache(symbol, DEFAULT_TIMEFRAME_KEY_PART, rates, None, redis)
-
-
-async def puttocache(symbol: list[str], timeframe: str, rates: any, metainfo: dict[any, any], redis: aioredis.Redis):
+async def updatecache(symbol: list[str], timeframe: str, rates: any, metainfo: dict[any, any], redis: aioredis.Redis):
     rates_frame = pd.DataFrame(rates)
     exp = timedelta(minutes=5)
 
@@ -118,7 +137,7 @@ async def puttocache(symbol: list[str], timeframe: str, rates: any, metainfo: di
     symbolmetakey = getsymbolmetakey(symbol)
 
     if rates_frame.empty:
-        logging.warning('No data for symbol: %s', symbol)
+        logger.warning('No data for symbol: %s', symbol)
 
         await redis.expire(headkey, exp)
         await redis.expire(symbolkey, exp)
@@ -148,7 +167,7 @@ async def puttocache(symbol: list[str], timeframe: str, rates: any, metainfo: di
 
     await redis.set(headkey, rates_frame.columns.to_series().to_json(orient='values'), ex=exp)
 
-    await redis.hmset(symbolkey, mapping)
+    await redis.hset(symbolkey, mapping=mapping)
     await redis.expire(symbolkey, exp)
 
     metadata.update({
@@ -159,18 +178,22 @@ async def puttocache(symbol: list[str], timeframe: str, rates: any, metainfo: di
 
 
 async def main():
-    redis = get_redis()
+    redis = getredis()
 
     await cleandata(getsymbols(), redis)
 
+    lastsecond = 0
+
     while True:
-        if not init_platform():
+        if not initplatform():
             continue
 
-        logging.info('polling...')
+        if lastsecond != datetime.now().second:
+            logger.info('polling...')
+            lastsecond = datetime.now().second
 
         try:
-            await pollingsymbols(getsymbols(), redis)
+            await polling(getsymbols(), redis)
         except asyncio.CancelledError:
             logger.exception('CancelledError', exc_info=True, stack_info=True)
             quit()

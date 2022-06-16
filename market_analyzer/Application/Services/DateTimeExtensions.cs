@@ -1,6 +1,6 @@
 ﻿namespace Application.Services
 {
-    public static class DateTimeHelpers
+    public static class DateTimeExtensions
     {
         public static DateTime ToDateTime(this double timestamp)
             => DateTime.SpecifyKind(DateTime.UnixEpoch.AddSeconds(timestamp), DateTimeKind.Unspecified);

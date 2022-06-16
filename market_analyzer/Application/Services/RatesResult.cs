@@ -9,13 +9,13 @@ namespace Application.Services
             Symbol = symbol.ToUpper();
         }
 
-        public RatesResult(string symbol, SymbolMetadata metadata, IEnumerable<Rate> rates)
+        public RatesResult(string symbol, Metadata metadata, IEnumerable<Rate> rates)
         {
             Symbol = symbol.ToUpper();
             SetResult(metadata, rates);
         }
 
-        private void SetResult(SymbolMetadata metadata, IEnumerable<Rate> rates)
+        private void SetResult(Metadata metadata, IEnumerable<Rate> rates)
         {
             Metadata = metadata;
             Rates = rates;
@@ -23,12 +23,12 @@ namespace Application.Services
         }
 
         public string Symbol { get; }
-        public SymbolMetadata? Metadata { get; private set; }
+        public Metadata? Metadata { get; private set; }
         public IEnumerable<Rate>? Rates { get; private set; }
         public bool HasResult { get; private set; } = false;
     }
 
-    public class SymbolMetadata
+    public class Metadata
     {
         [JsonPropertyName("init_at")]
         public double InitAt { get; set; }

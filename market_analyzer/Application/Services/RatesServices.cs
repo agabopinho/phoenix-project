@@ -25,7 +25,7 @@ namespace Application.Services
             if (string.IsNullOrWhiteSpace(metaValue))
                 return new RatesResult(symbol);
 
-            var metadata = JsonSerializer.Deserialize<SymbolMetadata>(metaValue!);
+            var metadata = JsonSerializer.Deserialize<Metadata>(metaValue!);
             var allValues = new List<Rate>(Defaults.DefaultRateListCapacity);
 
             var key = GetSymbolRatesKey(symbol, metadata!.AvailableRatesTimeframes!.First());
