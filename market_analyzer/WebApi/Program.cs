@@ -21,7 +21,7 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 builder.Services.AddSingleton<IRatesService, RatesServices>();
 builder.Services.AddSingleton(serviceProvider =>
 {
-    var connection = ConnectionMultiplexer.Connect("redis:6379");
+    var connection = ConnectionMultiplexer.Connect("localhost:6379");
     return connection.GetDatabase();
 });
 
