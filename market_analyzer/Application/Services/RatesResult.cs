@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Application.Services
 {
@@ -30,18 +31,14 @@ namespace Application.Services
 
     public class Metadata
     {
-        [JsonPropertyName("init_at")]
-        public double InitAt { get; set; }
-
-        public DateTime InitAtDate => InitAt.ToDateTime();
+        [JsonPropertyName("init_at"), JsonConverter(typeof(TimestampConverter))]
+        public DateTime InitAt { get; set; }
 
         [JsonPropertyName("init_count")]
         public double InitCount { get; set; }
 
-        [JsonPropertyName("updated_at")]
-        public double UpdatedAt { get; set; }
-
-        public DateTime UpdatedAtDate => UpdatedAt.ToDateTime();
+        [JsonPropertyName("updated_at"), JsonConverter(typeof(TimestampConverter))]
+        public DateTime UpdatedAt { get; set; }
 
         [JsonPropertyName("updated_count")]
         public double UpdatedCount { get; set; }
@@ -75,5 +72,14 @@ namespace Application.Services
         public double TickVolume { get; set; }
         public double Spread { get; set; }
         public double RealVolume { get; set; }
+    }
+
+    public class TimestampConverter : JsonConverter<DateTime>
+    {
+        public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            => reader.GetDouble().ToDateTime();
+
+        public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+            => writer.WriteNumberValue(value.ToTimestamp());
     }
 }

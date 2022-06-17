@@ -32,7 +32,7 @@ namespace WebApi.BackgroupServices
         {
             var tasks = new List<Task<RatesResult>>();
 
-            foreach (var symbol in new[] { "PETR4", "WINQ22", "WDON22", "CMIG4" })
+            foreach (var symbol in new[] { "WINQ22" })
                 tasks.Add(_ratesService.GetRatesAsync(symbol));
 
             await Task.WhenAll(tasks);
@@ -47,7 +47,8 @@ namespace WebApi.BackgroupServices
                     result.Symbol,
                     Timeframe = result.Metadata!.AvailableRatesTimeframes!.First(),
                     firstRate.Time,
-                    firstRate.Close
+                    firstRate.Close,
+                    result.Metadata.UpdatedAt
                 });
             }
         }

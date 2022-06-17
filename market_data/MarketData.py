@@ -20,10 +20,12 @@ logging.getLogger("chardet.charsetprober").disabled = True
 logger = logging.getLogger("areq")
 
 
-DEFAULT_OFFSET_DAYS: int = 60
-DEFAULT_OFFSET_MINUTES: int = 30
-DEFAULT_TIMEFRAME_MT5: int = mt5.TIMEFRAME_M10
-DEFAULT_TIMEFRAME_KEY_PART: str = 'M10'
+LOCALTZ = pytz.timezone('America/Sao_Paulo')
+
+DEFAULT_OFFSET_INIT: timedelta = timedelta(days=5)
+DEFAULT_OFFSET_POLLING: timedelta = timedelta(minutes=5)
+DEFAULT_TIMEFRAME_MT5: int = mt5.TIMEFRAME_M1
+DEFAULT_TIMEFRAME_KEY_PART: str = 'M1'
 
 lastsymbols: list[str] = []
 lastsymbolsreadaat: datetime = datetime.now()
@@ -90,18 +92,22 @@ async def cleandata(symbols: list[str], redis: aioredis.Redis):
 
 
 async def polling(symbols: list[str], redis: aioredis.Redis):
-    offset = timedelta(minutes=DEFAULT_OFFSET_MINUTES)
-
-    fromdate = (datetime.now() - offset).replace(tzinfo=pytz.utc)
-    todate = (datetime.now() + timedelta(days=1)).replace(tzinfo=pytz.utc)
-
-    await asyncio.gather(*(updatesymbol(symbol, fromdate, todate, redis) for symbol in symbols))
+    await asyncio.gather(*(updatesymbol(symbol, redis) for symbol in symbols))
 
 
-async def updatesymbol(symbol: str, fromdate: datetime, todate: datetime, redis: aioredis.Redis):
+async def updatesymbol(symbol: str, redis: aioredis.Redis):
+    datenow = datetime.now(LOCALTZ)
+
     if await redis.exists(getsymbolmetakey(symbol)) == 0:
-        await initdata(symbol, redis)
+        fromdate = (datenow - DEFAULT_OFFSET_INIT).replace(tzinfo=pytz.utc)
+        todate = (datenow + timedelta(days=1)).replace(tzinfo=pytz.utc)
+
+        await initdata(symbol, fromdate, todate, redis)
+
         return
+
+    fromdate = (datenow - DEFAULT_OFFSET_POLLING).replace(tzinfo=pytz.utc)
+    todate = (datenow + timedelta(days=1)).replace(tzinfo=pytz.utc)
 
     rates = mt5.copy_rates_range(
         symbol.upper(), DEFAULT_TIMEFRAME_MT5, fromdate, todate)
@@ -109,13 +115,8 @@ async def updatesymbol(symbol: str, fromdate: datetime, todate: datetime, redis:
     await updatecache(symbol, DEFAULT_TIMEFRAME_KEY_PART, rates, None, redis)
 
 
-async def initdata(symbol: list[str], redis: aioredis.Redis):
+async def initdata(symbol: list[str], fromdate: datetime, todate: datetime, redis: aioredis.Redis):
     logger.info('starting symbol %s', symbol)
-
-    offset = timedelta(days=DEFAULT_OFFSET_DAYS)
-
-    fromdate = (datetime.now() - offset).replace(tzinfo=pytz.utc)
-    todate = (datetime.now() + timedelta(days=1)).replace(tzinfo=pytz.utc)
 
     rates = mt5.copy_rates_range(
         symbol.upper(), DEFAULT_TIMEFRAME_MT5, fromdate, todate)
@@ -147,7 +148,10 @@ async def updatecache(symbol: list[str], timeframe: str, rates: any, metainfo: d
 
     mapping = {}
     for _, row in rates_frame.iterrows():
-        score = float(row['time'])
+        time = datetime.fromtimestamp(row['time'], pytz.utc)
+        row['time'] = LOCALTZ.localize(time.replace(tzinfo=None)).timestamp()
+
+        score = row['time']
         data = row.to_json(orient='values')
 
         mapping[score] = data
