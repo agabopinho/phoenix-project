@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Application.Constants;
+using Application.Objects;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -15,7 +17,7 @@ namespace Application.Services
             _logger = logger;
         }
 
-        public async Task<RatesResult> GetRatesAsync(string symbol)
+        public async Task<RatesResult> GetRatesAsync(string symbol, CancellationToken _)
         {
             if (string.IsNullOrWhiteSpace(symbol))
                 throw new ArgumentNullException(nameof(symbol));
@@ -45,10 +47,5 @@ namespace Application.Services
 
         private static string GetSymbolMetaKey(string symbol)
             => $"mkt:{symbol.ToLower()}:meta";
-    }
-
-    public interface IRatesService
-    {
-        Task<RatesResult> GetRatesAsync(string symbol);
     }
 }

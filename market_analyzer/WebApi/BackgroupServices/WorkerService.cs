@@ -1,9 +1,12 @@
-﻿using Application.Services;
+﻿using Application.Objects;
+using Application.Services;
 
 namespace WebApi.BackgroupServices
 {
     public class WorkerService : BackgroundService
     {
+        public static readonly string SYMBOL = "WINQ22";
+
         private readonly IRatesService _ratesService;
         private readonly ILogger<WorkerService> _logger;
 
@@ -30,27 +33,18 @@ namespace WebApi.BackgroupServices
 
         private async Task InternalExecuteAsync(CancellationToken stoppingToken)
         {
-            var tasks = new List<Task<RatesResult>>();
+            var result = await _ratesService.GetRatesAsync(SYMBOL, stoppingToken);
 
-            foreach (var symbol in new[] { "WINQ22" })
-                tasks.Add(_ratesService.GetRatesAsync(symbol));
+            var firstRate = result.Rates!.First();
 
-            await Task.WhenAll(tasks);
-
-            foreach (var task in tasks)
+            _logger.LogInformation("{@data}", new
             {
-                var result = task.Result;
-                var firstRate = result.Rates!.First();
-
-                _logger.LogInformation("{@data}", new
-                {
-                    result.Symbol,
-                    Timeframe = result.Metadata!.AvailableRatesTimeframes!.First(),
-                    firstRate.Time,
-                    firstRate.Close,
-                    result.Metadata.UpdatedAt
-                });
-            }
+                result.Symbol,
+                Timeframe = result.Metadata!.AvailableRatesTimeframes!.First(),
+                firstRate.Time,
+                firstRate.Close,
+                result.Metadata.UpdatedAt
+            });
         }
     }
 }
