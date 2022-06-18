@@ -1,17 +1,16 @@
-﻿using Application.Objects;
+﻿using Application.Constants;
+using Application.Objects;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services
 {
     public class LoopService : ILoopService
     {
-        private static readonly string SYMBOL = "WINQ22";
-
         private readonly IRatesService _ratesService;
         private readonly IStateService _stateService;
         private readonly ILogger<LoopService> _logger;
 
-        private StateManager? StateManager = null;
+        private IStateManager? StateManager = null;
 
         public LoopService(IRatesService ratesService, IStateService stateService, ILogger<LoopService> logger)
         {
@@ -22,7 +21,7 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var marketDataResult = await _ratesService.GetRatesAsync(SYMBOL, cancellationToken);
+            var marketDataResult = await _ratesService.GetRatesAsync(Defaults.Symbol, cancellationToken);
 
             if (!marketDataResult.HasResult)
             {
@@ -40,19 +39,9 @@ namespace Application.Services
 
             _stateService.UpdateState(StateManager, marketDataResult);
 
-            Print(StateManager);
+            _logger.LogInformation("{@data}", StateManager.PrintInformation());
 
             return;
         }
-
-        public void Print(StateManager state)
-            => _logger.LogInformation("{@data}", new
-            {
-                LastUpdateAt = state.States.Last().Value.UpdateAt,
-                state.CountUp,
-                state.CountDown,
-                state.Absolute,
-                state.Side
-            });
     }
 }

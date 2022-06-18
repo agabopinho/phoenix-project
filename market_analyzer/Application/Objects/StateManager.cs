@@ -1,13 +1,18 @@
 ﻿using Application.Services.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Objects
 {
-    public class StateManager
+    public class StateManager : IStateManager
     {
         private readonly Dictionary<DateTime, State> _states = new();
+        private readonly TimeSpan _slidingTime;
+        private readonly ILogger<StateManager> _logger;
 
-        public StateManager()
+        public StateManager(TimeSpan slidingTime, ILogger<StateManager> logger)
         {
+            _slidingTime = slidingTime;
+            _logger = logger;
         }
 
         public IReadOnlyDictionary<DateTime, State> States => _states;
@@ -23,6 +28,16 @@ namespace Application.Objects
                 Moviment.Idle :
                 CountUp > CountDown ? Moviment.Up : Moviment.Down;
 
+        public IDictionary<string, object> PrintInformation()
+            => new Dictionary<string, object>
+            {
+                {  "LastUpdateAt", States.Last().Value.UpdateAt },
+                {  "CountUp", CountUp },
+                {  "CountDown", CountDown},
+                { "Absolute", Absolute },
+                { "Side", Side }
+            };
+
         public void Update(State state)
         {
             if (!_states.Any())
@@ -35,7 +50,11 @@ namespace Application.Objects
             }
 
             if (_states.ContainsKey(state.UpdateAt))
+            {
+                _logger.LogInformation("State already exists.");
+
                 return;
+            }
 
             var moviment = GetMoviment(state);
 
@@ -44,15 +63,8 @@ namespace Application.Objects
                 state.SetMoviment(moviment);
 
                 AddState(state);
+                Sliding();
             }
-        }
-
-        private void AddState(State state)
-        {
-            if (state.Moviment is null)
-                throw new InvalidOperationException();
-
-            _states.Add(state.UpdateAt, state);
         }
 
         private Moviment GetMoviment(State state)
@@ -63,6 +75,21 @@ namespace Application.Objects
                 return Moviment.Idle;
 
             return state.Close > lastClose ? Moviment.Up : Moviment.Down;
+        }
+
+        private void AddState(State state)
+        {
+            if (state.Moviment is null)
+                throw new InvalidOperationException();
+
+            _states.Add(state.UpdateAt, state);
+        }
+
+        private void Sliding()
+        {
+            var outOfPeriod = _states.Last().Value.UpdateAt - _slidingTime;
+            foreach (var key in _states.Keys.Where(key => key < outOfPeriod).ToArray())
+                _states.Remove(key);
         }
     }
 }

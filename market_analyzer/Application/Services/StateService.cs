@@ -1,36 +1,30 @@
-﻿using Application.Objects;
+﻿using Application.Constants;
+using Application.Objects;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services
 {
     public class StateService : IStateService
     {
-        private readonly ILogger<StateService> _logger;
+        private readonly IServiceProvider _serviceProvider;
 
-        public StateService(ILogger<StateService> logger)
+        public StateService(IServiceProvider serviceProvider)
         {
-            _logger = logger;
+            _serviceProvider = serviceProvider;
         }
 
-        public StateManager CreateStateManager(MarketDataResult marketDataResult)
+        public IStateManager CreateStateManager(MarketDataResult marketDataResult)
         {
-            var stateManager = new StateManager();
-            var state = GetState(marketDataResult);
-            stateManager.Update(state);
+            var logger = _serviceProvider.GetRequiredService<ILogger<StateManager>>();
+            var stateManager = new StateManager(Defaults.SlidingTime, logger);
+            UpdateState(stateManager, marketDataResult);
             return stateManager;
         }
 
-        public void UpdateState(StateManager stateManager, MarketDataResult marketDataResult)
+        public void UpdateState(IStateManager stateManager, MarketDataResult marketDataResult)
         {
             var state = GetState(marketDataResult);
-            
-            if (stateManager.States.ContainsKey(state.UpdateAt))
-            {
-                _logger.LogInformation("State already exists.");
-
-                return;
-            }
-
             stateManager.Update(state);
         }
 
