@@ -5,14 +5,12 @@ namespace WebApi.BackgroupServices
 {
     public class WorkerService : BackgroundService
     {
-        public static readonly string SYMBOL = "WINQ22";
-
-        private readonly IRatesService _ratesService;
+        private readonly ILoopService _loopService;
         private readonly ILogger<WorkerService> _logger;
 
-        public WorkerService(IRatesService ratesService, ILogger<WorkerService> logger)
+        public WorkerService(ILoopService loopService, ILogger<WorkerService> logger)
         {
-            _ratesService = ratesService;
+            _loopService = loopService;
             _logger = logger;
         }
 
@@ -22,29 +20,13 @@ namespace WebApi.BackgroupServices
             {
                 try
                 {
-                    await InternalExecuteAsync(stoppingToken);
+                    await _loopService.RunAsync(stoppingToken);
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Execute error.");
+                    _logger.LogError(e, "Loop execution error.");
                 }
             }
-        }
-
-        private async Task InternalExecuteAsync(CancellationToken stoppingToken)
-        {
-            var result = await _ratesService.GetRatesAsync(SYMBOL, stoppingToken);
-
-            var firstRate = result.Rates!.First();
-
-            _logger.LogInformation("{@data}", new
-            {
-                result.Symbol,
-                Timeframe = result.Metadata!.AvailableRatesTimeframes!.First(),
-                firstRate.Time,
-                firstRate.Close,
-                result.Metadata.UpdatedAt
-            });
         }
     }
 }

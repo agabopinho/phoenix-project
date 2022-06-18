@@ -18,12 +18,15 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .Enrich.FromLogContext()
     .WriteTo.Console());
 
-builder.Services.AddSingleton<IRatesService, RatesServices>();
 builder.Services.AddSingleton(serviceProvider =>
 {
     var connection = ConnectionMultiplexer.Connect("localhost:6379");
     return connection.GetDatabase();
 });
+
+builder.Services.AddSingleton<ILoopService, LoopService>();
+builder.Services.AddSingleton<IStateService, StateService>();
+builder.Services.AddSingleton<IRatesService, RatesService>();
 
 builder.Services.AddControllers();
 
