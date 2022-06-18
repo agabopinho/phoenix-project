@@ -4,6 +4,10 @@ namespace Application.Objects
 {
     public class Rate
     {
+        public Rate()
+        {
+        }
+
         public Rate(double[] values)
         {
             Time = values[0].ToDateTime();

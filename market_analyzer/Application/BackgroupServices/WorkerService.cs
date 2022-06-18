@@ -1,6 +1,8 @@
 ﻿using Application.Services;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-namespace WebApi.BackgroupServices
+namespace Application.BackgroupServices
 {
     public class WorkerService : BackgroundService
     {

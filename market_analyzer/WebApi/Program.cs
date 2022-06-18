@@ -1,8 +1,8 @@
-﻿using Application.Services;
+﻿using Application.BackgroupServices;
+using Application.Services;
 using Serilog;
 using Serilog.Events;
 using StackExchange.Redis;
-using WebApi.BackgroupServices;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -47,4 +47,4 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
