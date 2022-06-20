@@ -12,7 +12,8 @@ public class BacktestingRatesService : IRatesService
             new RatesInfo
             {
                 UpdatedAt = DateTime.Now,
-            }, new[]
+            }, 
+            new[]
             {
                 new Rate
                 {
