@@ -25,8 +25,7 @@ builder.Services.AddSingleton(serviceProvider =>
 });
 
 builder.Services.AddSingleton<ILoopService, LoopService>();
-builder.Services.AddSingleton<IStateService, StateService>();
-builder.Services.AddSingleton<IRatesService, RatesService>();
+builder.Services.AddSingleton<IQuoteService, QuoteService>();
 
 builder.Services.AddControllers();
 

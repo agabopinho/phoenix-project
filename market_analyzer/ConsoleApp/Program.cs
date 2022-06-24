@@ -23,8 +23,7 @@ builder.UseSerilog((context, services, configuration) => configuration
 builder.ConfigureServices(services =>
 {
     services.AddSingleton<ILoopService, LoopService>();
-    services.AddSingleton<IStateService, StateService>();
-    services.AddSingleton<IRatesService, BacktestingRatesService>();
+    services.AddSingleton<IQuoteService, BacktestingQuoteService>();
 
     services.AddHostedService<WorkerService>();
 });

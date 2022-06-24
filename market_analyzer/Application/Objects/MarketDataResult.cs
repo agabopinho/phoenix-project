@@ -7,22 +7,22 @@
             Symbol = symbol.ToUpper();
         }
 
-        public MarketDataResult(string symbol, RatesInfo ratesInfo, IEnumerable<Rate> rates)
+        public MarketDataResult(string symbol, QuoteInfo info, IEnumerable<CustomQuote> quotes)
         {
             Symbol = symbol.ToUpper();
-            SetResult(ratesInfo, rates);
+            SetResult(info, quotes);
         }
 
-        private void SetResult(RatesInfo ratesInfo, IEnumerable<Rate> rates)
+        private void SetResult(QuoteInfo info, IEnumerable<CustomQuote> quotes)
         {
-            RatesInfo = ratesInfo;
-            Rates = rates;
+            Info = info;
+            Quotes = quotes;
             HasResult = true;
         }
 
         public string Symbol { get; }
-        public RatesInfo? RatesInfo { get; private set; }
-        public IEnumerable<Rate>? Rates { get; private set; }
+        public QuoteInfo? Info { get; private set; }
+        public IEnumerable<CustomQuote>? Quotes { get; private set; }
         public bool HasResult { get; private set; } = false;
     }
 }

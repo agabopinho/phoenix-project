@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Application.Objects
 {
-    public class RatesInfo
+    public class QuoteInfo 
     {
         [JsonPropertyName("init_at"), JsonConverter(typeof(TimestampConverter))]
         public DateTime InitAt { get; set; }
@@ -23,4 +23,5 @@ namespace Application.Objects
         [JsonPropertyName("current_count")]
         public double CurrentCount { get; set; }
     }
+
 }

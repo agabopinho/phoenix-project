@@ -1,4 +1,5 @@
 import asyncio
+from ctypes.wintypes import PINT
 import json
 import logging
 import platform
@@ -21,10 +22,11 @@ logger = logging.getLogger("areq")
 
 LOCAL_TZ = pytz.timezone('America/Sao_Paulo')
 
-LOAD_OFFSET_INIT: timedelta = timedelta(days=1)
-LOAD_OFFSET_POLLING: timedelta = timedelta(minutes=2)
-LOAD_TIMEFRAME: int = mt5.TIMEFRAME_M1
-LOAD_TIMEFRAME_NAME: str = 'M1'
+LOAD_OFFSET_INIT: timedelta = timedelta(hours=12)
+LOAD_OFFSET_POLLING: timedelta = timedelta(minutes=5)
+
+LOAD_TIMEFRAME_NAME: str = '1M'
+LOAD_TIMEFRAME_VALUE: timedelta = timedelta(seconds=60)
 
 lastsymbols: list[str] = []
 lastsymbolsreadaat: datetime = datetime.now()
@@ -95,21 +97,23 @@ async def polling(symbols: list[str], redis: aioredis.Redis):
 
 
 async def updatesymbol(symbol: str, redis: aioredis.Redis):
-    datenow = datetime.now(LOCAL_TZ)
+    datenow = datetime.now(LOCAL_TZ).replace(tzinfo=pytz.utc)
 
     if await redis.exists(getsymbolmetakey(symbol)) == 0:
-        fromdate = (datenow - LOAD_OFFSET_INIT).replace(tzinfo=pytz.utc)
-        todate = (datenow + timedelta(days=1)).replace(tzinfo=pytz.utc)
+        fromdate = (datenow - LOAD_OFFSET_INIT)
+        todate = (datenow + timedelta(days=1))
 
         await initdata(symbol, fromdate, todate, redis)
 
         return
 
-    fromdate = (datenow - LOAD_OFFSET_POLLING).replace(tzinfo=pytz.utc)
-    todate = (datenow + timedelta(days=1)).replace(tzinfo=pytz.utc)
+    fromdate = (datenow - LOAD_OFFSET_POLLING)
+    todate = (datenow + timedelta(days=1))
 
-    rates = mt5.copy_rates_range(
-        symbol.upper(), LOAD_TIMEFRAME, fromdate, todate)
+    ticks = mt5.copy_ticks_range(
+        symbol.upper(), fromdate, todate, mt5.COPY_TICKS_TRADE)
+
+    rates = tickstorates(ticks)
 
     await updatecache(symbol, LOAD_TIMEFRAME_NAME, rates, None, redis)
 
@@ -117,8 +121,10 @@ async def updatesymbol(symbol: str, redis: aioredis.Redis):
 async def initdata(symbol: list[str], fromdate: datetime, todate: datetime, redis: aioredis.Redis):
     logger.info('starting symbol %s', symbol)
 
-    rates = mt5.copy_rates_range(
-        symbol.upper(), LOAD_TIMEFRAME, fromdate, todate)
+    ticks = mt5.copy_ticks_range(
+        symbol.upper(), fromdate, todate, mt5.COPY_TICKS_TRADE)
+
+    rates = tickstorates(ticks)
 
     metadata = {
         'init_at': datetime.now().timestamp(),
@@ -128,15 +134,28 @@ async def initdata(symbol: list[str], fromdate: datetime, todate: datetime, redi
     await updatecache(symbol, LOAD_TIMEFRAME_NAME, rates, metadata, redis)
 
 
+def tickstorates(ticks: any) -> pd.DataFrame:
+    ticksdata = pd.DataFrame(ticks)
+    ticksdata = ticksdata.loc[ticksdata['last'] > 0]
+    ticksdata.index = pd.to_datetime(
+        ticksdata['time_msc'], unit='ms', utc=True)
+    ticksdata.index.name = 'time'
+
+    ticksdata.drop(columns=['time', 'time_msc'], inplace=True)
+    ohlc = ticksdata.resample(LOAD_TIMEFRAME_VALUE)['last'].ohlc()
+
+    return ohlc.loc[(ohlc['open'] > 0) & (ohlc['high'] > 0) & (ohlc['low'] > 0) & (ohlc['close'] > 0)]
+
+
 async def updatecache(symbol: list[str], timeframe: str, rates: any, metainfo: dict[any, any], redis: aioredis.Redis):
-    rates_frame = pd.DataFrame(rates)
+    ratesdata = pd.DataFrame(rates)
     exp = timedelta(minutes=5)
 
     headkey = getheaddatakey()
     symbolkey = getsymbolrateskey(symbol, timeframe)
     symbolmetakey = getsymbolmetakey(symbol)
 
-    if rates_frame.empty:
+    if ratesdata.empty:
         logger.warning('No data for symbol: %s', symbol)
 
         await redis.expire(headkey, exp)
@@ -146,11 +165,9 @@ async def updatecache(symbol: list[str], timeframe: str, rates: any, metainfo: d
         return
 
     mapping = {}
-    for _, row in rates_frame.iterrows():
-        time = datetime.fromtimestamp(row['time'], pytz.utc)
-        row['time'] = LOCAL_TZ.localize(time.replace(tzinfo=None)).timestamp()
 
-        score = row['time']
+    for index, row in ratesdata.iterrows():
+        score = LOCAL_TZ.localize(index.replace(tzinfo=None)).timestamp()
         data = row.to_json(orient='values')
 
         mapping[score] = data
@@ -168,7 +185,7 @@ async def updatecache(symbol: list[str], timeframe: str, rates: any, metainfo: d
         metainfo.update(metadata)
         metadata = metainfo
 
-    await redis.set(headkey, rates_frame.columns.to_series().to_json(orient='values'), ex=exp)
+    await redis.set(headkey, ratesdata.columns.to_series().to_json(orient='values'), ex=exp)
 
     await redis.hset(symbolkey, mapping=mapping)
     await redis.expire(symbolkey, exp)

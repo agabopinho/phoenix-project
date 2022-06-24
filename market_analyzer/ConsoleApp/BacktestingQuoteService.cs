@@ -3,21 +3,21 @@ using Application.Services;
 
 namespace ConsoleApp;
 
-public class BacktestingRatesService : IRatesService
+public class BacktestingQuoteService : IQuoteService
 {
-    public Task<MarketDataResult> GetRatesAsync(string symbol, CancellationToken cancellationToken)
+    public Task<MarketDataResult> GetQuotesAsync(string symbol, CancellationToken cancellationToken)
     {
         var marketDataResult = new MarketDataResult(
             symbol,
-            new RatesInfo
+            new QuoteInfo
             {
                 UpdatedAt = DateTime.Now,
             }, 
             new[]
             {
-                new Rate
+                new CustomQuote
                 {
-                    Time = DateTime.Now,
+                    Date = DateTime.Now,
                     Close = 1000
                 }
             });

@@ -5,7 +5,12 @@ namespace Application.Helpers
     public static class DateTimeExtensions
     {
         public static DateTime ToDateTime(this double timestamp)
-            => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UnixEpoch.AddSeconds(timestamp), Defaults.DefaultTimeZone);
+        {
+            var utcDate = DateTime.UnixEpoch.AddSeconds(timestamp);
+            var defaultTimeZoneDate = TimeZoneInfo.ConvertTimeFromUtc(utcDate, Defaults.DefaultTimeZone);
+
+            return defaultTimeZoneDate;
+        }
 
         public static double ToTimestamp(this DateTime dateTime)
             => (dateTime - DateTime.UnixEpoch).TotalSeconds;

@@ -1,27 +1,24 @@
 ﻿using Application.Constants;
 using Application.Objects;
 using Microsoft.Extensions.Logging;
+using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
     public class LoopService : ILoopService
     {
-        private readonly IRatesService _ratesService;
-        private readonly IStateService _stateService;
+        private readonly IQuoteService _ratesService;
         private readonly ILogger<LoopService> _logger;
 
-        private IStateManager? StateManager = null;
-
-        public LoopService(IRatesService ratesService, IStateService stateService, ILogger<LoopService> logger)
+        public LoopService(IQuoteService ratesService, ILogger<LoopService> logger)
         {
             _ratesService = ratesService;
-            _stateService = stateService;
             _logger = logger;
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var marketDataResult = await _ratesService.GetRatesAsync(Defaults.Symbol, cancellationToken);
+            var marketDataResult = await _ratesService.GetQuotesAsync(Defaults.Symbol, cancellationToken);
 
             if (!marketDataResult.HasResult)
             {
@@ -30,16 +27,13 @@ namespace Application.Services
                 return;
             }
 
-            if (StateManager is null)
-            {
-                StateManager = _stateService.CreateStateManager(marketDataResult);
+            var r = marketDataResult.Quotes!.Last();
+            _logger.LogInformation("{@data}", new { r.Date, r.Close, Rates = true });
 
-                return;
-            }
+            var renkos = marketDataResult.Quotes!.GetRenko(25);
 
-            _stateService.UpdateState(StateManager, marketDataResult);
-
-            _logger.LogInformation("{@data}", StateManager.PrintInformation());
+            var k = renkos.OrderBy(it => it.Date).Last();
+            _logger.LogInformation("{@data}", new { k.Date, k });
 
             return;
         }

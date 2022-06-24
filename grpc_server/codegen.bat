@@ -1,0 +1,1 @@
+python -m grpc_tools.protoc -Iprotos --python_out=codegen/. --grpc_python_out=codegen .\protos\terminal.proto

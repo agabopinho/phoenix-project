@@ -1,23 +1,20 @@
 ﻿using Application.Constants;
 using Application.Objects;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Text.Json;
 
 namespace Application.Services
 {
-    public class RatesService : IRatesService
+    public class QuoteService : IQuoteService
     {
         private readonly IDatabase _database;
-        private readonly ILogger<RatesService> _logger;
 
-        public RatesService(IDatabase database, ILogger<RatesService> logger)
+        public QuoteService(IDatabase database)
         {
             _database = database;
-            _logger = logger;
         }
 
-        public async Task<MarketDataResult> GetRatesAsync(string symbol, CancellationToken _)
+        public async Task<MarketDataResult> GetQuotesAsync(string symbol, CancellationToken _)
         {
             if (string.IsNullOrWhiteSpace(symbol))
                 throw new ArgumentNullException(nameof(symbol));
@@ -27,19 +24,22 @@ namespace Application.Services
             if (string.IsNullOrWhiteSpace(metaValue))
                 return new MarketDataResult(symbol);
 
-            var ratesInfo = JsonSerializer.Deserialize<RatesInfo>(metaValue!);
-            var allValues = new List<Rate>(Defaults.DefaultListCapacity);
+            var ratesInfo = JsonSerializer.Deserialize<QuoteInfo>(metaValue!);
+            var allValues = new List<CustomQuote>(Defaults.DefaultListCapacity);
 
             var key = GetSymbolRatesKey(symbol, ratesInfo!.AvailableRatesTimeframes!.First());
-            var list = new List<Rate>(Defaults.DefaultListCapacity);
+            var list = new List<CustomQuote>(Defaults.DefaultListCapacity);
 
             await foreach (var value in _database.HashScanAsync(key))
-                list.Add(new Rate(JsonSerializer.Deserialize<double[]>(value.Value!)!));
+                list.Add(new CustomQuote((double)value.Name, JsonSerializer.Deserialize<decimal[]>(value.Value!)!));
 
             return new MarketDataResult(
                 symbol: symbol,
-                ratesInfo: ratesInfo,
-                rates: list.OrderByDescending(it => it.Time));
+                info: ratesInfo,
+                quotes: list
+                    .GroupBy(it => it.Date)
+                    .Select(it => it.First())
+                    .OrderBy(it => it.Date));
         }
 
         private static string GetSymbolRatesKey(string symbol, string timeframe)
