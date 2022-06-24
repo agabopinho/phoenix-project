@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Application.Objects
 {
-    public class QuoteInfo 
+    public class QuoteInfo
     {
         [JsonPropertyName("init_at"), JsonConverter(typeof(TimestampConverter))]
         public DateTime InitAt { get; set; }

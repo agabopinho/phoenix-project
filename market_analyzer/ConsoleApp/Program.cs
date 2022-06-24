@@ -1,6 +1,5 @@
 ﻿using Application.BackgroupServices;
 using Application.Services;
-using ConsoleApp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -23,7 +22,7 @@ builder.UseSerilog((context, services, configuration) => configuration
 builder.ConfigureServices(services =>
 {
     services.AddSingleton<ILoopService, LoopService>();
-    services.AddSingleton<IQuoteService, BacktestingQuoteService>();
+    services.AddSingleton<IQuoteService, QuoteService>();
 
     services.AddHostedService<WorkerService>();
 });

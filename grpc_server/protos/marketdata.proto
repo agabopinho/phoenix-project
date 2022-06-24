@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option csharp_namespace = "Grpc.Terminal";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package terminal;
+
+enum CopyTicks {
+  ALL = 0;
+  INFO = 1;
+  TRADE = 2;
+}
+
+enum TickFlags {
+  TICK_FLAGS_UNKNOWN = 0;
+  TICK_FLAGS_BID   = 0x02;
+  TICK_FLAGS_ASK   = 0x04;
+  TICK_FLAGS_LAST  = 0x08;
+  TICK_FLAGS_VOLUME= 0x10;
+  TICK_FLAGS_BUY   = 0x20;
+  TICK_FLAGS_SELL  = 0x40;
+}
+
+service MarketData {
+  rpc CopyTicksRange (CopyTicksRangeRequest) returns (CopyTicksRangeReply) {}
+}
+
+message CopyTicksRangeRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  CopyTicks type = 4;
+}
+
+message CopyTicksRangeReply {
+  bool success = 1;
+  repeated Trade trades = 2;
+}
+
+message Trade {
+  google.protobuf.Timestamp time = 1;
+  google.protobuf.DoubleValue bid = 2;
+  google.protobuf.DoubleValue ask = 3;
+  google.protobuf.DoubleValue last = 4;
+  google.protobuf.DoubleValue volume = 5;
+  TickFlags flags = 6;
+  google.protobuf.DoubleValue realVolume = 7;
+}

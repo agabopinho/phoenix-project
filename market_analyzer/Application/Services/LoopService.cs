@@ -1,5 +1,4 @@
 ﻿using Application.Constants;
-using Application.Objects;
 using Microsoft.Extensions.Logging;
 using Skender.Stock.Indicators;
 
