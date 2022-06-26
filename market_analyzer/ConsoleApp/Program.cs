@@ -1,9 +1,11 @@
 ﻿using Application.BackgroupServices;
 using Application.Services;
+using Infrastructure.Terminal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
+using StackExchange.Redis;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
@@ -21,8 +23,24 @@ builder.UseSerilog((context, services, configuration) => configuration
 
 builder.ConfigureServices(services =>
 {
+    services.AddSingleton(_ =>
+    {
+        var multiplexer = ConnectionMultiplexer.Connect(new ConfigurationOptions
+        {
+            EndPoints = { "cache:6379" },
+            Password = "istrusted"
+        });
+
+        return multiplexer.GetDatabase(0);
+    });
+
+    services.AddMarketDataWrapper(configure =>
+        configure.Endpoint = "http://host.docker.internal:5051");
+
+    services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
+
+    services.AddSingleton<ITicksService, TicksService>();
     services.AddSingleton<ILoopService, LoopService>();
-    services.AddSingleton<IQuoteService, QuoteService>();
 
     services.AddHostedService<WorkerService>();
 });

@@ -16,6 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="..\..\grpc_server\protos\enums.proto" GrpcServices="Client">
+      <Link>Protos\enums.proto</Link>
+    </Protobuf>
     <Protobuf Include="..\..\grpc_server\protos\marketdata.proto" GrpcServices="Client">
       <Link>Protos\marketdata.proto</Link>
     </Protobuf>

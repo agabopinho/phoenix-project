@@ -1,0 +1,21 @@
+version: '3.4'
+
+services:
+  consoleapp:
+    image: ${DOCKER_REGISTRY-}consoleapp
+    build:
+      context: .
+      dockerfile: ConsoleApp/Dockerfile
+
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass istrusted
+    volumes: 
+      - cache:/data
+
+volumes:
+  cache:
+    driver: local
