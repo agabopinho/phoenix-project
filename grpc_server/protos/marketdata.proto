@@ -3,6 +3,7 @@ syntax = "proto3";
 option csharp_namespace = "Grpc.Terminal";
 
 import "enums.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
@@ -10,6 +11,8 @@ package terminal;
 
 service MarketData {
   rpc CopyTicksRangeStream (CopyTicksRangeRequest) returns (stream CopyTicksRangeReply) {}
+  rpc CopyRatesRangeStream (CopyRatesRangeRequest) returns (stream CopyRatesRangeReply) {}
+  rpc CopyRatesFromTicksRangeStream (CopyRatesFromTicksRangeRequest) returns (stream CopyRatesRangeReply) {}
 }
 
 message CopyTicksRangeRequest {
@@ -24,6 +27,26 @@ message CopyTicksRangeReply {
   repeated Trade trades = 1;
 }
 
+message CopyRatesRangeRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  Timeframe timeframe = 4;
+  int32 chunckSize = 5;
+}
+
+message CopyRatesRangeReply {
+  repeated Rate rates = 1;
+}
+
+message CopyRatesFromTicksRangeRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  google.protobuf.Duration timeframe = 4;
+  int32 chunckSize = 5;
+}
+
 message Trade {
   google.protobuf.Timestamp time = 1;
   google.protobuf.DoubleValue bid = 2;
@@ -32,4 +55,15 @@ message Trade {
   google.protobuf.DoubleValue volume = 5;
   TickFlags flags = 6;
   google.protobuf.DoubleValue realVolume = 7;
+}
+
+message Rate {
+  google.protobuf.Timestamp time = 1;
+  google.protobuf.DoubleValue open = 2;
+  google.protobuf.DoubleValue high = 3;
+  google.protobuf.DoubleValue low = 4;
+  google.protobuf.DoubleValue close = 5;
+  google.protobuf.DoubleValue tickVolume = 6;
+  google.protobuf.DoubleValue spread = 7;
+  google.protobuf.DoubleValue volume = 8;
 }

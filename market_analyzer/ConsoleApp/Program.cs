@@ -4,11 +4,9 @@ using Infrastructure.Terminal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
-using Serilog.Events;
 using StackExchange.Redis;
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateBootstrapLogger();
@@ -28,6 +26,7 @@ builder.ConfigureServices(services =>
         var multiplexer = ConnectionMultiplexer.Connect(new ConfigurationOptions
         {
             EndPoints = { "cache:6379" },
+            // EndPoints = { "localhost:6379" },
             Password = "istrusted"
         });
 
@@ -36,6 +35,7 @@ builder.ConfigureServices(services =>
 
     services.AddMarketDataWrapper(configure =>
         configure.Endpoint = "http://host.docker.internal:5051");
+    //configure.Endpoint = "http://localhost:5051");
 
     services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
 

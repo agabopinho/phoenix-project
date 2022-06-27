@@ -1,7 +1,6 @@
 ﻿using Grpc.Terminal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System.Runtime.Serialization;
 
 namespace Infrastructure.Terminal
 {
@@ -20,10 +19,8 @@ namespace Infrastructure.Terminal
                 var options = serviceProvider.GetRequiredService<IOptionsSnapshot<MarketDataWrapperOptions>>();
                 configure.Address = new Uri(options.Value.Endpoint!);
             })
-            .ConfigureChannel(configure => 
-            {
-                configure.MaxReceiveMessageSize = int.MaxValue;
-            });
+            .ConfigureChannel((serviceProvider, configure) =>
+                configure.MaxReceiveMessageSize = int.MaxValue);
         }
     }
 }

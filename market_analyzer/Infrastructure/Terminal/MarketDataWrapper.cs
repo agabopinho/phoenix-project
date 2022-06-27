@@ -9,10 +9,26 @@ namespace Infrastructure.Terminal
 {
     public interface IMarketDataWrapper
     {
+        AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesRangeStream(
+            string symbol,
+            DateTime utcFromDate,
+            DateTime utcToDate,
+            Timeframe timeframe,
+            int chunkSize,
+            CancellationToken cancellationToken);
+
+        AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesFromTicksRangeStream(
+            string symbol,
+            DateTime utcFromDate,
+            DateTime utcToDate,
+            TimeSpan timeframe,
+            int chunkSize,
+            CancellationToken cancellationToken);
+
         AsyncServerStreamingCall<CopyTicksRangeReply> CopyTicksRangeStream(
-            string symbol, 
-            DateTime utcFromDate, 
-            DateTime utcToDate, 
+            string symbol,
+            DateTime utcFromDate,
+            DateTime utcToDate,
             CopyTicks type,
             int chunkSize,
             CancellationToken cancellationToken);
@@ -32,10 +48,10 @@ namespace Infrastructure.Terminal
         }
 
         public AsyncServerStreamingCall<CopyTicksRangeReply> CopyTicksRangeStream(
-            string symbol, 
-            DateTime utcFromDate, 
-            DateTime utcToDate, 
-            CopyTicks type, 
+            string symbol,
+            DateTime utcFromDate,
+            DateTime utcToDate,
+            CopyTicks type,
             int chunkSize,
             CancellationToken cancellationToken)
         {
@@ -51,6 +67,50 @@ namespace Infrastructure.Terminal
             };
 
             return client.CopyTicksRangeStream(request, cancellationToken: cancellationToken);
+        }
+
+        public AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesRangeStream(
+           string symbol,
+           DateTime utcFromDate,
+           DateTime utcToDate,
+           Timeframe timeframe,
+           int chunkSize,
+           CancellationToken cancellationToken)
+        {
+            var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+
+            var request = new CopyRatesRangeRequest
+            {
+                Symbol = symbol,
+                FromDate = Timestamp.FromDateTime(utcFromDate),
+                ToDate = Timestamp.FromDateTime(utcToDate),
+                Timeframe = timeframe,
+                ChunckSize = chunkSize
+            };
+
+            return client.CopyRatesRangeStream(request, cancellationToken: cancellationToken);
+        }
+
+        public AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesFromTicksRangeStream(
+           string symbol,
+           DateTime utcFromDate,
+           DateTime utcToDate,
+           TimeSpan timeframe,
+           int chunkSize,
+           CancellationToken cancellationToken)
+        {
+            var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+
+            var request = new CopyRatesFromTicksRangeRequest
+            {
+                Symbol = symbol,
+                FromDate = Timestamp.FromDateTime(utcFromDate),
+                ToDate = Timestamp.FromDateTime(utcToDate),
+                Timeframe = Duration.FromTimeSpan(timeframe),
+                ChunckSize = chunkSize
+            };
+
+            return client.CopyRatesFromTicksRangeStream(request, cancellationToken: cancellationToken);
         }
     }
 }
