@@ -23,23 +23,21 @@ builder.ConfigureServices(services =>
 {
     services.AddSingleton(_ =>
     {
-        var multiplexer = ConnectionMultiplexer.Connect(new ConfigurationOptions
+        var options = new ConfigurationOptions
         {
             EndPoints = { "cache:6379" },
-            // EndPoints = { "localhost:6379" },
             Password = "istrusted"
-        });
+        };
 
+        var multiplexer = ConnectionMultiplexer.Connect(options);
         return multiplexer.GetDatabase(0);
     });
 
     services.AddMarketDataWrapper(configure =>
         configure.Endpoint = "http://host.docker.internal:5051");
-    //configure.Endpoint = "http://localhost:5051");
 
     services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
-
-    services.AddSingleton<ITicksService, TicksService>();
+    services.AddSingleton<IRatesStateService, RatesStateService>();
     services.AddSingleton<ILoopService, LoopService>();
 
     services.AddHostedService<WorkerService>();

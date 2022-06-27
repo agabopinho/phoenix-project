@@ -1,5 +1,4 @@
-﻿using Application.Helpers;
-using Skender.Stock.Indicators;
+﻿using Skender.Stock.Indicators;
 
 namespace Application.Objects
 {
@@ -7,16 +6,6 @@ namespace Application.Objects
     {
         public CustomQuote()
         {
-        }
-
-        public CustomQuote(double index, decimal[] values)
-        {
-            Date = index.ToDateTime();
-            Open = values[0];
-            High = values[1];
-            Low = values[2];
-            Close = values[3];
-            Volume = 0;
         }
 
         public DateTime Date { get; set; }

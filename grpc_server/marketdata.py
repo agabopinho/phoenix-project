@@ -111,13 +111,13 @@ class MarketData(services.MarketDataServicer):
             symbol=request.symbol,
             fromDate=request.fromDate,
             toDate=request.toDate,
-            type=mt5.COPY_TICKS_TRADE))
+            type=int(mt5.COPY_TICKS_TRADE)))
 
         if data is None:
             return
 
-        rule = request.timeframe.ToTimedelta()
-        resample = self.__ticksToDateFrame(data).resample(rule, label='left')
+        resample = self.__ticksToDateFrame(data).resample(
+            rule=request.timeframe.ToTimedelta(), label='left')
 
         rates = resample['last'].ohlc()
         rates['tick_volume'] = resample['last'].count()
@@ -129,7 +129,6 @@ class MarketData(services.MarketDataServicer):
                 time = protoTimestamp.Timestamp()
                 time.FromMilliseconds(
                     int(index.timestamp() * _MILLIS_PER_SECOND))
-
                 chunkData.append(protos.Rate(
                     time=time,
                     open=protoWrappers.DoubleValue(value=rate['open']),
