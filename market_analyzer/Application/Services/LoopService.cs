@@ -1,4 +1,4 @@
-﻿using Infrastructure.Terminal;
+﻿using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -34,12 +34,25 @@ namespace Application.Services
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
+            
             var check = CheckAsync(cancellationToken);
-            var horders = _orderManagementWrapper.GetHistoryOrdersAsync("*", DateTime.UtcNow.AddYears(-5), DateTime.UtcNow.AddDays(1), cancellationToken);
+            
+            var histOrders = _orderManagementWrapper.GetHistoryOrdersAsync("*", DateTime.UtcNow.AddYears(-5), DateTime.UtcNow.AddDays(1), cancellationToken);
+            var histOrderById = _orderManagementWrapper.GetHistoryOrdersAsync(ticket: 1380587995, cancellationToken: cancellationToken);
+            
             var orders = _orderManagementWrapper.GetOrdersAsync(group: "*", cancellationToken: cancellationToken);
+            var orderById = _orderManagementWrapper.GetOrdersAsync(ticket: 1380592911, cancellationToken: cancellationToken);
+            
             var positions = _orderManagementWrapper.GetPositionsAsync(group: "*", cancellationToken: cancellationToken);
-            await Task.WhenAll(check, horders, orders, positions);
+            var positionById = _orderManagementWrapper.GetPositionsAsync(ticket: 1380592864, cancellationToken: cancellationToken);
+             
+            var deals = _orderManagementWrapper.GetHistoryDealsAsync("*", DateTime.UtcNow.AddYears(-5), DateTime.UtcNow.AddDays(1), cancellationToken);
+            var dealById = _orderManagementWrapper.GetHistoryDealsAsync(ticket: 1360478968, cancellationToken: cancellationToken);
+
+            await Task.WhenAll(check, histOrders, orders, positions, deals, histOrderById, orderById, positionById, dealById);
+            
             stopwatch.Stop();
+            
             _logger.LogInformation("Run in {@data}ms", stopwatch.Elapsed.TotalMilliseconds);
         }
 

@@ -2,7 +2,7 @@
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Terminal;
-using Infrastructure.Terminal;
+using Infrastructure.GrpcServerTerminal;
 using StackExchange.Redis;
 
 namespace Application.Services

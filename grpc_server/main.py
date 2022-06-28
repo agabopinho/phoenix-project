@@ -5,12 +5,12 @@ import sys
 from concurrent import futures
 
 import grpc
+import MetaTrader5 as mt5
 
 import marketdata_pb2_grpc as marketDataService
 import ordermanagement_pb2_grpc as orderManagementService
 from terminal.marketdata import MarketData
 from terminal.ordermanagement import OrderManagement
-import MetaTrader5 as mt5
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s: %(message)s",

@@ -7,16 +7,16 @@ import ordermanagement_pb2 as protos
 import ordermanagement_pb2_grpc as services
 import pytz
 
-from terminal.helpers import TerminalHelper
-
 logger = logging.getLogger("app")
 
 
 class OrderManagement(services.OrderManagementServicer):
     def __parseOrders(self, result):
         orders = []
-        for order in result:
+
+        for order in result or []:
             order = order._asdict()
+
             timeSetup = protoTimestamp.Timestamp()
             timeSetup.FromMilliseconds(int(order['time_setup_msc']))
 
@@ -29,12 +29,12 @@ class OrderManagement(services.OrderManagementServicer):
             orders.append(protos.Order(
                 ticket=protoWrappers.Int64Value(value=order['ticket']),
                 timeSetup=timeSetup,
-                orderType=int(order['type']),
-                orderState=int(order['state']),
+                type=int(order['type']),
+                state=int(order['state']),
                 timeExpiration=timeExpiration,
                 timeDone=timeDone,
                 typeFilling=int(order['type_filling']),
-                orderTime=int(order['type_time']),
+                typeTime=int(order['type_time']),
                 magic=protoWrappers.Int64Value(value=order['magic']),
                 reason=int(order['reason']),
                 positionId=protoWrappers.Int64Value(
@@ -56,72 +56,212 @@ class OrderManagement(services.OrderManagementServicer):
                 comment=order['comment'],
                 externalId=order['external_id'],
             ))
+
         return orders
 
-    def GetPositions(self, request, _):
-        result = None
+    def __orderRequest(self, request):
+        orderRequest = {}
 
-        if request.symbol:
+        if request.HasField('action'):
+            orderRequest['action'] = int(request.action)
+
+        if request.HasField('magic'):
+            orderRequest['magic'] = int(request.magic)
+
+        if request.HasField('order'):
+            orderRequest['order'] = int(request.order)
+
+        if request.HasField('symbol'):
+            orderRequest['symbol'] = request.symbol
+
+        if request.HasField('volume'):
+            orderRequest['volume'] = float(request.volume.value)
+
+        if request.HasField('price'):
+            orderRequest['price'] = float(request.price.value)
+
+        if request.HasField('stopLimit'):
+            orderRequest['stoplimit'] = request.stopLimit
+
+        if request.HasField('stopLoss'):
+            orderRequest['sl'] = request.stopLoss
+
+        if request.HasField('takeProfit'):
+            orderRequest['tp'] = request.takeProfit
+
+        if request.HasField('deviation'):
+            orderRequest['deviation'] = request.deviation
+
+        if request.HasField('type'):
+            orderRequest['type'] = request.type
+
+        if request.HasField('typeFilling'):
+            orderRequest['type_filling'] = request.typeFilling
+
+        if request.HasField('typeTime'):
+            orderRequest['type_time'] = request.typeTime
+
+        if request.HasField('expiration'):
+            orderRequest['expiration'] = request.expiration
+
+        if request.HasField('comment'):
+            orderRequest['comment'] = request.comment
+
+        if request.HasField('position'):
+            orderRequest['position'] = request.position
+
+        if request.HasField('positionBy'):
+            orderRequest['position_by'] = request.positionBy
+
+        return orderRequest
+
+    def GetPositions(self, request, _):
+        result = []
+
+        if request.HasField('symbol'):
             result = mt5.positions_get(symbol=request.symbol)
-        elif request.group:
+        elif request.HasField('group'):
             result = mt5.positions_get(group=request.group)
-        elif request.ticket:
+        elif request.HasField('ticket'):
             result = mt5.positions_get(ticket=request.ticket.value)
+        else:
+            result = mt5.positions_get()
 
         positions = []
-        for p in result:
-            p = p._asdict()
+        for position in result or []:
+            position = position._asdict()
             time = protoTimestamp.Timestamp()
-            time.FromMilliseconds(int(p['time_msc']))
+            time.FromMilliseconds(int(position['time_msc']))
 
             timeUpdate = protoTimestamp.Timestamp()
-            timeUpdate.FromMilliseconds(int(p['time_update_msc']))
+            timeUpdate.FromMilliseconds(int(position['time_update_msc']))
 
             positions.append(protos.Position(
-                ticket=protoWrappers.Int64Value(value=p['ticket']),
+                ticket=protoWrappers.Int64Value(value=position['ticket']),
                 time=time,
-                type=int(p['type']),
-                magic=protoWrappers.Int64Value(value=p['magic']),
-                identifier=protoWrappers.Int64Value(value=p['identifier']),
-                reason=int(p['reason']),
-                volume=protoWrappers.DoubleValue(value=p['volume']),
-                priceOpen=protoWrappers.DoubleValue(value=p['price_open']),
-                stopLoss=protoWrappers.DoubleValue(value=p['sl']),
-                takeProfit=protoWrappers.DoubleValue(value=p['tp']),
-                priceCurrent=protoWrappers.DoubleValue(
-                    value=p['price_current']),
-                swap=protoWrappers.DoubleValue(value=p['swap']),
-                profit=protoWrappers.DoubleValue(value=p['profit']),
-                symbol=p['symbol'],
-                comment=p['comment'],
-                externalId=p['external_id'],
                 timeUpdate=timeUpdate,
+                type=int(position['type']),
+                magic=protoWrappers.Int64Value(value=position['magic']),
+                identifier=protoWrappers.Int64Value(
+                    value=position['identifier']),
+                reason=int(position['reason']),
+                volume=protoWrappers.DoubleValue(value=position['volume']),
+                priceOpen=protoWrappers.DoubleValue(
+                    value=position['price_open']),
+                stopLoss=protoWrappers.DoubleValue(value=position['sl']),
+                takeProfit=protoWrappers.DoubleValue(value=position['tp']),
+                priceCurrent=protoWrappers.DoubleValue(
+                    value=position['price_current']),
+                swap=protoWrappers.DoubleValue(value=position['swap']),
+                profit=protoWrappers.DoubleValue(value=position['profit']),
+                symbol=position['symbol'],
+                comment=position['comment'],
+                externalId=position['external_id'],
             ))
+
         return protos.GetPositionsReply(positions=positions)
 
     def GetOrders(self, request, _):
-        result = None
+        result = []
 
-        if request.symbol:
+        if request.HasField('symbol'):
             result = mt5.orders_get(symbol=request.symbol)
-        elif request.group:
+        elif request.HasField('group'):
             result = mt5.orders_get(group=request.group)
-        elif request.ticket:
+        elif request.HasField('ticket'):
             result = mt5.orders_get(ticket=request.ticket.value)
+        else:
+            result = mt5.orders_get()
 
         return protos.GetOrdersReply(orders=self.__parseOrders(result))
 
     def GetHistoryOrders(self, request, _):
-        result = None
+        result = []
 
-        if request.group:
+        if request.HasField('group'):
             result = mt5.history_orders_get(
                 request.group.fromDate.ToDatetime(tzinfo=pytz.utc),
                 request.group.toDate.ToDatetime(tzinfo=pytz.utc),
-                group=request.group.value)
-        elif request.ticket:
-            result = mt5.history_orders_get(ticket=request.ticket)
-        elif request.position:
-            result = mt5.history_orders_get(position=request.position)
+                group=request.group.groupValue)
+        elif request.HasField('ticket'):
+            result = mt5.history_orders_get(ticket=request.ticket.value)
+        elif request.HasField('position'):
+            result = mt5.history_orders_get(position=request.position.value)
 
-        return protos.GetOrdersReply(orders=self.__parseOrders(result))
+        return protos.GetHistoryOrdersReply(orders=self.__parseOrders(result))
+
+    def GetHistoryDeals(self, request, _):
+        result = []
+
+        if request.HasField('group'):
+            result = mt5.history_deals_get(
+                request.group.fromDate.ToDatetime(tzinfo=pytz.utc),
+                request.group.toDate.ToDatetime(tzinfo=pytz.utc),
+                group=request.group.groupValue)
+        elif request.HasField('ticket'):
+            result = mt5.history_deals_get(ticket=request.ticket.value)
+        elif request.HasField('position'):
+            result = mt5.history_deals_get(position=request.position.value)
+
+        deals = []
+        for deal in result or []:
+            deal = deal._asdict()
+
+            time = protoTimestamp.Timestamp()
+            time.FromMilliseconds(int(deal['time_msc']))
+
+            deals.append(protos.Deal(
+                ticket=protoWrappers.Int64Value(value=deal['ticket']),
+                order=protoWrappers.Int64Value(value=deal['order']),
+                time=time,
+                type=int(deal['type']),
+                entry=int(deal['entry']),
+                magic=protoWrappers.Int64Value(value=deal['magic']),
+                reason=int(deal['reason']),
+                positionId=protoWrappers.Int64Value(value=deal['position_id']),
+                volume=protoWrappers.DoubleValue(value=deal['volume']),
+                price=protoWrappers.DoubleValue(value=deal['price']),
+                commission=protoWrappers.DoubleValue(value=deal['commission']),
+                swap=protoWrappers.DoubleValue(value=deal['swap']),
+                profit=protoWrappers.DoubleValue(value=deal['profit']),
+                fee=protoWrappers.DoubleValue(value=deal['fee']),
+                symbol=deal['symbol'],
+                comment=deal['comment'],
+                externalId=deal['external_id'],
+            ))
+        return protos.GetHistoryDealsReply(deals=deals)
+
+    def CheckOrder(self, request, _):
+        orderRequest = self.__orderRequest(request)
+
+        result = mt5.order_send(orderRequest)
+
+        return protos.CheckOrderReply(
+            retcode=int(result.retcode),
+            balance=protoWrappers.DoubleValue(value=result.balance),
+            equity=protoWrappers.DoubleValue(value=result.equity),
+            profit=protoWrappers.DoubleValue(value=result.profit),
+            margin=protoWrappers.DoubleValue(value=result.margin),
+            marginFree=protoWrappers.DoubleValue(value=result.margin_free),
+            marginLevel=protoWrappers.DoubleValue(value=result.margin_level),
+            comment=result.comment
+        )
+
+    def SendOrder(self, request, _):
+        orderRequest = self.__orderRequest(request)
+
+        result = mt5.order_send(orderRequest)
+
+        return protos.GetOrdersReply(
+            retcode=int(result.retcode),
+            deal=protoWrappers.Int64Value(value=result.deal),
+            order=protoWrappers.Int64Value(value=result.order),
+            volume=protoWrappers.DoubleValue(value=result.volume),
+            price=protoWrappers.DoubleValue(value=result.price),
+            bid=protoWrappers.DoubleValue(value=result.bid),
+            ask=protoWrappers.DoubleValue(value=result.ask),
+            comment=result.comment,
+            requestId=protoWrappers.Int64Value(value=result.request_id),
+            retcodeExternal=protoWrappers.Int64Value(
+                value=result.retcode_external),
+        )

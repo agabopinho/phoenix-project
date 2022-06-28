@@ -5,7 +5,7 @@ using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
 
-namespace Infrastructure.Terminal
+namespace Infrastructure.GrpcServerTerminal
 {
     public interface IMarketDataWrapper
     {

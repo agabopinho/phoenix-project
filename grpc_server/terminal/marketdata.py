@@ -5,7 +5,6 @@ import google.protobuf.wrappers_pb2 as protoWrappers
 import marketdata_pb2 as protos
 import marketdata_pb2_grpc as marketDataService
 import MetaTrader5 as mt5
-import pandas as pd
 import pytz
 
 from terminal.helpers import ChunkHelper, TerminalHelper

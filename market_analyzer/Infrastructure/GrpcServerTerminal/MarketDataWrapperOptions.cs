@@ -1,4 +1,4 @@
-﻿namespace Infrastructure.Terminal
+﻿namespace Infrastructure.GrpcServerTerminal
 {
     public class MarketDataWrapperOptions
     {

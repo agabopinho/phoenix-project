@@ -12,6 +12,9 @@ service OrderManagement {
   rpc GetPositions (GetPositionsRequest) returns (GetPositionsReply) {}
   rpc GetOrders (GetOrdersRequest) returns (GetOrdersReply) {}
   rpc GetHistoryOrders (GetHistoryOrdersRequest) returns (GetHistoryOrdersReply) {}
+  rpc GetHistoryDeals (GetHistoryDealsRequest) returns (GetHistoryDealsReply) {}
+  rpc CheckOrder (OrderRequest) returns (CheckOrderReply) {}
+  rpc SendOrder (OrderRequest) returns (SendOrderReply) {}
 }
 
 message GetPositionsRequest {
@@ -42,7 +45,7 @@ message GetHistoryOrdersRequest {
   message Group {
     google.protobuf.Timestamp fromDate = 1;
     google.protobuf.Timestamp toDate = 2;
-    string value = 3;
+    string groupValue = 3;
   }
   oneof typeSearch {
     Group group = 1;
@@ -55,35 +58,96 @@ message GetHistoryOrdersReply {
   repeated Order orders = 1;
 }
 
+message GetHistoryDealsRequest {
+  message Group {
+    google.protobuf.Timestamp fromDate = 1;
+    google.protobuf.Timestamp toDate = 2;
+    string groupValue = 3;
+  }
+  oneof typeSearch {
+    Group group = 1;
+    google.protobuf.Int64Value ticket = 2;
+    google.protobuf.Int64Value position = 3;
+  }
+}
+
+message GetHistoryDealsReply {
+  repeated Deal deals = 1;
+}
+
+message OrderRequest {
+   TradeAction action = 1;
+   google.protobuf.Int64Value magic = 2;
+   google.protobuf.Int64Value order = 3;
+   string symbol = 4;
+   google.protobuf.DoubleValue volume = 5;
+   google.protobuf.DoubleValue price = 6;
+   google.protobuf.DoubleValue stopLimit = 7;
+   google.protobuf.DoubleValue stopLoss = 8;
+   google.protobuf.DoubleValue takeProfit = 9;
+   google.protobuf.DoubleValue deviation = 10;
+   OrderType type = 11;
+   OrderFilling typeFilling = 12;
+   OrderTime typeTime = 13;
+   google.protobuf.Timestamp expiration = 14;
+   string comment = 15;
+   google.protobuf.Int64Value position = 16;
+   google.protobuf.Int64Value positionBy = 17;
+}
+
+message SendOrderReply {
+  TradeRetcode retcode = 1;
+  google.protobuf.Int64Value deal = 2;
+  google.protobuf.Int64Value order = 3;
+  google.protobuf.DoubleValue volume = 4;
+  google.protobuf.DoubleValue price = 5;
+  google.protobuf.DoubleValue bid = 6;
+  google.protobuf.DoubleValue ask = 7;
+  string comment = 8;
+  google.protobuf.Int64Value requestId = 9;
+  google.protobuf.Int64Value retcodeExternal = 10;
+}
+
+message CheckOrderReply {
+  TradeRetcode retcode = 1;
+  google.protobuf.DoubleValue balance = 2;
+  google.protobuf.DoubleValue equity = 3;
+  google.protobuf.DoubleValue profit = 4;
+  google.protobuf.DoubleValue margin = 5;
+  google.protobuf.DoubleValue marginFree = 6;
+  google.protobuf.DoubleValue marginLevel = 7;
+  string comment = 8;
+}
+
 message Position {
   google.protobuf.Int64Value ticket = 1;
   google.protobuf.Timestamp time = 2;
-  PositionType type = 3;
-  google.protobuf.Int64Value magic = 4;
-  google.protobuf.Int64Value identifier = 5;
-  PositionReason reason = 6;
-  google.protobuf.DoubleValue volume = 7; 
-  google.protobuf.DoubleValue priceOpen = 8; 
-  google.protobuf.DoubleValue stopLoss = 9; 
-  google.protobuf.DoubleValue takeProfit = 10; 
-  google.protobuf.DoubleValue priceCurrent = 11; 
-  google.protobuf.DoubleValue swap = 12; 
-  google.protobuf.DoubleValue profit = 13; 
-  string symbol = 14; 
-  string comment = 15;
-  string externalId = 16;
-  google.protobuf.Timestamp timeUpdate = 17;
+  google.protobuf.Timestamp timeUpdate = 3;
+  PositionType type = 4;
+  google.protobuf.Int64Value magic = 5;
+  google.protobuf.Int64Value identifier = 6;
+  PositionReason reason = 7;
+  google.protobuf.DoubleValue volume = 8; 
+  google.protobuf.DoubleValue priceOpen = 9; 
+  google.protobuf.DoubleValue stopLoss = 10; 
+  google.protobuf.DoubleValue takeProfit = 11; 
+  google.protobuf.DoubleValue priceCurrent = 12; 
+  google.protobuf.DoubleValue swap = 13; 
+  google.protobuf.DoubleValue profit = 14; 
+  string symbol = 15; 
+  string comment = 16;
+  string externalId = 17;
 }
 
 message Order {
   google.protobuf.Int64Value ticket = 1;
   google.protobuf.Timestamp timeSetup = 2; 
-  OrderType orderType = 3;
-  OrderState orderState = 4;
+  OrderType type = 3;
+  OrderState state = 4;
   google.protobuf.Timestamp timeExpiration = 5;
   google.protobuf.Timestamp timeDone = 6;
   OrderFilling typeFilling = 7;
-  OrderTime orderTime = 8;
+  OrderTime typeTime = 8;
   google.protobuf.Int64Value magic = 9;
   OrderReason reason = 10;
   google.protobuf.Int64Value positionId = 11;
@@ -98,4 +162,24 @@ message Order {
   string symbol = 20;
   string comment = 21;
   string externalId = 22;
+}
+
+message Deal {
+  google.protobuf.Int64Value ticket = 1;
+  google.protobuf.Int64Value order = 2;
+  google.protobuf.Timestamp time = 3; 
+  DealType type = 4;
+  DealEntry entry = 5;
+  google.protobuf.Int64Value magic = 6;
+  DealReason reason = 7;
+  google.protobuf.Int64Value positionId = 8;
+  google.protobuf.DoubleValue volume = 9;
+  google.protobuf.DoubleValue price = 10;
+  google.protobuf.DoubleValue commission = 11;
+  google.protobuf.DoubleValue swap = 12;
+  google.protobuf.DoubleValue profit = 13;
+  google.protobuf.DoubleValue fee = 14;
+  string symbol = 15;
+  string comment = 16;
+  string externalId = 17;
 }

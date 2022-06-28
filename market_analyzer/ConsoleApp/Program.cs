@@ -1,6 +1,6 @@
 ﻿using Application.BackgroupServices;
 using Application.Services;
-using Infrastructure.Terminal;
+using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;

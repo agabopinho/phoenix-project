@@ -2,21 +2,21 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Infrastructure.Terminal
+namespace Infrastructure.GrpcServerTerminal
 {
-    public static class OrderManagementWrapperExtensions
+    public static class MarketDataWrapperExtensions
     {
-        public static void AddOrderManagementWrapper(this IServiceCollection services, Action<OrderManagementWrapperOptions> configure)
+        public static void AddMarketDataWrapper(this IServiceCollection services, Action<MarketDataWrapperOptions> configure)
         {
-            services.AddOptions<OrderManagementWrapperOptions>()
+            services.AddOptions<MarketDataWrapperOptions>()
                 .Configure(configure)
                 .Validate(options =>
                     !string.IsNullOrWhiteSpace(options.Endpoint) &&
                     Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _));
 
-            services.AddGrpcClient<OrderManagement.OrderManagementClient>(OrderManagementWrapper.ClientName, (serviceProvider, configure) =>
+            services.AddGrpcClient<MarketData.MarketDataClient>(MarketDataWrapper.ClientName, (serviceProvider, configure) =>
             {
-                var options = serviceProvider.GetRequiredService<IOptionsSnapshot<OrderManagementWrapperOptions>>();
+                var options = serviceProvider.GetRequiredService<IOptionsSnapshot<MarketDataWrapperOptions>>();
                 configure.Address = new Uri(options.Value.Endpoint!);
             })
             .ConfigureChannel((serviceProvider, configure) =>
