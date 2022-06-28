@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+option csharp_namespace = "Grpc.Terminal";
+
+import "enums.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+package terminal;
+
+service OrderManagement {
+  rpc GetPositions (GetPositionsRequest) returns (GetPositionsReply) {}
+  rpc GetOrders (GetOrdersRequest) returns (GetOrdersReply) {}
+  rpc GetHistoryOrders (GetHistoryOrdersRequest) returns (GetHistoryOrdersReply) {}
+}
+
+message GetPositionsRequest {
+  oneof typeSearch {
+    string symbol = 1;
+    string group = 2;
+    google.protobuf.Int64Value ticket = 3;
+  }
+}
+
+message GetPositionsReply {
+  repeated Position positions = 1;
+}
+
+message GetOrdersRequest {
+  oneof typeSearch {
+    string symbol = 1;
+    string group = 2;
+    google.protobuf.Int64Value ticket = 3;
+  }
+}
+
+message GetOrdersReply {
+  repeated Order orders = 1;
+}
+
+message GetHistoryOrdersRequest {
+  message Group {
+    google.protobuf.Timestamp fromDate = 1;
+    google.protobuf.Timestamp toDate = 2;
+    string value = 3;
+  }
+  oneof typeSearch {
+    Group group = 1;
+    google.protobuf.Int64Value ticket = 2;
+    google.protobuf.Int64Value position = 3;
+  }
+}
+
+message GetHistoryOrdersReply {
+  repeated Order orders = 1;
+}
+
+message Position {
+  google.protobuf.Int64Value ticket = 1;
+  google.protobuf.Timestamp time = 2;
+  PositionType type = 3;
+  google.protobuf.Int64Value magic = 4;
+  google.protobuf.Int64Value identifier = 5;
+  PositionReason reason = 6;
+  google.protobuf.DoubleValue volume = 7; 
+  google.protobuf.DoubleValue priceOpen = 8; 
+  google.protobuf.DoubleValue stopLoss = 9; 
+  google.protobuf.DoubleValue takeProfit = 10; 
+  google.protobuf.DoubleValue priceCurrent = 11; 
+  google.protobuf.DoubleValue swap = 12; 
+  google.protobuf.DoubleValue profit = 13; 
+  string symbol = 14; 
+  string comment = 15;
+  string externalId = 16;
+  google.protobuf.Timestamp timeUpdate = 17;
+}
+
+message Order {
+  google.protobuf.Int64Value ticket = 1;
+  google.protobuf.Timestamp timeSetup = 2; 
+  OrderType orderType = 3;
+  OrderState orderState = 4;
+  google.protobuf.Timestamp timeExpiration = 5;
+  google.protobuf.Timestamp timeDone = 6;
+  OrderFilling typeFilling = 7;
+  OrderTime orderTime = 8;
+  google.protobuf.Int64Value magic = 9;
+  OrderReason reason = 10;
+  google.protobuf.Int64Value positionId = 11;
+  google.protobuf.Int64Value positionById = 12;
+  google.protobuf.DoubleValue volumeInitial = 13;
+  google.protobuf.DoubleValue volumeCurrent = 14;
+  google.protobuf.DoubleValue priceOpen = 15;
+  google.protobuf.DoubleValue stopLoss = 16;
+  google.protobuf.DoubleValue takeProfit = 17;
+  google.protobuf.DoubleValue priceCurrent = 18;
+  google.protobuf.DoubleValue priceStopLimit = 19;
+  string symbol = 20;
+  string comment = 21;
+  string externalId = 22;
+}

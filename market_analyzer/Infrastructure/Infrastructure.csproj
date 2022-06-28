@@ -22,6 +22,9 @@
     <Protobuf Include="..\..\grpc_server\protos\marketdata.proto" GrpcServices="Client">
       <Link>Protos\marketdata.proto</Link>
     </Protobuf>
+    <Protobuf Include="..\..\grpc_server\protos\ordermanagement.proto" GrpcServices="Client">
+      <Link>Protos\ordermanagement.proto</Link>
+    </Protobuf>
   </ItemGroup>
 
 

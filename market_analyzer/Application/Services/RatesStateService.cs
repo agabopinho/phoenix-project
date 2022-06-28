@@ -10,9 +10,12 @@ namespace Application.Services
     public interface IRatesStateService
     {
         Task CheckNewRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe, int chunkSize, CancellationToken cancellationToken);
+            string symbol, DateOnly date, TimeSpan timeframe,
+            int chunkSize, CancellationToken cancellationToken);
+
         Task<IEnumerable<Rate>> GetRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe, TimeSpan window, CancellationToken cancellationToken);
+            string symbol, DateOnly date, TimeSpan timeframe,
+            TimeSpan window, CancellationToken cancellationToken);
     }
 
     public class RatesStateService : IRatesStateService
@@ -27,7 +30,8 @@ namespace Application.Services
         }
 
         public async Task CheckNewRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe, int chunkSize, CancellationToken cancellationToken)
+            string symbol, DateOnly date, TimeSpan timeframe,
+            int chunkSize, CancellationToken cancellationToken)
         {
             var ratesKey = RatesKey(symbol, date, $"{timeframe.TotalSeconds}s");
             var lastRate = await GetLastRateAsync(ratesKey);
@@ -67,7 +71,8 @@ namespace Application.Services
         }
 
         public async Task<IEnumerable<Rate>> GetRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe, TimeSpan window, CancellationToken cancellationToken)
+            string symbol, DateOnly date, TimeSpan timeframe,
+            TimeSpan window, CancellationToken cancellationToken)
         {
             var ratesKey = RatesKey(symbol, date, $"{timeframe.TotalSeconds}s");
             var lastRate = await GetLastRateAsync(ratesKey);
@@ -80,14 +85,14 @@ namespace Application.Services
                 ratesKey,
                 start: lastRateScore - window.TotalSeconds,
                 stop: lastRateScore,
-                order: Order.Descending);
+                order: StackExchange.Redis.Order.Descending);
 
             return rates.Select(it => Rate.Parser.ParseFrom(it));
         }
 
-        private async Task<Rate?> GetLastRateAsync(string key)
+        private async Task<Rate?> GetLastRateAsync(string ratesKey)
         {
-            var rates = await _database.SortedSetRangeByRankAsync(key, stop: 0, order: Order.Descending);
+            var rates = await _database.SortedSetRangeByRankAsync(ratesKey, stop: 0, order: StackExchange.Redis.Order.Descending);
 
             if (!rates.Any())
                 return null;
@@ -98,7 +103,7 @@ namespace Application.Services
         private static double Score(Rate rate)
             => rate.Time.ToDateTime().ToTimestamp();
 
-        public static string RatesKey(string symbol, DateOnly date, string timeframe)
+        private static string RatesKey(string symbol, DateOnly date, string timeframe)
             => $"{symbol.ToLower()}:{date:yyyyMMdd}:rates:{timeframe}";
     }
 }

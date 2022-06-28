@@ -2,69 +2,41 @@ import logging
 
 import google.protobuf.timestamp_pb2 as protoTimestamp
 import google.protobuf.wrappers_pb2 as protoWrappers
+import marketdata_pb2 as protos
+import marketdata_pb2_grpc as marketDataService
 import MetaTrader5 as mt5
 import pandas as pd
 import pytz
 
-import marketdata_pb2 as protos
-import marketdata_pb2_grpc as services
+from terminal.helpers import ChunkHelper, TerminalHelper
 
 logger = logging.getLogger("app")
 
 _MILLIS_PER_SECOND = 1000
 
 
-class TerminalHelper:
-    @staticmethod
-    def init():
-        if not mt5.initialize():
-            logger.error("initialize() failed, error code = %s",
-                         mt5.last_error())
-            return False
+class MarketData(marketDataService.MarketDataServicer):
+    def __copyTicksRange(self, request):
+        return mt5.copy_ticks_range(
+            request.symbol.upper(),
+            request.fromDate.ToDatetime(tzinfo=pytz.utc),
+            request.toDate.ToDatetime(tzinfo=pytz.utc),
+            mt5.COPY_TICKS_ALL if request.type == 0 else request.type)
 
-        return True
-
-
-class MarketData(services.MarketDataServicer):
-    def __internalCopyTicksRange(self, request):
-        if not TerminalHelper.init():
-            return None
-
-        symbol = request.symbol.upper()
-        fromDate = request.fromDate.ToDatetime(tzinfo=pytz.utc)
-        toDate = request.toDate.ToDatetime(tzinfo=pytz.utc)
-        copyTicks = mt5.COPY_TICKS_ALL if request.type == 0 else request.type
-
-        return mt5.copy_ticks_range(symbol, fromDate, toDate, copyTicks)
-
-    def __internalCopyRatesRange(self, request):
-        if not TerminalHelper.init():
-            return None
-
+    def __copyRatesRange(self, request):
         symbol = request.symbol.upper()
         fromDate = request.fromDate.ToDatetime(tzinfo=pytz.utc)
         toDate = request.toDate.ToDatetime(tzinfo=pytz.utc)
 
         return mt5.copy_rates_range(symbol, request.timeframe, fromDate, toDate)
 
-    def __chunks(self, l, n):
-        for i in range(0, len(l), n):
-            yield l[i:i+n]
-
-    def __ticksToDateFrame(self, ticks):
-        dataframe = pd.DataFrame(ticks)
-        dataframe.index = pd.to_datetime(
-            dataframe['time_msc'], unit='ms', utc=True)
-        dataframe.drop(columns=['time'], inplace=True)
-        return dataframe
-
     def CopyTicksRangeStream(self, request, _):
-        data = self.__internalCopyTicksRange(request)
+        data = self.__copyTicksRange(request)
 
         if data is None:
             return
 
-        for chunk in self.__chunks(data, request.chunckSize):
+        for chunk in ChunkHelper.chunks(data, request.chunckSize):
             chunkData = []
             for trade in chunk:
                 time = protoTimestamp.Timestamp()
@@ -82,12 +54,12 @@ class MarketData(services.MarketDataServicer):
             yield protos.CopyTicksRangeReply(trades=chunkData)
 
     def CopyRatesRangeStream(self, request, _):
-        data = self.__internalCopyRatesRange(request)
+        data = self.__copyRatesRange(request)
 
         if data is None:
             return
 
-        for chunk in self.__chunks(data, request.chunckSize):
+        for chunk in ChunkHelper.chunks(data, request.chunckSize):
             chunkData = []
             for rate in chunk:
                 time = protoTimestamp.Timestamp()
@@ -107,7 +79,7 @@ class MarketData(services.MarketDataServicer):
             yield protos.CopyRatesRangeReply(rates=chunkData)
 
     def CopyRatesFromTicksRangeStream(self, request, _):
-        data = self.__internalCopyTicksRange(protos.CopyTicksRangeRequest(
+        data = self.__copyTicksRange(protos.CopyTicksRangeRequest(
             symbol=request.symbol,
             fromDate=request.fromDate,
             toDate=request.toDate,
@@ -116,14 +88,14 @@ class MarketData(services.MarketDataServicer):
         if data is None:
             return
 
-        resample = self.__ticksToDateFrame(data).resample(
+        resample = TerminalHelper.resultToDateFrame(data).resample(
             rule=request.timeframe.ToTimedelta(), label='left')
 
         rates = resample['last'].ohlc()
         rates['tick_volume'] = resample['last'].count()
         rates['real_volume'] = resample['volume'].sum()
 
-        for chunk in self.__chunks(rates, request.chunckSize):
+        for chunk in ChunkHelper.chunks(rates, request.chunckSize):
             chunkData = []
             for index, rate in chunk.iterrows():
                 time = protoTimestamp.Timestamp()

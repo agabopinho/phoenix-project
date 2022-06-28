@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Infrastructure.Terminal;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Application.Services
 {
@@ -9,37 +11,47 @@ namespace Application.Services
 
     public static class Operation
     {
-        public static readonly string Symbol = "WINQ22";
+        public static readonly string Symbol = "GBPUSD";
         public static readonly DateOnly Date = new(2022, 6, 27);
         public static readonly int ChunkSize = 5000;
+        public static readonly TimeSpan Timeframe = TimeSpan.FromSeconds(5);
     }
 
     public class LoopService : ILoopService
     {
-        public static readonly TimeSpan Timeframe = TimeSpan.FromSeconds(10);
-
         private readonly IRatesStateService _ratesStateService;
+        private readonly IOrderManagementWrapper _orderManagementWrapper;
         private readonly ILogger<ILoopService> _logger;
 
-        public LoopService(IRatesStateService ratesStateService, ILogger<ILoopService> logger)
+        public LoopService(IRatesStateService ratesStateService, IOrderManagementWrapper orderManagementWrapper, ILogger<ILoopService> logger)
         {
             _ratesStateService = ratesStateService;
+            _orderManagementWrapper = orderManagementWrapper;
             _logger = logger;
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var check = CheckAsync(cancellationToken);
+            var horders = _orderManagementWrapper.GetHistoryOrdersAsync("*", DateTime.UtcNow.AddYears(-5), DateTime.UtcNow.AddDays(1), cancellationToken);
+            var orders = _orderManagementWrapper.GetOrdersAsync(group: "*", cancellationToken: cancellationToken);
+            var positions = _orderManagementWrapper.GetPositionsAsync(group: "*", cancellationToken: cancellationToken);
+            await Task.WhenAll(check, horders, orders, positions);
+            stopwatch.Stop();
+            _logger.LogInformation("Run in {@data}ms", stopwatch.Elapsed.TotalMilliseconds);
+        }
+
+        private async Task CheckAsync(CancellationToken cancellationToken)
+        {
             await _ratesStateService.CheckNewRatesAsync(
-                Operation.Symbol, Operation.Date, Timeframe,
+                Operation.Symbol, Operation.Date, Operation.Timeframe,
                 Operation.ChunkSize, cancellationToken);
 
-            var rates = await _ratesStateService.GetRatesAsync(
-                Operation.Symbol, Operation.Date, Timeframe,
-                TimeSpan.FromMinutes(15), cancellationToken);
-
-            foreach (var r in rates)
-            {
-            }
+            var r = await _ratesStateService.GetRatesAsync(
+                Operation.Symbol, Operation.Date, Operation.Timeframe,
+                TimeSpan.FromMinutes(30), cancellationToken);
         }
     }
 }

@@ -44,3 +44,63 @@ enum Timeframe {
     TIMEFRAME_W1        = 32769;
     TIMEFRAME_MN1       = 49153;
 }
+
+enum PositionType {
+    POSITION_TYPE_BUY  = 0;
+    POSITION_TYPE_SELL = 1;
+}
+
+enum PositionReason {
+    POSITION_REASON_CLIENT = 0; // The position was opened as a result of activation of an order placed from a desktop terminal
+    POSITION_REASON_MOBILE = 1; // The position was opened as a result of activation of an order placed from a mobile application
+    POSITION_REASON_WEB    = 2; // The position was opened as a result of activation of an order placed from the web platform
+    POSITION_REASON_EXPERT = 3; // The position was opened as a result of activation of an order placed from an MQL5 program, i.e. an Expert Advisor or a script
+}
+
+enum OrderType {
+    ORDER_TYPE_BUY               = 0; // Market Buy order
+    ORDER_TYPE_SELL              = 1; // Market Sell order
+    ORDER_TYPE_BUY_LIMIT         = 2; // Buy Limit pending order
+    ORDER_TYPE_SELL_LIMIT        = 3; // Sell Limit pending order
+    ORDER_TYPE_BUY_STOP          = 4; // Buy Stop pending order
+    ORDER_TYPE_SELL_STOP         = 5; // Sell Stop pending order
+    ORDER_TYPE_BUY_STOP_LIMIT    = 6; // Upon reaching the order price, a pending Buy Limit order is placed at the StopLimit price
+    ORDER_TYPE_SELL_STOP_LIMIT   = 7; // Upon reaching the order price, a pending Sell Limit order is placed at the StopLimit price
+    ORDER_TYPE_CLOSE_BY          = 8; // Order to close a position by an opposite one
+}
+
+enum OrderState {
+    ORDER_STATE_STARTED        = 0; // Order checked, but not yet accepted by broker
+    ORDER_STATE_PLACED         = 1; // Order accepted
+    ORDER_STATE_CANCELED       = 2; // Order canceled by client
+    ORDER_STATE_PARTIAL        = 3; // Order partially executed
+    ORDER_STATE_FILLED         = 4; // Order fully executed
+    ORDER_STATE_REJECTED       = 5; // Order rejected
+    ORDER_STATE_EXPIRED        = 6; // Order expired
+    ORDER_STATE_REQUEST_ADD    = 7; // Order is being registered (placing to the trading system)
+    ORDER_STATE_REQUEST_MODIFY = 8; // Order is being modified (changing its parameters)
+    ORDER_STATE_REQUEST_CANCEL = 9; // Order is being deleted (deleting from the trading system)
+}
+
+enum OrderFilling {
+    ORDER_FILLING_FOK    = 0;
+    ORDER_FILLING_IOC    = 1;
+    ORDER_FILLING_RETURN = 2;
+}
+
+enum OrderTime {
+    ORDER_TIME_GTC           = 0; // Good till cancel order
+    ORDER_TIME_DAY           = 1; // Good till current trade day order
+    ORDER_TIME_SPECIFIED     = 2; // Good till expired order
+    ORDER_TIME_SPECIFIED_DAY = 3; // The order will be effective till 23:59:59 of the specified day. If this time is outside a trading session, the order expires in the nearest trading time.
+}
+
+enum OrderReason {
+    ORDER_REASON_CLIENT = 0; // The order was placed from a desktop terminal
+    ORDER_REASON_MOBILE = 1; // The order was placed from a mobile application
+    ORDER_REASON_WEB    = 2; // The order was placed from a web platform
+    ORDER_REASON_EXPERT = 3; // The order was placed from an MQL5-program, i.e. by an Expert Advisor or a script
+    ORDER_REASON_SL     = 4; // The order was placed as a result of Stop Loss activation
+    ORDER_REASON_TP     = 5; // The order was placed as a result of Take Profit activation
+    ORDER_REASON_SO     = 6; // The order was placed as a result of the Stop Out event
+}
