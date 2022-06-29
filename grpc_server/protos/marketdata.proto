@@ -10,12 +10,23 @@ import "google/protobuf/wrappers.proto";
 package terminal;
 
 service MarketData {
-  rpc CopyTicksRangeStream (CopyTicksRangeRequest) returns (stream CopyTicksRangeReply) {}
-  rpc CopyRatesRangeStream (CopyRatesRangeRequest) returns (stream CopyRatesRangeReply) {}
-  rpc CopyRatesFromTicksRangeStream (CopyRatesFromTicksRangeRequest) returns (stream CopyRatesRangeReply) {}
+  rpc GetSymbolTick (GetSymbolTickRequest) returns (GetSymbolTickReply) {}
+  rpc StreamTicksRange (StreamTicksRangeRequest) returns (stream StreamTicksRangeReply) {}
+  rpc StreamRatesRange (StreamRatesRangeRequest) returns (stream StreamRatesRangeReply) {}
+  rpc StreamRatesFromTicksRange (StreamRatesFromTicksRangeRequest) returns (stream StreamRatesRangeReply) {}
 }
 
-message CopyTicksRangeRequest {
+message GetSymbolTickRequest {
+  string symbol = 1;
+}
+
+message GetSymbolTickReply {
+  Trade trade = 1;
+  Res responseCode = 2;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+}
+
+message StreamTicksRangeRequest {
   string symbol = 1;
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
@@ -23,11 +34,13 @@ message CopyTicksRangeRequest {
   int32 chunckSize = 5;
 }
 
-message CopyTicksRangeReply {
+message StreamTicksRangeReply {
   repeated Trade trades = 1;
+  Res responseCode = 2;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
 }
 
-message CopyRatesRangeRequest {
+message StreamRatesRangeRequest {
   string symbol = 1;
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
@@ -35,11 +48,13 @@ message CopyRatesRangeRequest {
   int32 chunckSize = 5;
 }
 
-message CopyRatesRangeReply {
+message StreamRatesRangeReply {
   repeated Rate rates = 1;
+  Res responseCode = 2;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
 }
 
-message CopyRatesFromTicksRangeRequest {
+message StreamRatesFromTicksRangeRequest {
   string symbol = 1;
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
@@ -54,7 +69,7 @@ message Trade {
   google.protobuf.DoubleValue last = 4;
   google.protobuf.DoubleValue volume = 5;
   TickFlags flags = 6;
-  google.protobuf.DoubleValue realVolume = 7;
+  google.protobuf.DoubleValue volumeReal = 7;
 }
 
 message Rate {

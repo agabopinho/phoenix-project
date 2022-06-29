@@ -29,11 +29,40 @@ class MarketData(marketDataService.MarketDataServicer):
 
         return mt5.copy_rates_range(symbol, request.timeframe, fromDate, toDate)
 
-    def CopyTicksRangeStream(self, request, _):
-        data = self.__copyTicksRange(request)
+    def GetSymbolTick(self, request, _):
+        result = mt5.symbol_info_tick(request.symbol)
+        error = mt5.last_error()
 
-        if data is None:
-            return
+        if result is None:
+            return protos.GetSymbolTickReply(
+                responseCode=int(error[0]),
+                responseMessage=protoWrappers.StringValue(value=error[1]),
+            )
+
+        time = protoTimestamp.Timestamp()
+        time.FromMilliseconds(int(result.time_msc))
+        return protos.GetSymbolTickReply(
+            trade=protos.Trade(
+                time=time,
+                bid=protoWrappers.DoubleValue(value=result.bid),
+                ask=protoWrappers.DoubleValue(value=result.ask),
+                last=protoWrappers.DoubleValue(value=result.last),
+                volume=protoWrappers.DoubleValue(value=result.volume),
+                flags=int(result.flags),
+                volumeReal=protoWrappers.DoubleValue(value=result.volume_real),
+            ),
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
+
+    def StreamTicksRange(self, request, _):
+        data = self.__copyTicksRange(request)
+        error = mt5.last_error()
+
+        yield protos.StreamTicksRangeReply(
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
 
         for chunk in ChunkHelper.chunks(data, request.chunckSize):
             chunkData = []
@@ -47,16 +76,19 @@ class MarketData(marketDataService.MarketDataServicer):
                     last=protoWrappers.DoubleValue(value=trade['last']),
                     volume=protoWrappers.DoubleValue(value=trade['volume']),
                     flags=int(trade['flags']),
-                    realVolume=protoWrappers.DoubleValue(
+                    volumeReal=protoWrappers.DoubleValue(
                         value=trade['volume_real']),
                 ))
-            yield protos.CopyTicksRangeReply(trades=chunkData)
+            yield protos.StreamTicksRangeReply(trades=chunkData)
 
-    def CopyRatesRangeStream(self, request, _):
+    def StreamRatesRange(self, request, _):
         data = self.__copyRatesRange(request)
+        error = mt5.last_error()
 
-        if data is None:
-            return
+        yield protos.StreamRatesRangeReply(
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
 
         for chunk in ChunkHelper.chunks(data, request.chunckSize):
             chunkData = []
@@ -75,17 +107,20 @@ class MarketData(marketDataService.MarketDataServicer):
                     volume=protoWrappers.DoubleValue(
                         value=rate['real_volume']),
                 ))
-            yield protos.CopyRatesRangeReply(rates=chunkData)
+            yield protos.StreamRatesRangeReply(rates=chunkData)
 
-    def CopyRatesFromTicksRangeStream(self, request, _):
-        data = self.__copyTicksRange(protos.CopyTicksRangeRequest(
+    def StreamRatesFromTicksRange(self, request, _):
+        data = self.__copyTicksRange(protos.StreamTicksRangeRequest(
             symbol=request.symbol,
             fromDate=request.fromDate,
             toDate=request.toDate,
             type=int(mt5.COPY_TICKS_TRADE)))
+        error = mt5.last_error()
 
-        if data is None:
-            return
+        yield protos.StreamRatesRangeReply(
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
 
         resample = TerminalHelper.resultToDateFrame(data).resample(
             rule=request.timeframe.ToTimedelta(), label='left')
@@ -112,4 +147,4 @@ class MarketData(marketDataService.MarketDataServicer):
                     volume=protoWrappers.DoubleValue(
                         value=rate['real_volume']),
                 ))
-            yield protos.CopyRatesRangeReply(rates=chunkData)
+            yield protos.StreamRatesRangeReply(rates=chunkData)

@@ -27,6 +27,8 @@ message GetPositionsRequest {
 
 message GetPositionsReply {
   repeated Position positions = 1;
+  Res responseCode = 2;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
 }
 
 message GetOrdersRequest {
@@ -39,6 +41,8 @@ message GetOrdersRequest {
 
 message GetOrdersReply {
   repeated Order orders = 1;
+  Res responseCode = 2;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
 }
 
 message GetHistoryOrdersRequest {
@@ -56,6 +60,8 @@ message GetHistoryOrdersRequest {
 
 message GetHistoryOrdersReply {
   repeated Order orders = 1;
+  Res responseCode = 2;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
 }
 
 message GetHistoryDealsRequest {
@@ -73,6 +79,8 @@ message GetHistoryDealsRequest {
 
 message GetHistoryDealsReply {
   repeated Deal deals = 1;
+  Res responseCode = 2;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
 }
 
 message OrderRequest {

@@ -40,7 +40,7 @@ namespace Application.Services
                 date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) :
                 lastRate.Time.ToDateTime();
 
-            var call = _marketDataWrapper.CopyRatesFromTicksRangeStream(
+            var call = _marketDataWrapper.StreamRatesFromTicksRange(
                 symbol,
                 fromDate,
                 date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc),

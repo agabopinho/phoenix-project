@@ -128,7 +128,9 @@ class OrderManagement(services.OrderManagementServicer):
         else:
             result = mt5.positions_get()
 
+        error = mt5.last_error()
         positions = []
+
         for position in result or []:
             position = position._asdict()
             time = protoTimestamp.Timestamp()
@@ -161,7 +163,11 @@ class OrderManagement(services.OrderManagementServicer):
                     value=position['external_id']),
             ))
 
-        return protos.GetPositionsReply(positions=positions)
+        return protos.GetPositionsReply(
+            positions=positions,
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
 
     def GetOrders(self, request, _):
         result = []
@@ -175,7 +181,13 @@ class OrderManagement(services.OrderManagementServicer):
         else:
             result = mt5.orders_get()
 
-        return protos.GetOrdersReply(orders=self.__parseOrders(result))
+        error = mt5.last_error()
+
+        return protos.GetOrdersReply(
+            orders=self.__parseOrders(result),
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
 
     def GetHistoryOrders(self, request, _):
         result = []
@@ -190,7 +202,13 @@ class OrderManagement(services.OrderManagementServicer):
         elif request.HasField('position'):
             result = mt5.history_orders_get(position=request.position.value)
 
-        return protos.GetHistoryOrdersReply(orders=self.__parseOrders(result))
+        error = mt5.last_error()
+
+        return protos.GetHistoryOrdersReply(
+            orders=self.__parseOrders(result),
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
 
     def GetHistoryDeals(self, request, _):
         result = []
@@ -205,7 +223,9 @@ class OrderManagement(services.OrderManagementServicer):
         elif request.HasField('position'):
             result = mt5.history_deals_get(position=request.position.value)
 
+        error = mt5.last_error()
         deals = []
+
         for deal in result or []:
             deal = deal._asdict()
 
@@ -233,17 +253,21 @@ class OrderManagement(services.OrderManagementServicer):
                     value=deal['external_id']),
             ))
 
-        return protos.GetHistoryDealsReply(deals=deals)
+        return protos.GetHistoryDealsReply(
+            deals=deals,
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
 
     def CheckOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
 
-        logger.info('Request: %s', orderRequest)
+        logger.info('CheckOrder Request: %s', orderRequest)
 
         result = mt5.order_check(orderRequest)
         error = mt5.last_error()
 
-        logger.info('Response: %s, error: %s', result, error)
+        logger.info('CheckOrder Reply: %s, error: %s', result, error)
 
         return protos.CheckOrderReply(
             retcode=int(result.retcode),
@@ -261,12 +285,12 @@ class OrderManagement(services.OrderManagementServicer):
     def SendOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
 
-        logger.info('Request: %s', orderRequest)
+        logger.info('SendOrder Request: %s', orderRequest)
 
         result = mt5.order_send(orderRequest)
         error = mt5.last_error()
 
-        logger.info('Response: %s, error: %s', result, error)
+        logger.info('SendOrder Reply: %s, error: %s', result, error)
 
         return protos.SendOrderReply(
             retcode=int(result.retcode),

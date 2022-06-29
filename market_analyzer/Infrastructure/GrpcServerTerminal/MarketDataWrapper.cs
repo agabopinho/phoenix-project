@@ -9,7 +9,7 @@ namespace Infrastructure.GrpcServerTerminal
 {
     public interface IMarketDataWrapper
     {
-        AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesRangeStream(
+        AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesRange(
             string symbol,
             DateTime utcFromDate,
             DateTime utcToDate,
@@ -17,7 +17,7 @@ namespace Infrastructure.GrpcServerTerminal
             int chunkSize,
             CancellationToken cancellationToken);
 
-        AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesFromTicksRangeStream(
+        AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesFromTicksRange(
             string symbol,
             DateTime utcFromDate,
             DateTime utcToDate,
@@ -25,13 +25,15 @@ namespace Infrastructure.GrpcServerTerminal
             int chunkSize,
             CancellationToken cancellationToken);
 
-        AsyncServerStreamingCall<CopyTicksRangeReply> CopyTicksRangeStream(
+        AsyncServerStreamingCall<StreamTicksRangeReply> StreamTicksRange(
             string symbol,
             DateTime utcFromDate,
             DateTime utcToDate,
             CopyTicks type,
             int chunkSize,
             CancellationToken cancellationToken);
+
+        Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken);
     }
 
     public class MarketDataWrapper : IMarketDataWrapper
@@ -47,29 +49,7 @@ namespace Infrastructure.GrpcServerTerminal
             _logger = logger;
         }
 
-        public AsyncServerStreamingCall<CopyTicksRangeReply> CopyTicksRangeStream(
-            string symbol,
-            DateTime utcFromDate,
-            DateTime utcToDate,
-            CopyTicks type,
-            int chunkSize,
-            CancellationToken cancellationToken)
-        {
-            var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
-
-            var request = new CopyTicksRangeRequest
-            {
-                Symbol = symbol,
-                FromDate = Timestamp.FromDateTime(utcFromDate),
-                ToDate = Timestamp.FromDateTime(utcToDate),
-                Type = type,
-                ChunckSize = chunkSize
-            };
-
-            return client.CopyTicksRangeStream(request, cancellationToken: cancellationToken);
-        }
-
-        public AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesRangeStream(
+        public AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesRange(
            string symbol,
            DateTime utcFromDate,
            DateTime utcToDate,
@@ -79,7 +59,7 @@ namespace Infrastructure.GrpcServerTerminal
         {
             var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
-            var request = new CopyRatesRangeRequest
+            var request = new StreamRatesRangeRequest
             {
                 Symbol = symbol,
                 FromDate = Timestamp.FromDateTime(utcFromDate),
@@ -88,10 +68,10 @@ namespace Infrastructure.GrpcServerTerminal
                 ChunckSize = chunkSize
             };
 
-            return client.CopyRatesRangeStream(request, cancellationToken: cancellationToken);
+            return client.StreamRatesRange(request, cancellationToken: cancellationToken);
         }
 
-        public AsyncServerStreamingCall<CopyRatesRangeReply> CopyRatesFromTicksRangeStream(
+        public AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesFromTicksRange(
            string symbol,
            DateTime utcFromDate,
            DateTime utcToDate,
@@ -101,7 +81,7 @@ namespace Infrastructure.GrpcServerTerminal
         {
             var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
-            var request = new CopyRatesFromTicksRangeRequest
+            var request = new StreamRatesFromTicksRangeRequest
             {
                 Symbol = symbol,
                 FromDate = Timestamp.FromDateTime(utcFromDate),
@@ -110,7 +90,41 @@ namespace Infrastructure.GrpcServerTerminal
                 ChunckSize = chunkSize
             };
 
-            return client.CopyRatesFromTicksRangeStream(request, cancellationToken: cancellationToken);
+            return client.StreamRatesFromTicksRange(request, cancellationToken: cancellationToken);
+        }
+
+        public AsyncServerStreamingCall<StreamTicksRangeReply> StreamTicksRange(
+            string symbol,
+            DateTime utcFromDate,
+            DateTime utcToDate,
+            CopyTicks type,
+            int chunkSize,
+            CancellationToken cancellationToken)
+        {
+            var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+
+            var request = new StreamTicksRangeRequest
+            {
+                Symbol = symbol,
+                FromDate = Timestamp.FromDateTime(utcFromDate),
+                ToDate = Timestamp.FromDateTime(utcToDate),
+                Type = type,
+                ChunckSize = chunkSize
+            };
+
+            return client.StreamTicksRange(request, cancellationToken: cancellationToken);
+        }
+
+        public async Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
+        {
+            var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+
+            var request = new GetSymbolTickRequest
+            {
+                Symbol = symbol,
+            };
+
+            return await client.GetSymbolTickAsync(request, cancellationToken: cancellationToken);
         }
     }
 }

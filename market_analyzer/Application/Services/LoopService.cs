@@ -16,7 +16,7 @@ namespace Application.Services
     public static class Operation
     {
         public static readonly string Symbol = "WINQ22";
-        public static readonly DateOnly Date = new(2022, 6, 28);
+        public static readonly DateOnly Date = new(2022, 6, 29);
         public static readonly int ChunkSize = 5000;
         public static readonly TimeSpan Timeframe = TimeSpan.FromSeconds(5);
     }
@@ -48,18 +48,24 @@ namespace Application.Services
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var symbol = "USDJPY";
-            var now = DateTime.UtcNow.AddHours(3);
+            var tick = await _marketDataWrapper.GetSymbolTickAsync(Operation.Symbol, cancellationToken);
 
-            var rates = await GetRatesAsync(symbol, now, cancellationToken);
-            var price = rates.OrderByDescending(it => it.Time).First().Close!.Value;
+            var request = _orderCreator.SellAtMarket(
+                symbol: Operation.Symbol,
+                price: tick.Trade.Bid!.Value,
+                volume: 1,
+                deviation: 10,
+                comment: "test order");
 
-            var request = _orderCreator.BuyAtMarket(symbol, 0, 1, 20, comment: "test order");
-            var response = await _orderManagementWrapper.SendOrderAsync(request, cancellationToken);
+            var response = await _orderManagementWrapper.CheckOrderAsync(request, cancellationToken);
 
-            var histOrders = _orderManagementWrapper.GetHistoryOrdersAsync(group: symbol, DateTime.UtcNow.AddYears(-5), DateTime.UtcNow.AddDays(1), cancellationToken);
-            var orders = _orderManagementWrapper.GetOrdersAsync(group: symbol, cancellationToken: cancellationToken);
-            var positions = _orderManagementWrapper.GetPositionsAsync(group: symbol, cancellationToken: cancellationToken);
+            var histOrders = _orderManagementWrapper.GetHistoryOrdersAsync(group: Operation.Symbol,
+                DateTime.UtcNow.AddYears(-5),
+                DateTime.UtcNow.AddDays(1),
+                cancellationToken);
+
+            var orders = _orderManagementWrapper.GetOrdersAsync(group: Operation.Symbol, cancellationToken: cancellationToken);
+            var positions = _orderManagementWrapper.GetPositionsAsync(group: Operation.Symbol, cancellationToken: cancellationToken);
 
             await Task.WhenAll(histOrders, orders, positions);
 
@@ -69,12 +75,19 @@ namespace Application.Services
             _logger.LogInformation("Req/resp {@request} - {@response}", request, response);
         }
 
-        private async Task<IEnumerable<Rate>> GetRatesAsync(string symbol, DateTime now, CancellationToken cancellationToken)
+        private async Task<IEnumerable<Rate>> GetForexRatesAsync(CancellationToken cancellationToken)
         {
             var rates = new List<Rate>();
 
-            var call = _marketDataWrapper.CopyRatesRangeStream(
-                symbol, now.AddMinutes(-30), now.AddMinutes(5), Timeframe.M1, 5000, cancellationToken);
+            var date = DateTime.SpecifyKind(Operation.Date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
+
+            var call = _marketDataWrapper.StreamRatesRange(
+                symbol: Operation.Symbol,
+                utcFromDate: date.AddDays(-1),
+                utcToDate: date.AddDays(1),
+                timeframe: Timeframe.M1,
+                chunkSize: 5000,
+                cancellationToken: cancellationToken);
 
             await foreach (var rate in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
                 rates.AddRange(rate.Rates);
@@ -82,13 +95,13 @@ namespace Application.Services
             return rates;
         }
 
-        private async Task CheckAsync(CancellationToken cancellationToken)
+        private async Task<IEnumerable<Rate>> CheckAndGetRatesAsync(CancellationToken cancellationToken)
         {
             await _ratesStateService.CheckNewRatesAsync(
                 Operation.Symbol, Operation.Date, Operation.Timeframe,
                 Operation.ChunkSize, cancellationToken);
 
-            var r = await _ratesStateService.GetRatesAsync(
+            return await _ratesStateService.GetRatesAsync(
                 Operation.Symbol, Operation.Date, Operation.Timeframe,
                 TimeSpan.FromMinutes(30), cancellationToken);
         }
