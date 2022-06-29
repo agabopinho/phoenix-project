@@ -200,3 +200,22 @@ enum TradeRetcode {
     TRADE_RETCODE_FIFO_CLOSE            = 10045; // The request is rejected, because "Position closing is allowed only by FIFO rule" flag is set for the trading account (ACCOUNT_FIFO_CLOSE=true)
     TRADE_RETCODE_HEDGE_PROHIBITED      = 10046; // The request is rejected, because the "Opposite positions on a single symbol are disabled" rule is set for the trading account. For example, if the account has a Buy position, then a user cannot open a Sell position or place a pending sell order. The rule is only applied to accounts with hedging accounting system (ACCOUNT_MARGIN_MODE=ACCOUNT_MARGIN_MODE_RETAIL_HEDGING).
 }
+
+enum Res {
+    RES_UNKNOWN                         = 0     ;    
+    RES_S_OK                            = 1     ;    // generic success
+    RES_E_FAIL                          =-1     ;    // generic fail
+    RES_E_INVALID_PARAMS                =-2     ;    // invalid arguments/parameters
+    RES_E_NO_MEMORY                     =-3     ;    // no memory condition
+    RES_E_NOT_FOUND                     =-4     ;    // no history
+    RES_E_INVALID_VERSION               =-5     ;    // invalid version
+    RES_E_AUTH_FAILED                   =-6     ;    // authorization failed
+    RES_E_UNSUPPORTED                   =-7     ;    // unsupported method
+    RES_E_AUTO_TRADING_DISABLED         =-8     ;    // auto-trading disabled
+    RES_E_INTERNAL_FAIL                 =-10000 ;    // internal IPC general error
+    RES_E_INTERNAL_FAIL_SEND            =-10001 ;    // internal IPC send failed
+    RES_E_INTERNAL_FAIL_RECEIVE         =-10002 ;    // internal IPC recv failed
+    RES_E_INTERNAL_FAIL_INIT            =-10003 ;    // internal IPC initialization fail
+    RES_E_INTERNAL_FAIL_CONNECT         =-10004 ;    // internal IPC no ipc
+    RES_E_INTERNAL_FAIL_TIMEOUT         =-10005 ;    // internal timeout
+}

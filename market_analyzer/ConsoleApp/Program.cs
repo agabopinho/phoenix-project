@@ -39,6 +39,7 @@ builder.ConfigureServices(services =>
     services.AddOrderManagementWrapper(configure =>
         configure.Endpoint = "http://host.docker.internal:5051");
 
+    services.AddSingleton<IOrderCreator, OrderCreator>();
     services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
     services.AddSingleton<IOrderManagementWrapper, OrderManagementWrapper>();
 

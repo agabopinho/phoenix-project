@@ -19,9 +19,9 @@ service OrderManagement {
 
 message GetPositionsRequest {
   oneof typeSearch {
-    string symbol = 1;
-    string group = 2;
-    google.protobuf.Int64Value ticket = 3;
+    google.protobuf.StringValue symbol = 1; // Symbol name. Optional named parameter. If a symbol is specified, the ticket parameter is ignored.
+    google.protobuf.StringValue group = 2;  // The filter for arranging a group of necessary symbols. Optional named parameter. If the group is specified, the function returns only positions meeting a specified criteria for a symbol name.
+    google.protobuf.Int64Value ticket = 3;  // Position ticket (POSITION_TICKET). Optional named parameter.
   }
 }
 
@@ -31,9 +31,9 @@ message GetPositionsReply {
 
 message GetOrdersRequest {
   oneof typeSearch {
-    string symbol = 1;
-    string group = 2;
-    google.protobuf.Int64Value ticket = 3;
+    google.protobuf.StringValue symbol = 1; // Symbol name. Optional named parameter. If a symbol is specified, the ticket parameter is ignored.
+    google.protobuf.StringValue group = 2;  // The filter for arranging a group of necessary symbols. Optional named parameter. If the group is specified, the function returns only active orders meeting a specified criteria for a symbol name.
+    google.protobuf.Int64Value ticket = 3;  //  Order ticket (ORDER_TICKET). Optional named parameter.
   }
 }
 
@@ -43,14 +43,14 @@ message GetOrdersReply {
 
 message GetHistoryOrdersRequest {
   message Group {
-    google.protobuf.Timestamp fromDate = 1;
-    google.protobuf.Timestamp toDate = 2;
-    string groupValue = 3;
+    google.protobuf.Timestamp fromDate = 1; // Date the orders are requested from. Set by the 'datetime' object or as a number of seconds elapsed since 1970.01.01. Required unnamed parameter is specified first.
+    google.protobuf.Timestamp toDate = 2;   // Date, up to which the orders are requested. Set by the 'datetime' object or as a number of seconds elapsed since 1970.01.01. Required unnamed parameter is specified second.
+    string groupValue = 3;                  // The filter for arranging a group of necessary symbols. Optional named parameter. If the group is specified, the function returns only orders meeting a specified criteria for a symbol name.
   }
   oneof typeSearch {
     Group group = 1;
-    google.protobuf.Int64Value ticket = 2;
-    google.protobuf.Int64Value position = 3;
+    google.protobuf.Int64Value ticket = 2;      // Order ticket that should be received. Optional parameter. If not specified, the filter is not applied.
+    google.protobuf.Int64Value position = 3;    // Ticket of a position (stored in ORDER_POSITION_ID) all orders should be received for. Optional parameter. If not specified, the filter is not applied.
   }
 }
 
@@ -60,14 +60,14 @@ message GetHistoryOrdersReply {
 
 message GetHistoryDealsRequest {
   message Group {
-    google.protobuf.Timestamp fromDate = 1;
-    google.protobuf.Timestamp toDate = 2;
-    string groupValue = 3;
+    google.protobuf.Timestamp fromDate = 1; // Date the orders are requested from. Set by the 'datetime' object or as a number of seconds elapsed since 1970.01.01. Required unnamed parameter is specified first.
+    google.protobuf.Timestamp toDate = 2;   // Date, up to which the orders are requested. Set by the 'datetime' object or as a number of seconds elapsed since 1970.01.01. Required unnamed parameter is specified second.
+    string groupValue = 3;                  // The filter for arranging a group of necessary symbols. Optional named parameter. If the group is specified, the function returns only deals meeting a specified criteria for a symbol name.
   }
   oneof typeSearch {
     Group group = 1;
-    google.protobuf.Int64Value ticket = 2;
-    google.protobuf.Int64Value position = 3;
+    google.protobuf.Int64Value ticket = 2;   // Ticket of an order (stored in DEAL_ORDER) all deals should be received for. Optional parameter. If not specified, the filter is not applied.
+    google.protobuf.Int64Value position = 3; // Ticket of a position (stored in DEAL_POSITION_ID) all deals should be received for. Optional parameter. If not specified, the filter is not applied.
   }
 }
 
@@ -76,110 +76,114 @@ message GetHistoryDealsReply {
 }
 
 message OrderRequest {
-   TradeAction action = 1;
-   google.protobuf.Int64Value magic = 2;
-   google.protobuf.Int64Value order = 3;
-   string symbol = 4;
-   google.protobuf.DoubleValue volume = 5;
-   google.protobuf.DoubleValue price = 6;
-   google.protobuf.DoubleValue stopLimit = 7;
-   google.protobuf.DoubleValue stopLoss = 8;
-   google.protobuf.DoubleValue takeProfit = 9;
-   google.protobuf.DoubleValue deviation = 10;
-   OrderType type = 11;
-   OrderFilling typeFilling = 12;
-   OrderTime typeTime = 13;
-   google.protobuf.Timestamp expiration = 14;
-   string comment = 15;
-   google.protobuf.Int64Value position = 16;
-   google.protobuf.Int64Value positionBy = 17;
+   TradeAction action = 1;                      // Trading operation type. The value can be one of the values of the TRADE_REQUEST_ACTIONS enumeration
+   google.protobuf.Int64Value magic = 2;        // EA ID. Allows arranging the analytical handling of trading orders. Each EA can set a unique ID when sending a trading request
+   google.protobuf.Int64Value order = 3;        // Order ticket. Required for modifying pending orders
+   google.protobuf.StringValue symbol = 4;      // The name of the trading instrument, for which the order is placed. Not required when modifying orders and closing positions
+   google.protobuf.DoubleValue volume = 5;      // Requested volume of a deal in lots. A real volume when making a deal depends on an order execution type.
+   google.protobuf.DoubleValue price = 6;       // Price at which an order should be executed. The price is not set in case of market orders for instruments of the "Market Execution" (SYMBOL_TRADE_EXECUTION_MARKET) type having the TRADE_ACTION_DEAL type
+   google.protobuf.DoubleValue stopLimit = 7;   // A price a pending Limit order is set at when the price reaches the 'price' value (this condition is mandatory). The pending order is not passed to the trading system until that moment
+   google.protobuf.DoubleValue stopLoss = 8;    // A price a Stop Loss order is activated at when the price moves in an unfavorable direction
+   google.protobuf.DoubleValue takeProfit = 9;  // A price a Take Profit order is activated at when the price moves in a favorable direction
+   google.protobuf.Int32Value deviation = 10;        // Maximum acceptable deviation from the requested price, specified in points
+   optional OrderType type = 11;                // Order type. The value can be one of the values of the ORDER_TYPE enumeration
+   optional OrderFilling typeFilling = 12;      // Order filling type. The value can be one of the ORDER_TYPE_FILLING values
+   optional OrderTime typeTime = 13;            // Order type by expiration. The value can be one of the ORDER_TYPE_TIME values
+   google.protobuf.Timestamp expiration = 14;   // Pending order expiration time (for TIME_SPECIFIED type orders)
+   google.protobuf.StringValue comment = 15;    // Comment to an order
+   google.protobuf.Int64Value position = 16;    // Position ticket. Fill it when changing and closing a position for its clear identification. Usually, it is the same as the ticket of the order that opened the position.
+   google.protobuf.Int64Value positionBy = 17;  // Opposite position ticket. It is used when closing a position by an opposite one (opened at the same symbol but in the opposite direction).
 }
 
 message SendOrderReply {
-  TradeRetcode retcode = 1;
-  google.protobuf.Int64Value deal = 2;
-  google.protobuf.Int64Value order = 3;
-  google.protobuf.DoubleValue volume = 4;
-  google.protobuf.DoubleValue price = 5;
-  google.protobuf.DoubleValue bid = 6;
-  google.protobuf.DoubleValue ask = 7;
-  string comment = 8;
-  google.protobuf.Int64Value requestId = 9;
-  google.protobuf.Int64Value retcodeExternal = 10;
+  TradeRetcode retcode = 1;                         // Return code of a trade server
+  google.protobuf.Int64Value deal = 2;              // Deal ticket,  if a deal has been performed. It is available for a trade operation of TRADE_ACTION_DEAL type
+  google.protobuf.Int64Value order = 3;             // Order ticket, if a ticket has been placed. It is available for a trade operation of TRADE_ACTION_PENDING type
+  google.protobuf.DoubleValue volume = 4;           // Deal volume, confirmed by broker. It depends on the order filling type
+  google.protobuf.DoubleValue price = 5;            // Deal price, confirmed by broker. It depends on the deviation field of the trade request and/or on the trade operation
+  google.protobuf.DoubleValue bid = 6;              // The current market Bid price (requote price)
+  google.protobuf.DoubleValue ask = 7;              // The current market Ask price (requote price)
+  google.protobuf.StringValue comment = 8;          // The broker comment to operation (by default it is filled by description of trade server return code)
+  google.protobuf.Int64Value requestId = 9;         // Request ID set by the terminal when sending to the trade server
+  google.protobuf.Int64Value retcodeExternal = 10;  // The code of the error returned by an external trading system. The use and types of these errors depend on the broker and the external trading system, to which trading operations are sent.
+  Res responseCode = 11;                            // Mt5 response status
+  google.protobuf.StringValue responseMessage = 12; // Mt5 response message  
 }
 
-message CheckOrderReply {
-  TradeRetcode retcode = 1;
-  google.protobuf.DoubleValue balance = 2;
-  google.protobuf.DoubleValue equity = 3;
-  google.protobuf.DoubleValue profit = 4;
-  google.protobuf.DoubleValue margin = 5;
-  google.protobuf.DoubleValue marginFree = 6;
-  google.protobuf.DoubleValue marginLevel = 7;
-  string comment = 8;
+message CheckOrderReply {   
+  TradeRetcode retcode = 1;                         // Return code
+  google.protobuf.DoubleValue balance = 2;          // Balance value that will be after the execution of the trade operation
+  google.protobuf.DoubleValue equity = 3;           // Equity value that will be after the execution of the trade operation
+  google.protobuf.DoubleValue profit = 4;           // Value of the floating profit that will be after the execution of the trade operation
+  google.protobuf.DoubleValue margin = 5;           // Margin required for the trade operation
+  google.protobuf.DoubleValue marginFree = 6;       // Free margin that will be left after the execution of the trade operation
+  google.protobuf.DoubleValue marginLevel = 7;      // Margin level that will be set after the execution of the trade operation
+  google.protobuf.StringValue comment = 8;          // Comment to the reply code, error description
+  Res responseCode = 9;                             // Mt5 response status
+  google.protobuf.StringValue responseMessage = 10; // Mt5 response message
 }
 
 message Position {
-  google.protobuf.Int64Value ticket = 1;
-  google.protobuf.Timestamp time = 2;
-  google.protobuf.Timestamp timeUpdate = 3;
-  PositionType type = 4;
-  google.protobuf.Int64Value magic = 5;
-  google.protobuf.Int64Value identifier = 6;
-  PositionReason reason = 7;
-  google.protobuf.DoubleValue volume = 8; 
-  google.protobuf.DoubleValue priceOpen = 9; 
-  google.protobuf.DoubleValue stopLoss = 10; 
-  google.protobuf.DoubleValue takeProfit = 11; 
-  google.protobuf.DoubleValue priceCurrent = 12; 
-  google.protobuf.DoubleValue swap = 13; 
-  google.protobuf.DoubleValue profit = 14; 
-  string symbol = 15; 
-  string comment = 16;
-  string externalId = 17;
+  google.protobuf.Int64Value ticket = 1;            // Position ticket. Unique number assigned to each newly opened position. It usually matches the ticket of an order used to open the position except when the ticket is changed as a result of service operations on the server, for example, when charging swaps with position re-opening. To find an order used to open a position, apply the POSITION_IDENTIFIER property. POSITION_TICKET value corresponds to MqlTradeRequest::position.
+  google.protobuf.Timestamp time = 2;               // Position open time
+  google.protobuf.Timestamp timeUpdate = 3;         // Position changing time
+  PositionType type = 4;                            // Position type
+  google.protobuf.Int64Value magic = 5;             // Position magic number (see ORDER_MAGIC)
+  google.protobuf.Int64Value identifier = 6;        // Position identifier is a unique number assigned to each re-opened position. It does not change throughout its life cycle and corresponds to the ticket of an order used to open a position. Position identifier is specified in each order (ORDER_POSITION_ID) and deal (DEAL_POSITION_ID) used to open, modify, or close it. Use this property to search for orders and deals related to the position. When reversing a position in netting mode (using a single in/out trade), POSITION_IDENTIFIER does not change. However, POSITION_TICKET is replaced with the ticket of the order that led to the reversal. Position reversal is not provided in hedging mode.
+  PositionReason reason = 7;                        // The reason for opening a position
+  google.protobuf.DoubleValue volume = 8;           // Position volume
+  google.protobuf.DoubleValue priceOpen = 9;        // Position open price
+  google.protobuf.DoubleValue stopLoss = 10;        // Stop Loss level of opened position
+  google.protobuf.DoubleValue takeProfit = 11;      // Take Profit level of opened position
+  google.protobuf.DoubleValue priceCurrent = 12;    // Current price of the position symbol
+  google.protobuf.DoubleValue swap = 13;            // Cumulative swap
+  google.protobuf.DoubleValue profit = 14;          // Current profit
+  google.protobuf.StringValue symbol = 15;          // Symbol of the position
+  google.protobuf.StringValue comment = 16;         // Position comment
+  google.protobuf.StringValue externalId = 17;      // Position identifier in an external trading system (on the Exchange)
 }
 
 message Order {
-  google.protobuf.Int64Value ticket = 1;
-  google.protobuf.Timestamp timeSetup = 2; 
-  OrderType type = 3;
-  OrderState state = 4;
-  google.protobuf.Timestamp timeExpiration = 5;
-  google.protobuf.Timestamp timeDone = 6;
-  OrderFilling typeFilling = 7;
-  OrderTime typeTime = 8;
-  google.protobuf.Int64Value magic = 9;
-  OrderReason reason = 10;
-  google.protobuf.Int64Value positionId = 11;
-  google.protobuf.Int64Value positionById = 12;
-  google.protobuf.DoubleValue volumeInitial = 13;
-  google.protobuf.DoubleValue volumeCurrent = 14;
-  google.protobuf.DoubleValue priceOpen = 15;
-  google.protobuf.DoubleValue stopLoss = 16;
-  google.protobuf.DoubleValue takeProfit = 17;
-  google.protobuf.DoubleValue priceCurrent = 18;
-  google.protobuf.DoubleValue priceStopLimit = 19;
-  string symbol = 20;
-  string comment = 21;
-  string externalId = 22;
-}
+  google.protobuf.Int64Value ticket = 1;            // Order ticket. Unique number assigned to each order
+  google.protobuf.Timestamp timeSetup = 2;          // Order setup time
+  OrderType type = 3;                               // Order type
+  OrderState state = 4;                             // Order state
+  google.protobuf.Timestamp timeExpiration = 5;     // Order expiration time
+  google.protobuf.Timestamp timeDone = 6;           // Order execution or cancellation time
+  OrderFilling typeFilling = 7;                     // Order filling type
+  OrderTime typeTime = 8;                           // Order lifetime
+  google.protobuf.Int64Value magic = 9;             // ID of an Expert Advisor that has placed the order (designed to ensure that each Expert Advisor places its own unique number)
+  OrderReason reason = 10;                          // The reason or source for placing an order
+  google.protobuf.Int64Value positionId = 11;       // Position identifier that is set to an order as soon as it is executed. Each executed order results in a deal that opens or modifies an already existing position. The identifier of exactly this position is set to the executed order at this moment.
+  google.protobuf.Int64Value positionById = 12;     // Identifier of an opposite position used for closing by order  ORDER_TYPE_CLOSE_BY
+  google.protobuf.DoubleValue volumeInitial = 13;   // Order initial volume
+  google.protobuf.DoubleValue volumeCurrent = 14;   // Order current volume
+  google.protobuf.DoubleValue priceOpen = 15;       // Price specified in the order
+  google.protobuf.DoubleValue stopLoss = 16;        // Stop Loss value
+  google.protobuf.DoubleValue takeProfit = 17;      // Take Profit value
+  google.protobuf.DoubleValue priceCurrent = 18;    // The current price of the order symbol
+  google.protobuf.DoubleValue priceStopLimit = 19;  // The Limit order price for the StopLimit order
+  google.protobuf.StringValue symbol = 20;          // Symbol of the order
+  google.protobuf.StringValue comment = 21;         // Order comment
+  google.protobuf.StringValue externalId = 22;      // Order identifier in an external trading system (on the Exchange)
+}                                                   
 
 message Deal {
-  google.protobuf.Int64Value ticket = 1;
-  google.protobuf.Int64Value order = 2;
-  google.protobuf.Timestamp time = 3; 
-  DealType type = 4;
-  DealEntry entry = 5;
-  google.protobuf.Int64Value magic = 6;
-  DealReason reason = 7;
-  google.protobuf.Int64Value positionId = 8;
-  google.protobuf.DoubleValue volume = 9;
-  google.protobuf.DoubleValue price = 10;
-  google.protobuf.DoubleValue commission = 11;
-  google.protobuf.DoubleValue swap = 12;
-  google.protobuf.DoubleValue profit = 13;
-  google.protobuf.DoubleValue fee = 14;
-  string symbol = 15;
-  string comment = 16;
-  string externalId = 17;
+  google.protobuf.Int64Value ticket = 1;            // Deal ticket. Unique number assigned to each deal
+  google.protobuf.Int64Value order = 2;             // Deal order number
+  google.protobuf.Timestamp time = 3;               // Deal time
+  DealType type = 4;                                // Deal type
+  DealEntry entry = 5;                              // Deal entry - entry in, entry out, reverse
+  google.protobuf.Int64Value magic = 6;             // Deal magic number (see ORDER_MAGIC)
+  DealReason reason = 7;                            // The reason or source for deal execution
+  google.protobuf.Int64Value positionId = 8;        // Identifier of a position, in the opening, modification or closing of which this deal took part. Each position has a unique identifier that is assigned to all deals executed for the symbol during the entire lifetime of the position.
+  google.protobuf.DoubleValue volume = 9;           // Deal volume
+  google.protobuf.DoubleValue price = 10;           // Deal price
+  google.protobuf.DoubleValue commission = 11;      // Deal commission
+  google.protobuf.DoubleValue swap = 12;            // Cumulative swap on close
+  google.protobuf.DoubleValue profit = 13;          // Deal profit
+  google.protobuf.DoubleValue fee = 14;             // Fee for making a deal charged immediately after performing a deal
+  google.protobuf.StringValue symbol = 15;          // Deal symbol
+  google.protobuf.StringValue comment = 16;         // Deal comment
+  google.protobuf.StringValue externalId = 17;      // Deal identifier in an external trading system (on the Exchange)
 }

@@ -52,66 +52,67 @@ class OrderManagement(services.OrderManagementServicer):
                     value=order['price_current']),
                 priceStopLimit=protoWrappers.DoubleValue(
                     value=order['price_stoplimit']),
-                symbol=order['symbol'],
-                comment=order['comment'],
-                externalId=order['external_id'],
+                symbol=protoWrappers.StringValue(value=order['symbol']),
+                comment=protoWrappers.StringValue(value=order['comment']),
+                externalId=protoWrappers.StringValue(
+                    value=order['external_id']),
             ))
 
         return orders
 
     def __orderRequest(self, request):
-        orderRequest = {}
-
-        if request.HasField('action'):
-            orderRequest['action'] = int(request.action)
+        orderRequest = {
+            'action':  int(request.action)
+        }
 
         if request.HasField('magic'):
-            orderRequest['magic'] = int(request.magic)
+            orderRequest['magic'] = request.magic.value
 
         if request.HasField('order'):
             orderRequest['order'] = int(request.order)
 
         if request.HasField('symbol'):
-            orderRequest['symbol'] = request.symbol
+            orderRequest['symbol'] = request.symbol.value
 
         if request.HasField('volume'):
-            orderRequest['volume'] = float(request.volume.value)
+            orderRequest['volume'] = request.volume.value
 
         if request.HasField('price'):
-            orderRequest['price'] = float(request.price.value)
+            orderRequest['price'] = request.price.value
 
         if request.HasField('stopLimit'):
-            orderRequest['stoplimit'] = request.stopLimit
+            orderRequest['stoplimit'] = request.stopLimit.value
 
         if request.HasField('stopLoss'):
-            orderRequest['sl'] = request.stopLoss
+            orderRequest['sl'] = request.stopLoss.value
 
         if request.HasField('takeProfit'):
-            orderRequest['tp'] = request.takeProfit
+            orderRequest['tp'] = request.takeProfit.value
 
         if request.HasField('deviation'):
-            orderRequest['deviation'] = request.deviation
+            orderRequest['deviation'] = request.deviation.value
 
         if request.HasField('type'):
-            orderRequest['type'] = request.type
+            orderRequest['type'] = int(request.type)
 
         if request.HasField('typeFilling'):
-            orderRequest['type_filling'] = request.typeFilling
+            orderRequest['type_filling'] = int(request.typeFilling)
 
         if request.HasField('typeTime'):
-            orderRequest['type_time'] = request.typeTime
+            orderRequest['type_time'] = int(request.typeTime)
 
         if request.HasField('expiration'):
-            orderRequest['expiration'] = request.expiration
+            orderRequest['expiration'] = request.expiration.ToDatetime(
+                tzinfo=pytz.utc)
 
         if request.HasField('comment'):
-            orderRequest['comment'] = request.comment
+            orderRequest['comment'] = request.comment.value
 
         if request.HasField('position'):
-            orderRequest['position'] = request.position
+            orderRequest['position'] = request.position.value
 
         if request.HasField('positionBy'):
-            orderRequest['position_by'] = request.positionBy
+            orderRequest['position_by'] = request.positionBy.value
 
         return orderRequest
 
@@ -119,9 +120,9 @@ class OrderManagement(services.OrderManagementServicer):
         result = []
 
         if request.HasField('symbol'):
-            result = mt5.positions_get(symbol=request.symbol)
+            result = mt5.positions_get(symbol=request.symbol.value)
         elif request.HasField('group'):
-            result = mt5.positions_get(group=request.group)
+            result = mt5.positions_get(group=request.group.value)
         elif request.HasField('ticket'):
             result = mt5.positions_get(ticket=request.ticket.value)
         else:
@@ -154,9 +155,10 @@ class OrderManagement(services.OrderManagementServicer):
                     value=position['price_current']),
                 swap=protoWrappers.DoubleValue(value=position['swap']),
                 profit=protoWrappers.DoubleValue(value=position['profit']),
-                symbol=position['symbol'],
-                comment=position['comment'],
-                externalId=position['external_id'],
+                symbol=protoWrappers.StringValue(value=position['symbol']),
+                comment=protoWrappers.StringValue(value=position['comment']),
+                externalId=protoWrappers.StringValue(
+                    value=position['external_id']),
             ))
 
         return protos.GetPositionsReply(positions=positions)
@@ -165,9 +167,9 @@ class OrderManagement(services.OrderManagementServicer):
         result = []
 
         if request.HasField('symbol'):
-            result = mt5.orders_get(symbol=request.symbol)
+            result = mt5.orders_get(symbol=request.symbol.value)
         elif request.HasField('group'):
-            result = mt5.orders_get(group=request.group)
+            result = mt5.orders_get(group=request.group.value)
         elif request.HasField('ticket'):
             result = mt5.orders_get(ticket=request.ticket.value)
         else:
@@ -225,16 +227,23 @@ class OrderManagement(services.OrderManagementServicer):
                 swap=protoWrappers.DoubleValue(value=deal['swap']),
                 profit=protoWrappers.DoubleValue(value=deal['profit']),
                 fee=protoWrappers.DoubleValue(value=deal['fee']),
-                symbol=deal['symbol'],
-                comment=deal['comment'],
-                externalId=deal['external_id'],
+                symbol=protoWrappers.StringValue(value=deal['symbol']),
+                comment=protoWrappers.StringValue(value=deal['comment']),
+                externalId=protoWrappers.StringValue(
+                    value=deal['external_id']),
             ))
+
         return protos.GetHistoryDealsReply(deals=deals)
 
     def CheckOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
 
-        result = mt5.order_send(orderRequest)
+        logger.info('Request: %s', orderRequest)
+
+        result = mt5.order_check(orderRequest)
+        error = mt5.last_error()
+
+        logger.info('Response: %s, error: %s', result, error)
 
         return protos.CheckOrderReply(
             retcode=int(result.retcode),
@@ -244,15 +253,22 @@ class OrderManagement(services.OrderManagementServicer):
             margin=protoWrappers.DoubleValue(value=result.margin),
             marginFree=protoWrappers.DoubleValue(value=result.margin_free),
             marginLevel=protoWrappers.DoubleValue(value=result.margin_level),
-            comment=result.comment
+            comment=protoWrappers.StringValue(value=result.comment),
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
         )
 
     def SendOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
 
-        result = mt5.order_send(orderRequest)
+        logger.info('Request: %s', orderRequest)
 
-        return protos.GetOrdersReply(
+        result = mt5.order_send(orderRequest)
+        error = mt5.last_error()
+
+        logger.info('Response: %s, error: %s', result, error)
+
+        return protos.SendOrderReply(
             retcode=int(result.retcode),
             deal=protoWrappers.Int64Value(value=result.deal),
             order=protoWrappers.Int64Value(value=result.order),
@@ -260,8 +276,10 @@ class OrderManagement(services.OrderManagementServicer):
             price=protoWrappers.DoubleValue(value=result.price),
             bid=protoWrappers.DoubleValue(value=result.bid),
             ask=protoWrappers.DoubleValue(value=result.ask),
-            comment=result.comment,
+            comment=protoWrappers.StringValue(value=result.comment),
             requestId=protoWrappers.Int64Value(value=result.request_id),
             retcodeExternal=protoWrappers.Int64Value(
                 value=result.retcode_external),
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
         )

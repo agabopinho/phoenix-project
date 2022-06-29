@@ -1,29 +1,15 @@
 
+from datetime import datetime
 import MetaTrader5 as mt5
 
 
 mt5.initialize()
 #print(mt5.terminal_info()._asdict())
 
-mt5.ORDER_FILLING_FOK
+deals = mt5.history_deals_get(datetime(2021, 1, 1), datetime(2023, 1, 1), group='*')
 
-request = {
-    "action": mt5.TRADE_ACTION_DEAL,
-    "symbol": symbol,
-    "volume": lot,
-    "type": mt5.ORDER_TYPE_BUY,
-    "price": price,
-    "sl": price - 100 * point,
-    "tp": price + 100 * point,
-    "deviation": deviation,
-    "magic": 234000,
-    "comment": "python script open",
-    "type_time": mt5.ORDER_TIME_GTC,
-    "type_filling": mt5.ORDER_FILLING_RETURN,
-}
+for d in deals: 
+    print ('\nDeal: ', d)
 
-print 
-group_symbols=mt5.symbols_get(group="GBPUSD")
-print('len(*,!*USD*,!*EUR*,!*JPY*,!*GBP*):', len(group_symbols))
-for s in group_symbols:
-    print(s.name,":",s)
+
+mt5.RES_E_AUTH_FAILED

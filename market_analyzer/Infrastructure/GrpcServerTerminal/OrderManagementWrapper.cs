@@ -1,7 +1,6 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Net.ClientFactory;
 using Grpc.Terminal;
-using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.GrpcServerTerminal
@@ -31,6 +30,9 @@ namespace Infrastructure.GrpcServerTerminal
         Task<GetHistoryDealsReply> GetHistoryDealsAsync(
             long? ticket = null, long? position = null,
             CancellationToken cancellationToken = default);
+
+        Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken = default);
+        Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken = default);
     }
 
     public class OrderManagementWrapper : IOrderManagementWrapper
@@ -156,83 +158,16 @@ namespace Infrastructure.GrpcServerTerminal
             return await client.GetHistoryDealsAsync(request, cancellationToken: cancellationToken);
         }
 
-        public async Task<CheckOrderReply> CheckOrderAsync(OrderRequest orderRequest, CancellationToken cancellationToken = default)
+        public async Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
         {
             var client = _grpcClientFactory.CreateClient<OrderManagement.OrderManagementClient>(ClientName);
-            return await client.CheckOrderAsync(orderRequest, cancellationToken: cancellationToken);
+            return await client.CheckOrderAsync(request, cancellationToken: cancellationToken);
         }
 
-        public async Task<SendOrderReply> SendOrderAsync(OrderRequest orderRequest, CancellationToken cancellationToken = default)
+        public async Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
         {
             var client = _grpcClientFactory.CreateClient<OrderManagement.OrderManagementClient>(ClientName);
-            return await client.SendOrderAsync(orderRequest, cancellationToken: cancellationToken);
+            return await client.SendOrderAsync(request, cancellationToken: cancellationToken);
         }
-    }
-
-    public interface IOrderCreator
-    {
-    }
-
-    public class OrderCreator : IOrderCreator
-    {
-        /// <summary>
-        /// Place a trade order for an immediate execution with the specified parameters (market order)
-        /// </summary>
-        /// <returns></returns>
-        public OrderRequest MarketOrder()
-            => new()
-            {
-                Action = TradeAction.Deal
-            };
-
-        /// <summary>
-        /// Place a trade order for the execution under specified conditions (pending order)
-        /// </summary>
-        /// <returns></returns>
-        public OrderRequest PendingOrder()
-           => new()
-           {
-               Action = TradeAction.Pending
-           };
-
-        /// <summary>
-        /// Modify Stop Loss and Take Profit values of an opened position
-        /// </summary>
-        /// <returns></returns>
-        public OrderRequest ModifyOpenOrder()
-            => new()
-            {
-                Action = TradeAction.Sltp
-            };
-
-        /// <summary>
-        /// Modify the parameters of the order placed previously
-        /// </summary>
-        /// <returns></returns>
-        public OrderRequest ModifyPlacedOrder()
-            => new()
-            {
-                Action = TradeAction.Modify
-            };
-
-        /// <summary>
-        /// Delete the pending order placed previously
-        /// </summary>
-        /// <returns></returns>
-        public OrderRequest RemovePlacedOrder()
-            => new()
-            {
-                Action = TradeAction.Remove
-            };
-
-        /// <summary>
-        /// Close a position by an opposite one
-        /// </summary>
-        /// <returns></returns>
-        public OrderRequest ClosePositionByAnOppositeOne()
-            => new()
-            {
-                Action = TradeAction.CloseBy
-            };
     }
 }
