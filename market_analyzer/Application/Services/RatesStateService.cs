@@ -43,7 +43,7 @@ namespace Application.Services
             var call = _marketDataWrapper.StreamRatesFromTicksRange(
                 symbol,
                 fromDate,
-                date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc),
+                DateTime.SpecifyKind(DateTimeHelper.LocalNow().Add(timeframe), DateTimeKind.Utc),
                 timeframe,
                 chunkSize,
                 cancellationToken);
@@ -52,6 +52,9 @@ namespace Application.Services
 
             await foreach (var reply in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
             {
+                if (!reply.Rates.Any())
+                    continue;
+
                 if (removeLastRate is not null)
                 {
                     var score = Score(removeLastRate);
@@ -60,13 +63,9 @@ namespace Application.Services
                     removeLastRate = null;
                 }
 
-                var sets = reply.Rates
-                    .Select(it =>
-                        new SortedSetEntry(it.ToByteArray(), Score(it))
-                    ).ToArray();
+                var sortedSetEntries = reply.Rates.Select(it => new SortedSetEntry(it.ToByteArray(), Score(it))).ToArray();
 
-                if (sets.Any())
-                    await _database.SortedSetAddAsync(ratesKey, sets);
+                await _database.SortedSetAddAsync(ratesKey, sortedSetEntries);
             }
         }
 

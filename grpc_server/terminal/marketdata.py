@@ -115,6 +115,7 @@ class MarketData(marketDataService.MarketDataServicer):
             fromDate=request.fromDate,
             toDate=request.toDate,
             type=int(mt5.COPY_TICKS_TRADE)))
+
         error = mt5.last_error()
 
         yield protos.StreamRatesRangeReply(

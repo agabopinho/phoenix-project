@@ -262,12 +262,8 @@ class OrderManagement(services.OrderManagementServicer):
     def CheckOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
 
-        logger.info('CheckOrder Request: %s', orderRequest)
-
         result = mt5.order_check(orderRequest)
         error = mt5.last_error()
-
-        logger.info('CheckOrder Reply: %s, error: %s', result, error)
 
         return protos.CheckOrderReply(
             retcode=int(result.retcode),
