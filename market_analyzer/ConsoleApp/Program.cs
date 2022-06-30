@@ -1,4 +1,5 @@
 ﻿using Application.BackgroupServices;
+using Application.Options;
 using Application.Services;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +46,18 @@ builder.ConfigureServices(services =>
 
     services.AddSingleton<IRatesStateService, RatesStateService>();
     services.AddSingleton<ILoopService, LoopService>();
+
+    services.AddOperationSettings(configure =>
+    {
+        configure.Symbol = "WINQ22";
+        configure.Date = new(2022, 6, 30);
+        configure.ChunkSize = 5000;
+        configure.Timeframe = TimeSpan.FromSeconds(10);
+        configure.Window = TimeSpan.FromMinutes(5);
+        configure.Deviation = 10;
+        configure.Magic = 467276;
+        configure.ExecOrder = false;
+    });
 
     services.AddHostedService<WorkerService>();
 });

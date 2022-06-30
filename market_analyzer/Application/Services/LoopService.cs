@@ -1,5 +1,5 @@
 ﻿using Application.Helpers;
-using Grpc.Core;
+using Application.Options;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
@@ -7,24 +7,13 @@ using Microsoft.Extensions.Logging;
 using OoplesFinance.StockIndicators;
 using OoplesFinance.StockIndicators.Enums;
 using OoplesFinance.StockIndicators.Models;
-using System.Diagnostics;
 
 namespace Application.Services
 {
-    public static class Operation
-    {
-        public static readonly string Symbol = "WINQ22";
-        public static readonly DateOnly Date = new(2022, 6, 30);
-        public static readonly int ChunkSize = 5000;
-        public static readonly TimeSpan Timeframe = TimeSpan.FromSeconds(10);
-        public static readonly int Deviation = 10;
-        public static readonly long Magic = 467276;
-        public static readonly bool ExecOrder = false;
-    }
 
     public interface ILoopService
     {
-        Task RunAsync(CancellationToken cancellationToken);
+        Task RunAsync(OperationSettings operationSettings, CancellationToken cancellationToken);
     }
 
     public class LoopService : ILoopService
@@ -51,35 +40,38 @@ namespace Application.Services
             _logger = logger;
         }
 
-        public async Task RunAsync(CancellationToken cancellationToken)
+        public async Task RunAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
             await _ratesStateService.CheckNewRatesAsync(
-                Operation.Symbol, Operation.Date, Operation.Timeframe,
-                Operation.ChunkSize, cancellationToken);
+                operationSettings.Symbol!,
+                operationSettings.Date,
+                operationSettings.Timeframe,
+                operationSettings.ChunkSize,
+                cancellationToken);
 
-            if (!await CanProceedAsync(cancellationToken))
+            if (!await CanProceedAsync(operationSettings, cancellationToken))
             {
                 _logger.LogInformation("Can't proceed!");
 
                 return;
             }
 
-            var rates = await GetRatesAsync(cancellationToken);
+            var rates = await GetRatesAsync(operationSettings, cancellationToken);
             var tickerData = rates.ToTickerData();
 
             var stockData = new StockData(tickerData)
                 .CalculateGannHiLoActivator();
 
-            await CheckSignalAsync(stockData, cancellationToken);
+            await CheckSignalAsync(operationSettings, stockData, cancellationToken);
         }
 
-        private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
+        private async Task<bool> CanProceedAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
-            if (!Operation.ExecOrder)
+            if (!operationSettings.ExecOrder)
                 return true;
 
             var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
-                group: Operation.Symbol, cancellationToken: cancellationToken);
+                group: operationSettings.Symbol, cancellationToken: cancellationToken);
 
             if (pendingOrders.ResponseCode != Res.SOk)
             {
@@ -95,7 +87,7 @@ namespace Application.Services
             return !pendingOrders.Orders.Any();
         }
 
-        private async Task CheckSignalAsync(StockData stockData, CancellationToken cancellationToken)
+        private async Task CheckSignalAsync(OperationSettings operationSettings, StockData stockData, CancellationToken cancellationToken)
         {
             var current = stockData.SignalsList[^2];
 
@@ -106,9 +98,9 @@ namespace Application.Services
 
             var price = stockData.ClosePrices.Last();
 
-            if (!Operation.ExecOrder)
+            if (!operationSettings.ExecOrder)
             {
-                var tick = await _marketDataWrapper.GetSymbolTickAsync(Operation.Symbol, cancellationToken);
+                var tick = await _marketDataWrapper.GetSymbolTickAsync(operationSettings.Symbol!, cancellationToken);
 
                 if (_lastSignal.IsSignalBuy())
                     price = Convert.ToDecimal(tick.Trade.Ask!.Value);
@@ -125,8 +117,8 @@ namespace Application.Services
                 Signal = current
             });
 
-            if (Operation.ExecOrder)
-                await CheckPositionAsync(cancellationToken);
+            if (operationSettings.ExecOrder)
+                await CheckPositionAsync(operationSettings, cancellationToken);
         }
 
         private bool HasChanged(Signal current)
@@ -141,9 +133,9 @@ namespace Application.Services
                    _lastSignal.IsSignalSell() && !current.IsSignalSell();
         }
 
-        private async Task CheckPositionAsync(CancellationToken cancellationToken)
+        private async Task CheckPositionAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
-            var positions = await GetPositionsAsync(cancellationToken);
+            var positions = await GetPositionsAsync(operationSettings.Symbol!, cancellationToken);
 
             if (_lastSignal.IsSignalBuy())
             {
@@ -158,7 +150,11 @@ namespace Application.Services
                     volume = sellPosition.Volume!.Value * 2;
                 }
 
-                await BuyAsync(volume, cancellationToken);
+                await BuyAsync(
+                    operationSettings.Symbol!,
+                    volume, operationSettings.Deviation,
+                    operationSettings.Magic,
+                    cancellationToken);
 
                 return;
             }
@@ -176,56 +172,60 @@ namespace Application.Services
                     volume = buyPosition.Volume!.Value * 2;
                 }
 
-                await SellAsync(volume, cancellationToken);
+                await SellAsync(
+                    operationSettings.Symbol!,
+                    volume, operationSettings.Deviation,
+                    operationSettings.Magic,
+                    cancellationToken);
 
                 return;
             }
         }
 
-        private async Task BuyAsync(double volume, CancellationToken cancellationToken)
+        private async Task BuyAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
         {
-            var tick = await _marketDataWrapper.GetSymbolTickAsync(Operation.Symbol, cancellationToken);
+            var tick = await _marketDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);
 
             var request = _orderCreator.BuyAtMarket(
-                symbol: Operation.Symbol,
+                symbol: symbol,
                 price: tick.Trade.Bid!.Value,
                 volume: volume,
-                deviation: Operation.Deviation,
-                magic: Operation.Magic);
+                deviation: deviation,
+                magic: magic);
 
             _logger.LogInformation("Buy Request {@request}", request);
             var response = await _orderManagementWrapper.SendOrderAsync(request, cancellationToken);
             _logger.LogInformation("Buy Reply {@response}", response);
         }
 
-        private async Task SellAsync(double volume, CancellationToken cancellationToken)
+        private async Task SellAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
         {
-            var tick = await _marketDataWrapper.GetSymbolTickAsync(Operation.Symbol, cancellationToken);
+            var tick = await _marketDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);
 
             var request = _orderCreator.SellAtMarket(
-                symbol: Operation.Symbol,
+                symbol: symbol,
                 price: tick.Trade.Ask!.Value,
                 volume: volume,
-                deviation: 10,
-                magic: Operation.Magic);
+                deviation: deviation,
+                magic: magic);
 
             _logger.LogInformation("Sell Request {@request}", request);
             var response = await _orderManagementWrapper.SendOrderAsync(request, cancellationToken);
             _logger.LogInformation("Sell Reply {@response}", response);
         }
 
-        private async Task<GetPositionsReply> GetPositionsAsync(CancellationToken cancellationToken)
+        private async Task<GetPositionsReply> GetPositionsAsync(string symbol, CancellationToken cancellationToken)
             => await _orderManagementWrapper.GetPositionsAsync(
-                group: Operation.Symbol,
+                group: symbol,
                 cancellationToken: cancellationToken);
 
-        private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
+        private async Task<IEnumerable<Rate>> GetRatesAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
             var result = await _ratesStateService.GetRatesAsync(
-                Operation.Symbol,
-                Operation.Date,
-                Operation.Timeframe,
-                TimeSpan.FromMinutes(5),
+                operationSettings.Symbol!,
+                operationSettings.Date,
+                operationSettings.Timeframe,
+                operationSettings.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time);

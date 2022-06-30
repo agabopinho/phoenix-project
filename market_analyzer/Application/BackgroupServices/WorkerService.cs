@@ -1,17 +1,24 @@
-﻿using Application.Services;
+﻿using Application.Options;
+using Application.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Application.BackgroupServices
 {
     public class WorkerService : BackgroundService
     {
         private readonly ILoopService _loopService;
+        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<WorkerService> _logger;
 
-        public WorkerService(ILoopService loopService, ILogger<WorkerService> logger)
+        public WorkerService(
+            ILoopService loopService,
+            IOptionsSnapshot<OperationSettings> operationSettings,
+            ILogger<WorkerService> logger)
         {
             _loopService = loopService;
+            _operationSettings = operationSettings;
             _logger = logger;
         }
 
@@ -21,7 +28,7 @@ namespace Application.BackgroupServices
             {
                 try
                 {
-                    await _loopService.RunAsync(stoppingToken);
+                    await _loopService.RunAsync(_operationSettings.Value, stoppingToken);
                 }
                 catch (Exception e)
                 {
