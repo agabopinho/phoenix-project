@@ -19,6 +19,7 @@ namespace Application.Services
     public class LoopService : ILoopService
     {
         private Signal _lastSignal = Signal.None;
+        private DateTime _lastSinalDate = DateTime.MinValue;
 
         private readonly IRatesStateService _ratesStateService;
         private readonly IMarketDataWrapper _marketDataWrapper;
@@ -60,7 +61,7 @@ namespace Application.Services
             var tickerData = rates.ToTickerData();
 
             var stockData = new StockData(tickerData)
-                .CalculateGannHiLoActivator();
+                .CalculateGannHiLoActivator(length: operationSettings.IndicatorLength);
 
             await CheckSignalAsync(operationSettings, stockData, cancellationToken);
         }
@@ -89,12 +90,14 @@ namespace Application.Services
 
         private async Task CheckSignalAsync(OperationSettings operationSettings, StockData stockData, CancellationToken cancellationToken)
         {
-            var current = stockData.SignalsList[^2];
+            var current = stockData.SignalsList[^operationSettings.IndicatorSignalShift];
+            var date = stockData.Dates.Last();
 
-            if (!HasChanged(current))
+            if (!HasChanged(date, current))
                 return;
 
             _lastSignal = current;
+            _lastSinalDate = date;
 
             var price = stockData.ClosePrices.Last();
 
@@ -111,7 +114,7 @@ namespace Application.Services
 
             _logger.LogInformation("{@data}", new
             {
-                Date = stockData.Dates.Last(),
+                Date = date,
                 Price = price,
                 Ghla = stockData.OutputValues["Ghla"].Last(),
                 Signal = current
@@ -121,8 +124,11 @@ namespace Application.Services
                 await CheckPositionAsync(operationSettings, cancellationToken);
         }
 
-        private bool HasChanged(Signal current)
+        private bool HasChanged(DateTime date, Signal current)
         {
+            if (_lastSinalDate == date)
+                return false;
+
             if (current.IsNone())
                 return false;
 
@@ -152,7 +158,8 @@ namespace Application.Services
 
                 await BuyAsync(
                     operationSettings.Symbol!,
-                    volume, operationSettings.Deviation,
+                    volume, 
+                    operationSettings.Deviation,
                     operationSettings.Magic,
                     cancellationToken);
 
@@ -174,7 +181,8 @@ namespace Application.Services
 
                 await SellAsync(
                     operationSettings.Symbol!,
-                    volume, operationSettings.Deviation,
+                    volume, 
+                    operationSettings.Deviation,
                     operationSettings.Magic,
                     cancellationToken);
 
@@ -225,7 +233,7 @@ namespace Application.Services
                 operationSettings.Symbol!,
                 operationSettings.Date,
                 operationSettings.Timeframe,
-                operationSettings.Window,
+                operationSettings.IndicatorWindow,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time);

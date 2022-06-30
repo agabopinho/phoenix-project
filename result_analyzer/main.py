@@ -60,15 +60,16 @@ for current in result:
 
     color = Back.GREEN if profit > 0 else Back.RED
 
-    print(color + 'Side: {}, In: {}, Out: {}'.format('Buy' if previous['Signal'] in BUY else 'Sell', previous['Price'], current['Price']))
-    print(color + 'Op. Profit {}'.format(profit))
+    print('Side: {}, In: {}, Out: {}'.format('Buy' if previous['Signal'] in BUY else 'Sell', previous['Price'], current['Price']))
+    print('Op. Profit {}{}'.format(color, profit))
     print()
-    print('>>> Total Profit: {}{}'.format(Back.GREEN if gain + loss > 0 else Back.RED, gain + loss))
+    print('{}>>>{} Total Profit: {}{}'.format(Back.YELLOW, Back.BLACK, Back.GREEN if gain + loss > 0 else Back.RED, gain + loss))
     print()
 
     previous = current
     
 print(Back.YELLOW + 'Result >>>')
+print()
 print('Loss: {}'.format(loss))
 print('LossCount: {}'.format(lossCount))
 print('Gain: {}'.format(gain))

@@ -52,16 +52,16 @@ builder.ConfigureServices(services =>
         configure.Symbol = "WINQ22";
         configure.Date = new(2022, 6, 30);
         configure.ChunkSize = 5000;
-        configure.Timeframe = TimeSpan.FromSeconds(10);
-        configure.Window = TimeSpan.FromMinutes(5);
+        configure.Timeframe = TimeSpan.FromSeconds(2);
         configure.Deviation = 10;
         configure.Magic = 467276;
         configure.ExecOrder = false;
+        configure.IndicatorWindow = TimeSpan.FromMinutes(3);
+        configure.IndicatorLength = 3;
+        configure.IndicatorSignalShift = 1;
     });
 
     services.AddHostedService<WorkerService>();
 });
 
-await builder
-    .Build()
-    .RunAsync();
+await builder.Build().RunAsync();
