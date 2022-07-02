@@ -58,7 +58,7 @@ namespace Application.Services
             var rates = await GetRatesAsync(cancellationToken);
             var tickerData = rates.ToTickerData();
             var stockData = new StockData(tickerData)
-                .CalculateGannHiLoActivator(length: _operationSettings.Value.Indicator.Length);
+                .CalculateMovingAverageConvergenceDivergence();
 
             if (stockData.Count == 0)
             {
@@ -122,7 +122,6 @@ namespace Application.Services
             {
                 Date = date,
                 Price = price,
-                Ghla = stockData.OutputValues["Ghla"].Last(),
                 Signal = current
             });
 
