@@ -6,16 +6,8 @@ using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
-namespace Application.Services.Providers
+namespace Application.Services.Providers.Database
 {
-    public interface IBacktestDatabaseProvider
-    {
-        SortedList<DateTime, List<Trade>> TicksDatabase { get; }
-
-        Task<bool> LoadAsync(string symbol, DateOnly date, int chunkSize, CancellationToken cancellationToken);
-        DateTime PartitionKey(DateTime time);
-    }
-
     public class BacktestDatabaseProvider : IBacktestDatabaseProvider
     {
         private readonly IMarketDataWrapper _marketDataWrapper;

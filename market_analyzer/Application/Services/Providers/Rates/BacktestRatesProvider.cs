@@ -1,4 +1,6 @@
-﻿using Google.Protobuf.WellKnownTypes;
+﻿using Application.Services.Providers.Cycle;
+using Application.Services.Providers.Database;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
@@ -9,19 +11,19 @@ namespace Application.Services.Providers.Rates
     public class BacktestRatesProvider : IRatesProvider
     {
         private readonly IBacktestDatabaseProvider _backtestDatabase;
-        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly ICycleProvider _cycleProvider;
         private readonly ILogger<BacktestRatesProvider> _logger;
 
         private DateTime _now;
-        private SortedList<DateTime, Rate> _rates = new();
+        private readonly SortedList<DateTime, Rate> _rates = new();
 
         public BacktestRatesProvider(
             IBacktestDatabaseProvider backtestDatabase,
-            IDateTimeProvider dateTimeProvider,
+            ICycleProvider cycleProvider,
             ILogger<BacktestRatesProvider> logger)
         {
             _backtestDatabase = backtestDatabase;
-            _dateTimeProvider = dateTimeProvider;
+            _cycleProvider = cycleProvider;
             _logger = logger;
         }
 
@@ -34,7 +36,7 @@ namespace Application.Services.Providers.Rates
             int chunkSize,
             CancellationToken cancellationToken)
         {
-            _now = _dateTimeProvider.Now();
+            _now = _cycleProvider.PlatformNow();
 
             if (Started)
                 return;

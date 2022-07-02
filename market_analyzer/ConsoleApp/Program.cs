@@ -1,7 +1,8 @@
 ﻿using Application.BackgroupServices;
 using Application.Options;
 using Application.Services;
-using Application.Services.Providers;
+using Application.Services.Providers.Cycle;
+using Application.Services.Providers.Database;
 using Application.Services.Providers.Rates;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,16 +43,16 @@ builder.ConfigureServices(services =>
     services.AddOrderManagementWrapper(configure =>
         configure.Endpoint = "http://host.docker.internal:5051");
 
-    services.AddSingleton<OnlineDateTimeProvider>();
-    services.AddSingleton<BacktestDateTimeProvider>();
-    services.AddSingleton<IDateTimeProvider>(serviceProvider =>
+    services.AddSingleton<OnlineCycleProvider>();
+    services.AddSingleton<BacktestCycleProvider>();
+    services.AddSingleton<ICycleProvider>(serviceProvider =>
     {
         var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
 
         if (options.Value.Backtest.Enabled)
-            return serviceProvider.GetRequiredService<BacktestDateTimeProvider>();
+            return serviceProvider.GetRequiredService<BacktestCycleProvider>();
 
-        return serviceProvider.GetRequiredService<OnlineDateTimeProvider>();
+        return serviceProvider.GetRequiredService<OnlineCycleProvider>();
     });
 
     services.AddSingleton<OnlineRatesProvider>();

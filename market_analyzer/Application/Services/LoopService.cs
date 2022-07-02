@@ -13,7 +13,7 @@ namespace Application.Services
 {
     public class LoopService : ILoopService
     {
-        private readonly IRatesProvider _ratesStateService;
+        private readonly IRatesProvider _ratesProvider;
         private readonly IOrderManagementWrapper _orderManagementWrapper;
         private readonly IOrderCreator _orderCreator;
         private readonly ILogger<ILoopService> _logger;
@@ -22,12 +22,12 @@ namespace Application.Services
         private DateTime _lastSinalDate = DateTime.MinValue;
 
         public LoopService(
-            IRatesProvider ratesStateService,
+            IRatesProvider ratesProvider,
             IOrderManagementWrapper orderManagementWrapper,
             IOrderCreator orderCreator,
             ILogger<ILoopService> logger)
         {
-            _ratesStateService = ratesStateService;
+            _ratesProvider = ratesProvider;
             _orderManagementWrapper = orderManagementWrapper;
             _orderCreator = orderCreator;
             _logger = logger;
@@ -35,7 +35,7 @@ namespace Application.Services
 
         public async Task RunAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
-            await _ratesStateService.CheckNewRatesAsync(
+            await _ratesProvider.CheckNewRatesAsync(
                 operationSettings.MarketData.Symbol!,
                 operationSettings.MarketData.Date,
                 operationSettings.MarketData.Timeframe,
@@ -101,7 +101,7 @@ namespace Application.Services
 
             if (!operationSettings.ProductionMode)
             {
-                var tick = await _ratesStateService.GetSymbolTickAsync(operationSettings.MarketData.Symbol!, cancellationToken);
+                var tick = await _ratesProvider.GetSymbolTickAsync(operationSettings.MarketData.Symbol!, cancellationToken);
 
                 date = tick.Trade.Time.ToDateTime();
 
@@ -192,7 +192,7 @@ namespace Application.Services
 
         private async Task BuyAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
         {
-            var tick = await _ratesStateService.GetSymbolTickAsync(symbol, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(symbol, cancellationToken);
 
             var request = _orderCreator.BuyAtMarket(
                 symbol: symbol,
@@ -208,7 +208,7 @@ namespace Application.Services
 
         private async Task SellAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
         {
-            var tick = await _ratesStateService.GetSymbolTickAsync(symbol, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(symbol, cancellationToken);
 
             var request = _orderCreator.SellAtMarket(
                 symbol: symbol,
@@ -229,7 +229,7 @@ namespace Application.Services
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
-            var result = await _ratesStateService.GetRatesAsync(
+            var result = await _ratesProvider.GetRatesAsync(
                 operationSettings.MarketData.Symbol!,
                 operationSettings.MarketData.Date,
                 operationSettings.MarketData.Timeframe,

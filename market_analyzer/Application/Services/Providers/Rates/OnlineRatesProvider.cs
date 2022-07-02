@@ -1,4 +1,5 @@
 ﻿using Application.Helpers;
+using Application.Services.Providers.Cycle;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Terminal;
@@ -11,16 +12,16 @@ namespace Application.Services.Providers.Rates
     {
         private readonly IMarketDataWrapper _marketDataWrapper;
         private readonly IDatabase _database;
-        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly ICycleProvider _cycleProvider;
 
         public OnlineRatesProvider(
             IMarketDataWrapper marketDataWrapper,
             IDatabase database,
-            IDateTimeProvider dateTimeProvider)
+            ICycleProvider cycleProvider)
         {
             _marketDataWrapper = marketDataWrapper;
             _database = database;
-            _dateTimeProvider = dateTimeProvider;
+            _cycleProvider = cycleProvider;
         }
 
         public async Task CheckNewRatesAsync(
@@ -40,7 +41,7 @@ namespace Application.Services.Providers.Rates
             using var call = _marketDataWrapper.StreamRatesFromTicksRange(
                 symbol,
                 fromDate,
-                _dateTimeProvider.Now().AddSeconds(1),
+                _cycleProvider.PlatformNow().AddSeconds(10),
                 timeframe,
                 chunkSize,
                 cancellationToken);
@@ -49,6 +50,9 @@ namespace Application.Services.Providers.Rates
 
             await foreach (var reply in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
             {
+                if (!reply.Rates.Any())
+                    continue;
+
                 if (removeLastRate is not null)
                 {
                     var score = Score(removeLastRate);
