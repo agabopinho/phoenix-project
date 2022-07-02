@@ -76,8 +76,8 @@ builder.ConfigureServices(services =>
 
         configure.Backtest.Enabled = true;
         configure.Backtest.Start = new TimeOnly(9, 10, 0);
-        configure.Backtest.End = new TimeOnly(17, 30, 0);
-        configure.Backtest.Step = TimeSpan.FromMilliseconds(200);
+        configure.Backtest.End = new TimeOnly(10, 30, 0);
+        configure.Backtest.Step = TimeSpan.FromMilliseconds(25);
 
         configure.Order.Deviation = 10;
         configure.Order.Magic = 467276;

@@ -13,8 +13,8 @@ namespace Application.Services.Providers.Rates
         private readonly IBacktestDatabaseProvider _backtestDatabase;
         private readonly ICycleProvider _cycleProvider;
         private readonly ILogger<BacktestRatesProvider> _logger;
+        private readonly Stopwatch _stopwatch;
 
-        private DateTime _now;
         private readonly SortedList<DateTime, Rate> _rates = new();
 
         public BacktestRatesProvider(
@@ -25,6 +25,7 @@ namespace Application.Services.Providers.Rates
             _backtestDatabase = backtestDatabase;
             _cycleProvider = cycleProvider;
             _logger = logger;
+            _stopwatch = new Stopwatch();
         }
 
         public bool Started { get; set; }
@@ -36,7 +37,7 @@ namespace Application.Services.Providers.Rates
             int chunkSize,
             CancellationToken cancellationToken)
         {
-            _now = _cycleProvider.PlatformNow();
+            _cycleProvider.PlatformNow();
 
             if (Started)
                 return;
@@ -52,21 +53,22 @@ namespace Application.Services.Providers.Rates
             TimeSpan window,
             CancellationToken cancellationToken)
         {
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
+            _stopwatch.Restart();
 
-            var fromDate = _rates.Any() ? _rates.Keys.Max() : _now.Subtract(window);
-            var toDate = _now;
+            var now = _cycleProvider.Previous;
 
-            var windowData = GetWindow(fromDate, toDate);
+            var fromDate = _rates.Any() ? _rates.Keys.Last() : now.Subtract(window);
+            var toDate = now;
 
-            _logger.LogTrace("Create window data {@data}ms, count {@count}", stopwatch.Elapsed.TotalMilliseconds, windowData.Count);
-            stopwatch.Restart();
+            var data = GetWindow(fromDate, toDate);
 
-            var resample = ResampleData(fromDate, toDate, windowData, timeframe);
+            _logger.LogTrace("Create window data {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, data.Count);
+            _stopwatch.Restart();
 
-            _logger.LogTrace("Resample data {@data}ms, count {@count}", stopwatch.Elapsed.TotalMilliseconds, resample.Count);
-            stopwatch.Restart();
+            var resample = ResampleData(fromDate, toDate, data, timeframe);
+
+            _logger.LogTrace("Resample data {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, resample.Count);
+            _stopwatch.Restart();
 
             foreach (var rate in resample.Select(CreateRatesSelector))
             {
@@ -74,24 +76,25 @@ namespace Application.Services.Providers.Rates
                 _rates[rateTime] = rate;
             }
 
-            foreach (var key in _rates.Keys.Where(key => key < _now.Subtract(window)).ToArray())
+            foreach (var key in _rates.Keys.Where(key => key < now.Subtract(window)).ToArray())
                 _rates.Remove(key);
 
-            _logger.LogTrace("Create rates {@data}ms, count {@count}", stopwatch.Elapsed.TotalMilliseconds, _rates.Count);
-            stopwatch.Restart();
+            _logger.LogTrace("Create rates {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, _rates.Count);
+            _stopwatch.Restart();
 
             return Task.FromResult<IEnumerable<Rate>>(_rates.Values);
         }
 
         public Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
         {
-            var toPartitionKey = _backtestDatabase.PartitionKey(_now);
+            var now = _cycleProvider.Previous;
+            var toPartitionKey = _backtestDatabase.PartitionKey(now);
             var index = _backtestDatabase.TicksDatabase.Keys.ToList().BinarySearch(toPartitionKey);
 
             if (index < 0)
                 index = ~index - 1;
 
-            var toTrade = new Trade { Time = _now.ToTimestamp() };
+            var toTrade = new Trade { Time = now.ToTimestamp() };
             var tradeOnlyTimeComparer = new TradeOnlyTimeComparer();
             var trade = new Trade { Flags = 0 };
 
@@ -170,7 +173,7 @@ namespace Application.Services.Providers.Rates
             return windowData;
         }
 
-        private static IDictionary<DateTime, List<Trade>> ResampleData(DateTime fromDate, DateTime toDate, List<Trade> windowData, TimeSpan timeframe)
+        private static IDictionary<DateTime, List<Trade>> ResampleData(DateTime fromDate, DateTime toDate, List<Trade> data, TimeSpan timeframe)
         {
             var indexes = GetIndexes(timeframe, fromDate, toDate);
             var resample = new Dictionary<DateTime, List<Trade>>(indexes.Count);
@@ -181,14 +184,14 @@ namespace Application.Services.Providers.Rates
             var fromTrade = new Trade { Time = fromDateTimestamp };
             var tradeOnlyTimeComparer = new TradeOnlyTimeComparer();
 
-            var startFrom = windowData.BinarySearch(fromTrade, tradeOnlyTimeComparer);
+            var startFrom = data.BinarySearch(fromTrade, tradeOnlyTimeComparer);
 
             if (startFrom < 0)
                 startFrom = ~startFrom;
 
-            for (var i = startFrom; i < windowData.Count; i++)
+            for (var i = startFrom; i < data.Count; i++)
             {
-                var trade = windowData[i];
+                var trade = data[i];
 
                 if (trade.Time > toDateTimestamp)
                     break;

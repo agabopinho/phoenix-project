@@ -5,30 +5,38 @@ namespace Application.Services.Providers.Cycle
 {
     public class BacktestCycleProvider : ICycleProvider
     {
+        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
+
         public BacktestCycleProvider(IOptionsSnapshot<OperationSettings> operationSettings)
         {
-            TimeZone = TimeZoneInfo.Utc;
+            _operationSettings = operationSettings;
 
             var marketData = operationSettings.Value.MarketData;
             var backtest = operationSettings.Value.Backtest;
 
-            NextDate = DateTime.SpecifyKind(marketData.Date.ToDateTime(backtest.Start), DateTimeKind.Utc);
+            Start = marketData.Date.ToDateTime(backtest.Start);
+            End = marketData.Date.ToDateTime(backtest.End);
             Step = backtest.Step;
+
+            NextDate = DateTime.SpecifyKind(Start, DateTimeKind.Utc);
         }
 
-        public DateTime PreviousDate { get; private set; }
-        public DateTime CurrentDate { get; private set; }
-        public DateTime NextDate { get; private set; }
+        public DateTime Start { get; }
+        public DateTime End { get; }
         public TimeSpan Step { get; }
-        public TimeZoneInfo TimeZone { get; }
+        public DateTime Previous { get; private set; }
+        public DateTime NextDate { get; private set; }
+        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.MarketData.TimeZoneId!);
 
         public DateTime PlatformNow()
         {
-            PreviousDate = CurrentDate;
-            CurrentDate = NextDate;
+            Previous = NextDate;
             NextDate = NextDate.Add(Step);
 
-            return CurrentDate;
+            if (Previous > End)
+                throw new BacktestFinishException();
+
+            return Previous;
         }
     }
 }

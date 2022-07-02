@@ -5,16 +5,22 @@ namespace Application.Services.Providers.Cycle
 {
     public class OnlineCycleProvider : ICycleProvider
     {
+        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
+
+        private DateTime _previous;
+
         public OnlineCycleProvider(IOptionsSnapshot<OperationSettings> operationSettings)
         {
-            var marketData = operationSettings.Value.MarketData;
-
-            TimeZone = TimeZoneInfo.FindSystemTimeZoneById(marketData.TimeZoneId!);
+            _operationSettings = operationSettings;
         }
 
-        public TimeZoneInfo TimeZone { get; }
+        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.MarketData.TimeZoneId!);
+        public DateTime Previous => _previous;
 
         public DateTime PlatformNow()
-            => DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZone), DateTimeKind.Utc);
+        {
+            _previous = DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZone), DateTimeKind.Utc);
+            return _previous;
+        }
     }
 }

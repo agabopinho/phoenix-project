@@ -1,5 +1,6 @@
 ﻿using Application.Options;
 using Application.Services;
+using Application.Services.Providers.Cycle;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -36,6 +37,12 @@ namespace Application.BackgroupServices
                     _stopwatch.Stop();
 
                     _logger.LogDebug("Complete loop in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
+                }
+                catch (BacktestFinishException)
+                {
+                    _logger.LogInformation("Backtest finish.");
+
+                    break;
                 }
                 catch (Exception e)
                 {
