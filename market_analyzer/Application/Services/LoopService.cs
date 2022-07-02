@@ -5,6 +5,7 @@ using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OoplesFinance.StockIndicators;
 using OoplesFinance.StockIndicators.Enums;
 using OoplesFinance.StockIndicators.Models;
@@ -16,6 +17,7 @@ namespace Application.Services
         private readonly IRatesProvider _ratesProvider;
         private readonly IOrderManagementWrapper _orderManagementWrapper;
         private readonly IOrderCreator _orderCreator;
+        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
 
         private Signal _lastSignal = Signal.None;
@@ -25,34 +27,38 @@ namespace Application.Services
             IRatesProvider ratesProvider,
             IOrderManagementWrapper orderManagementWrapper,
             IOrderCreator orderCreator,
+            IOptionsSnapshot<OperationSettings> operationSettings,
             ILogger<ILoopService> logger)
         {
             _ratesProvider = ratesProvider;
             _orderManagementWrapper = orderManagementWrapper;
             _orderCreator = orderCreator;
+            _operationSettings = operationSettings;
             _logger = logger;
         }
 
-        public async Task RunAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
+        public async Task RunAsync(CancellationToken cancellationToken)
         {
+            var marketData = _operationSettings.Value.MarketData;
+
             await _ratesProvider.CheckNewRatesAsync(
-                operationSettings.MarketData.Symbol!,
-                operationSettings.MarketData.Date,
-                operationSettings.MarketData.Timeframe,
-                operationSettings.Infra.ChunkSize,
+                marketData.Symbol!,
+                marketData.Date,
+                marketData.Timeframe,
+                marketData.ChunkSize,
                 cancellationToken);
 
-            if (!await CanProceedAsync(operationSettings, cancellationToken))
+            if (!await CanProceedAsync(cancellationToken))
             {
                 _logger.LogInformation("Can't proceed!");
 
                 return;
             }
 
-            var rates = await GetRatesAsync(operationSettings, cancellationToken);
+            var rates = await GetRatesAsync(cancellationToken);
             var tickerData = rates.ToTickerData();
             var stockData = new StockData(tickerData)
-                .CalculateGannHiLoActivator(length: operationSettings.Indicator.Length);
+                .CalculateGannHiLoActivator(length: _operationSettings.Value.Indicator.Length);
 
             if (stockData.Count == 0)
             {
@@ -61,16 +67,16 @@ namespace Application.Services
                 return;
             }
 
-            await CheckSignalAsync(operationSettings, stockData, cancellationToken);
+            await CheckSignalAsync(stockData, cancellationToken);
         }
 
-        private async Task<bool> CanProceedAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
+        private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
         {
-            if (!operationSettings.ProductionMode)
+            if (!_operationSettings.Value.ProductionMode)
                 return true;
 
             var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
-                group: operationSettings.MarketData.Symbol, cancellationToken: cancellationToken);
+                group: _operationSettings.Value.MarketData.Symbol, cancellationToken: cancellationToken);
 
             if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
             {
@@ -86,9 +92,9 @@ namespace Application.Services
             return !pendingOrders.Orders.Any();
         }
 
-        private async Task CheckSignalAsync(OperationSettings operationSettings, StockData stockData, CancellationToken cancellationToken)
+        private async Task CheckSignalAsync(StockData stockData, CancellationToken cancellationToken)
         {
-            var current = stockData.SignalsList[^operationSettings.Indicator.SignalShift];
+            var current = stockData.SignalsList[^_operationSettings.Value.Indicator.SignalShift];
             var date = stockData.Dates.Last();
 
             if (!HasChanged(date, current))
@@ -99,9 +105,9 @@ namespace Application.Services
 
             var price = stockData.ClosePrices.Last();
 
-            if (!operationSettings.ProductionMode)
+            if (!_operationSettings.Value.ProductionMode)
             {
-                var tick = await _ratesProvider.GetSymbolTickAsync(operationSettings.MarketData.Symbol!, cancellationToken);
+                var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
 
                 date = tick.Trade.Time.ToDateTime();
 
@@ -120,8 +126,8 @@ namespace Application.Services
                 Signal = current
             });
 
-            if (operationSettings.ProductionMode)
-                await CheckPositionAsync(operationSettings, cancellationToken);
+            if (_operationSettings.Value.ProductionMode)
+                await CheckPositionAsync(cancellationToken);
         }
 
         private bool HasChanged(DateTime date, Signal current)
@@ -139,9 +145,9 @@ namespace Application.Services
                    _lastSignal.IsSignalSell() && !current.IsSignalSell();
         }
 
-        private async Task CheckPositionAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
+        private async Task CheckPositionAsync(CancellationToken cancellationToken)
         {
-            var positions = await GetPositionsAsync(operationSettings.MarketData.Symbol!, cancellationToken);
+            var positions = await GetPositionsAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
 
             if (_lastSignal.IsSignalBuy())
             {
@@ -157,10 +163,10 @@ namespace Application.Services
                 }
 
                 await BuyAsync(
-                    operationSettings.MarketData.Symbol!,
+                    _operationSettings.Value.MarketData.Symbol!,
                     volume,
-                    operationSettings.Order.Deviation,
-                    operationSettings.Order.Magic,
+                    _operationSettings.Value.Order.Deviation,
+                    _operationSettings.Value.Order.Magic,
                     cancellationToken);
 
                 return;
@@ -180,10 +186,10 @@ namespace Application.Services
                 }
 
                 await SellAsync(
-                    operationSettings.MarketData.Symbol!,
+                    _operationSettings.Value.MarketData.Symbol!,
                     volume,
-                    operationSettings.Order.Deviation,
-                    operationSettings.Order.Magic,
+                    _operationSettings.Value.Order.Deviation,
+                    _operationSettings.Value.Order.Magic,
                     cancellationToken);
 
                 return;
@@ -227,13 +233,13 @@ namespace Application.Services
                 group: symbol,
                 cancellationToken: cancellationToken);
 
-        private async Task<IEnumerable<Rate>> GetRatesAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
+        private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
         {
             var result = await _ratesProvider.GetRatesAsync(
-                operationSettings.MarketData.Symbol!,
-                operationSettings.MarketData.Date,
-                operationSettings.MarketData.Timeframe,
-                operationSettings.Indicator.Window,
+                _operationSettings.Value.MarketData.Symbol!,
+                _operationSettings.Value.MarketData.Date,
+                _operationSettings.Value.MarketData.Timeframe,
+                _operationSettings.Value.Indicator.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time);

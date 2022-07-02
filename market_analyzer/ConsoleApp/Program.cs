@@ -4,12 +4,18 @@ using Application.Services;
 using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Database;
 using Application.Services.Providers.Rates;
+using ConsoleApp.Converters;
 using Infrastructure.GrpcServerTerminal;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Serilog;
 using StackExchange.Redis;
+using System.ComponentModel;
+
+TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof(DateOnlyTypeConverter)));
+TypeDescriptor.AddAttributes(typeof(TimeOnly), new TypeConverterAttribute(typeof(TimeOnlyTypeConverter)));
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -24,24 +30,17 @@ builder.UseSerilog((context, services, configuration) => configuration
     .Enrich.FromLogContext()
     .WriteTo.Console());
 
-builder.ConfigureServices(services =>
+builder.ConfigureServices((context, services) =>
 {
-    services.AddSingleton(_ =>
-    {
-        var options = new ConfigurationOptions
-        {
-            EndPoints = { "cache:6379" },
-            Password = "istrusted"
-        };
-
-        var multiplexer = ConnectionMultiplexer.Connect(options);
-        return multiplexer.GetDatabase(0);
-    });
+    services.AddSingleton(_
+        => ConnectionMultiplexer
+            .Connect(context.Configuration.GetValue<string>("Redis"))
+            .GetDatabase(0));
 
     services.AddMarketDataWrapper(configure =>
-        configure.Endpoint = "http://host.docker.internal:5051");
+        context.Configuration.GetSection("GrpcServer:MarketData").Bind(configure));
     services.AddOrderManagementWrapper(configure =>
-        configure.Endpoint = "http://host.docker.internal:5051");
+        context.Configuration.GetSection("GrpcServer:OrderManagement").Bind(configure));
 
     services.AddSingleton<OnlineCycleProvider>();
     services.AddSingleton<BacktestCycleProvider>();
@@ -67,28 +66,8 @@ builder.ConfigureServices(services =>
         return serviceProvider.GetRequiredService<OnlineRatesProvider>();
     });
 
-    services.AddOperationSettings(configure =>
-    {
-        configure.MarketData.Symbol = "WINQ22";
-        configure.MarketData.Date = new(2022, 6, 30);
-        configure.MarketData.Timeframe = TimeSpan.FromSeconds(5);
-        configure.MarketData.TimeZoneId = "America/Sao_Paulo";
-
-        configure.Backtest.Enabled = true;
-        configure.Backtest.Start = new TimeOnly(9, 10, 0);
-        configure.Backtest.End = new TimeOnly(10, 30, 0);
-        configure.Backtest.Step = TimeSpan.FromMilliseconds(25);
-
-        configure.Order.Deviation = 10;
-        configure.Order.Magic = 467276;
-        configure.Order.ExecOrder = false;
-
-        configure.Indicator.Window = TimeSpan.FromMinutes(5);
-        configure.Indicator.Length = 3;
-        configure.Indicator.SignalShift = 1;
-
-        configure.Infra.ChunkSize = 5000;
-    });
+    services.AddOperationSettings(configure
+        => context.Configuration.GetSection("Operation").Bind(configure));
 
     services.AddSingleton<IBacktestDatabaseProvider, BacktestDatabaseProvider>();
     services.AddSingleton<ILoopService, LoopService>();

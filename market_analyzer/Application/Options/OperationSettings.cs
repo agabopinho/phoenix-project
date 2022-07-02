@@ -6,7 +6,6 @@
         public BacktestSettings Backtest { get; set; } = new();
         public OrderSettings Order { get; set; } = new();
         public IndicatorSettings Indicator { get; set; } = new();
-        public InfraSetttings Infra { get; set; } = new();
         public bool ProductionMode => Order.ExecOrder && !Backtest.Enabled;
 
         public class MarketDataSettings
@@ -15,6 +14,7 @@
             public DateOnly Date { get; set; }
             public TimeSpan Timeframe { get; set; }
             public string? TimeZoneId { get; set; }
+            public int ChunkSize { get; set; }
         }
 
         public class BacktestSettings
@@ -37,11 +37,6 @@
             public TimeSpan Window { get; set; }
             public int Length { get; set; }
             public int SignalShift { get; set; }
-        }
-
-        public class InfraSetttings
-        {
-            public int ChunkSize { get; set; }
         }
     }
 }

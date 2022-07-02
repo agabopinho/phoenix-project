@@ -25,6 +25,8 @@ namespace Application.Services.Providers.Database
 
         public async Task<bool> LoadAsync(string symbol, DateOnly date, int chunkSize, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Loading backtest data {@data}", new { symbol, Date = date.ToShortDateString() });
+
             var key = BacktestTicksKey(symbol, date);
 
             await FromCacheAsync(key);
@@ -33,12 +35,7 @@ namespace Application.Services.Providers.Database
             var toDate = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
             if (TicksDatabase.Count > 0)
-                fromDate = TicksDatabase
-                    .SelectMany(it => it.Value)
-                    .Select(it => it.Time.ToDateTime())
-                    .Max();
-
-            _logger.LogInformation("Loading backtest data {@data}", new { symbol, date });
+                fromDate = TicksDatabase.Last().Value.Last().Time.ToDateTime();
 
             using var call = _marketDataWrapper.StreamTicksRange(symbol, fromDate, toDate, CopyTicks.All, chunkSize, cancellationToken);
 
@@ -68,7 +65,7 @@ namespace Application.Services.Providers.Database
 
                 await _database.ListRightPushAsync(key, values.ToArray());
 
-                _logger.LogInformation("Chunk {@data}", new { reply.Trades.Count, Total = TicksDatabase.SelectMany(it => it.Value).Count() });
+                _logger.LogInformation("Chunk {@data}", new { reply.Trades.Count, Total = TicksDatabase.Sum(it => it.Value.Count) });
             }
 
             return true;

@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "Docker Compose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "cache": "StartWithoutDebugging",
+        "consoleapp": "StartDebugging"
+      }
+    },
+    "Docker Compose Only Deps": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "cache": "StartWithoutDebugging",
+        "consoleapp": "DoNotStart"
+      }
+    }
+  }
+}

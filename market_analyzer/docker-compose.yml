@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: ConsoleApp/Dockerfile
+    environment:
+      - DOTNET_ENVIRONMENT=Compose
 
   cache:
     image: redis:6.2-alpine
