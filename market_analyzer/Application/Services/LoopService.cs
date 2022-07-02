@@ -58,7 +58,7 @@ namespace Application.Services
             var rates = await GetRatesAsync(cancellationToken);
             var tickerData = rates.ToTickerData();
             var stockData = new StockData(tickerData)
-                .CalculateMovingAverageConvergenceDivergence();
+               .CalculateGannHiLoActivator(length: _operationSettings.Value.Indicator.Length);
 
             if (stockData.Count == 0)
             {
