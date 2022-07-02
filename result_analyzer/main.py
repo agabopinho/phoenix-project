@@ -1,7 +1,10 @@
 # colorama_demo.py
+import os
 from colorama import init, Back
 import json
 import sys
+
+import pandas as pd
 
 init(autoreset=True)
 
@@ -28,6 +31,8 @@ lossCount = 0
 gain = 0
 gainCount = 0
 opCount = 0
+df = pd.DataFrame(columns=['timeIn', 'timeOut', 'side',
+                           'priceIn', 'priceOut', 'opProfit', 'sumProfit'])
 
 for current in result:
     if previous is None:
@@ -59,15 +64,30 @@ for current in result:
         lossCount += 1
 
     color = Back.GREEN if profit > 0 else Back.RED
+    side = 'Buy' if previous['Signal'] in BUY else 'Sell'
 
-    print('Side: {}, In: {}, Out: {}'.format('Buy' if previous['Signal'] in BUY else 'Sell', previous['Price'], current['Price']))
+    df = pd.concat([df, pd.DataFrame({
+        'timeIn': previous['Date'],
+        'timeOut': current['Date'],
+        'side': side,
+        'priceIn': previous['Price'],
+        'priceOut': current['Price'],
+        'opProfit': profit,
+        'sumProfit': gain + loss
+    }, index=[1])], ignore_index=True)
+
+    print('Time In: {}, Time Out: {}'.format(
+        previous['Date'], current['Date']))
+    print('Side: {}, In: {}, Out: {}'.format(
+        side, previous['Price'], current['Price']))
     print('Op. Profit {}{}'.format(color, profit))
     print()
-    print('{}>>>{} Total Profit: {}{}'.format(Back.YELLOW, Back.BLACK, Back.GREEN if gain + loss > 0 else Back.RED, gain + loss))
+    print('{}>>>{} Total Profit: {}{}'.format(Back.YELLOW, Back.BLACK,
+          Back.GREEN if gain + loss > 0 else Back.RED, gain + loss))
     print()
 
     previous = current
-    
+
 print(Back.YELLOW + 'Result >>>')
 print()
 print('Loss: {}'.format(loss))
@@ -75,4 +95,9 @@ print('LossCount: {}'.format(lossCount))
 print('Gain: {}'.format(gain))
 print('GainCount: {}'.format(gainCount))
 print('OpCount: {}'.format(opCount))
-print('Total Profit: {}{}'.format(Back.GREEN if gain + loss > 0 else Back.RED, gain + loss))
+print('Total Profit: {}{}'.format(
+    Back.GREEN if gain + loss > 0 else Back.RED, gain + loss))
+
+df.to_excel('result.xlsx', 'Result')
+
+os.system('start EXCEL.EXE result.xlsx')

@@ -132,9 +132,6 @@ namespace Application.Services
 
         private bool HasChanged(DateTime date, Signal current)
         {
-            if (_lastSinalDate == date)
-                return false;
-
             if (current.IsNone())
                 return false;
 

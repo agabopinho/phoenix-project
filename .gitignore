@@ -195,3 +195,5 @@ cython_debug/
 #.idea/
 **_pb2.py
 **_pb2_grpc.py
+**/result.txt
+**.xlsx
