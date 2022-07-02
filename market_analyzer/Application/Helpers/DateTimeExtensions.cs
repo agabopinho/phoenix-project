@@ -2,7 +2,7 @@
 {
     public static class DateTimeExtensions
     {
-        public static double ToTimestamp(this DateTime dateTime)
+        public static double ToUnixEpochTimestamp(this DateTime dateTime)
             => (dateTime - DateTime.UnixEpoch).TotalSeconds;
     }
 }

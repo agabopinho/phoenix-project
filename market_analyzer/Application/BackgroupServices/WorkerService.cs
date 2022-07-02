@@ -3,6 +3,7 @@ using Application.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 
 namespace Application.BackgroupServices
 {
@@ -11,6 +12,7 @@ namespace Application.BackgroupServices
         private readonly ILoopService _loopService;
         private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<WorkerService> _logger;
+        private readonly Stopwatch _stopwatch;
 
         public WorkerService(
             ILoopService loopService,
@@ -20,6 +22,7 @@ namespace Application.BackgroupServices
             _loopService = loopService;
             _operationSettings = operationSettings;
             _logger = logger;
+            _stopwatch = new Stopwatch();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,7 +31,11 @@ namespace Application.BackgroupServices
             {
                 try
                 {
+                    _stopwatch.Restart();
                     await _loopService.RunAsync(_operationSettings.Value, stoppingToken);
+                    _stopwatch.Stop();
+
+                    _logger.LogDebug("Complete loop in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
                 }
                 catch (Exception e)
                 {

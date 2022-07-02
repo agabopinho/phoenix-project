@@ -2,6 +2,8 @@ syntax = "proto3";
 
 option csharp_namespace = "Grpc.Terminal.Enums";
 
+import "google/protobuf/wrappers.proto";
+
 package terminal;
 
 enum CopyTicks {
@@ -219,3 +221,8 @@ enum Res {
     RES_E_INTERNAL_FAIL_CONNECT         =-10004 ;    // internal IPC no ipc
     RES_E_INTERNAL_FAIL_TIMEOUT         =-10005 ;    // internal timeout
 }
+
+message ResponseStatus {
+    Res responseCode = 1;                             // response status
+    google.protobuf.StringValue responseMessage = 2;  // response message
+  }

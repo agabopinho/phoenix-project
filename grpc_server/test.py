@@ -1,14 +1,19 @@
-from datetime import datetime
+from datetime import datetime, tzinfo
 import MetaTrader5 as mt5
-
-from terminal.helpers import ChunkHelper
-
-
-for i in ChunkHelper.chunks(None, 100):
-    print(i)
+import pandas as pd
+import pytz
 
 mt5.initialize()
 
-info = mt5.symbol_info_tick('EURUSD')
+utc_from = datetime(2022, 6, 30, 14, 30, 1, 500, tzinfo=pytz.utc)
+utc_to = datetime(2022, 6, 30, 14, 30, 1, 500, tzinfo=pytz.utc)
 
-print(info)
+ticks = mt5.copy_ticks_range("WINQ22", utc_from, utc_to, mt5.COPY_TICKS_TRADE)
+dates = []
+for t in ticks:
+    dates.append(datetime.fromtimestamp(t['time_msc'] / 1000, tz=pytz.utc))
+
+df = pd.DataFrame(dates)
+
+print(df.min())
+print(df.max())

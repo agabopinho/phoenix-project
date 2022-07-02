@@ -21,6 +21,8 @@ namespace Infrastructure.GrpcServerTerminal
             })
             .ConfigureChannel((serviceProvider, configure) =>
                 configure.MaxReceiveMessageSize = int.MaxValue);
+
+            services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
         }
     }
 }

@@ -3,6 +3,7 @@ import logging
 import google.protobuf.timestamp_pb2 as protoTimestamp
 import google.protobuf.wrappers_pb2 as protoWrappers
 import marketdata_pb2 as protos
+import contract_pb2 as protosContract
 import marketdata_pb2_grpc as marketDataService
 import MetaTrader5 as mt5
 import pytz
@@ -23,20 +24,24 @@ class MarketData(marketDataService.MarketDataServicer):
             mt5.COPY_TICKS_ALL if request.type == 0 else request.type)
 
     def __copyRatesRange(self, request):
-        symbol = request.symbol.upper()
-        fromDate = request.fromDate.ToDatetime(tzinfo=pytz.utc)
-        toDate = request.toDate.ToDatetime(tzinfo=pytz.utc)
-
-        return mt5.copy_rates_range(symbol, request.timeframe, fromDate, toDate)
+        return mt5.copy_rates_range(
+            request.symbol.upper(),
+            request.timeframe,
+            request.fromDate.ToDatetime(tzinfo=pytz.utc),
+            request.toDate.ToDatetime(tzinfo=pytz.utc))
 
     def GetSymbolTick(self, request, _):
         result = mt5.symbol_info_tick(request.symbol)
         error = mt5.last_error()
 
+        responseStatus = protosContract.ResponseStatus(
+            responseCode=int(error[0]),
+            responseMessage=protoWrappers.StringValue(value=error[1]),
+        )
+
         if result is None:
             return protos.GetSymbolTickReply(
-                responseCode=int(error[0]),
-                responseMessage=protoWrappers.StringValue(value=error[1]),
+                responseStatus=responseStatus
             )
 
         time = protoTimestamp.Timestamp()
@@ -51,18 +56,22 @@ class MarketData(marketDataService.MarketDataServicer):
                 flags=int(result.flags),
                 volumeReal=protoWrappers.DoubleValue(value=result.volume_real),
             ),
-            responseCode=int(error[0]),
-            responseMessage=protoWrappers.StringValue(value=error[1]),
+            responseStatus=responseStatus
         )
 
     def StreamTicksRange(self, request, _):
         data = self.__copyTicksRange(request)
         error = mt5.last_error()
 
-        yield protos.StreamTicksRangeReply(
+        responseStatus = protosContract.ResponseStatus(
             responseCode=int(error[0]),
             responseMessage=protoWrappers.StringValue(value=error[1]),
         )
+
+        if data is None:
+            yield protos.StreamTicksRangeReply(
+                responseStatus=responseStatus
+            )
 
         for chunk in ChunkHelper.chunks(data, request.chunckSize):
             chunkData = []
@@ -79,16 +88,24 @@ class MarketData(marketDataService.MarketDataServicer):
                     volumeReal=protoWrappers.DoubleValue(
                         value=trade['volume_real']),
                 ))
-            yield protos.StreamTicksRangeReply(trades=chunkData)
+            yield protos.StreamTicksRangeReply(
+                trades=chunkData,
+                responseStatus=responseStatus
+            )
 
     def StreamRatesRange(self, request, _):
         data = self.__copyRatesRange(request)
         error = mt5.last_error()
 
-        yield protos.StreamRatesRangeReply(
+        responseStatus = protosContract.ResponseStatus(
             responseCode=int(error[0]),
             responseMessage=protoWrappers.StringValue(value=error[1]),
         )
+
+        if data is None:
+            yield protos.StreamRatesRangeReply(
+                responseStatus=responseStatus
+            )
 
         for chunk in ChunkHelper.chunks(data, request.chunckSize):
             chunkData = []
@@ -107,7 +124,7 @@ class MarketData(marketDataService.MarketDataServicer):
                     volume=protoWrappers.DoubleValue(
                         value=rate['real_volume']),
                 ))
-            yield protos.StreamRatesRangeReply(rates=chunkData)
+            yield protos.StreamRatesRangeReply(rates=chunkData, responseStatus=responseStatus)
 
     def StreamRatesFromTicksRange(self, request, _):
         data = self.__copyTicksRange(protos.StreamTicksRangeRequest(
@@ -118,10 +135,15 @@ class MarketData(marketDataService.MarketDataServicer):
 
         error = mt5.last_error()
 
-        yield protos.StreamRatesRangeReply(
+        responseStatus = protosContract.ResponseStatus(
             responseCode=int(error[0]),
             responseMessage=protoWrappers.StringValue(value=error[1]),
         )
+
+        if data is None:
+            yield protos.StreamRatesRangeReply(
+                responseStatus=responseStatus
+            )
 
         resample = TerminalHelper.resultToDateFrame(data).resample(
             rule=request.timeframe.ToTimedelta(), label='left')
@@ -148,4 +170,4 @@ class MarketData(marketDataService.MarketDataServicer):
                     volume=protoWrappers.DoubleValue(
                         value=rate['real_volume']),
                 ))
-            yield protos.StreamRatesRangeReply(rates=chunkData)
+            yield protos.StreamRatesRangeReply(rates=chunkData, responseStatus=responseStatus)

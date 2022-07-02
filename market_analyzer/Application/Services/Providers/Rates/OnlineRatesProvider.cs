@@ -5,33 +5,30 @@ using Grpc.Terminal;
 using Infrastructure.GrpcServerTerminal;
 using StackExchange.Redis;
 
-namespace Application.Services
+namespace Application.Services.Providers.Rates
 {
-    public interface IRatesStateService
-    {
-        Task CheckNewRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe,
-            int chunkSize, CancellationToken cancellationToken);
-
-        Task<IEnumerable<Rate>> GetRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe,
-            TimeSpan window, CancellationToken cancellationToken);
-    }
-
-    public class RatesStateService : IRatesStateService
+    public class OnlineRatesProvider : IRatesProvider
     {
         private readonly IMarketDataWrapper _marketDataWrapper;
         private readonly IDatabase _database;
+        private readonly IDateTimeProvider _dateTimeProvider;
 
-        public RatesStateService(IMarketDataWrapper marketDataWrapper, IDatabase database)
+        public OnlineRatesProvider(
+            IMarketDataWrapper marketDataWrapper,
+            IDatabase database,
+            IDateTimeProvider dateTimeProvider)
         {
             _marketDataWrapper = marketDataWrapper;
             _database = database;
+            _dateTimeProvider = dateTimeProvider;
         }
 
         public async Task CheckNewRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe,
-            int chunkSize, CancellationToken cancellationToken)
+            string symbol,
+            DateOnly date,
+            TimeSpan timeframe,
+            int chunkSize,
+            CancellationToken cancellationToken)
         {
             var ratesKey = RatesKey(symbol, date, $"{timeframe.TotalSeconds}s");
             var lastRate = await GetLastRateAsync(ratesKey);
@@ -40,10 +37,10 @@ namespace Application.Services
                 date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) :
                 lastRate.Time.ToDateTime();
 
-            var call = _marketDataWrapper.StreamRatesFromTicksRange(
+            using var call = _marketDataWrapper.StreamRatesFromTicksRange(
                 symbol,
                 fromDate,
-                DateTime.SpecifyKind(DateTimeHelper.LocalNow().Add(timeframe), DateTimeKind.Utc),
+                _dateTimeProvider.Now().AddSeconds(1),
                 timeframe,
                 chunkSize,
                 cancellationToken);
@@ -52,9 +49,6 @@ namespace Application.Services
 
             await foreach (var reply in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
             {
-                if (!reply.Rates.Any())
-                    continue;
-
                 if (removeLastRate is not null)
                 {
                     var score = Score(removeLastRate);
@@ -70,8 +64,11 @@ namespace Application.Services
         }
 
         public async Task<IEnumerable<Rate>> GetRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe,
-            TimeSpan window, CancellationToken cancellationToken)
+            string symbol,
+            DateOnly date,
+            TimeSpan timeframe,
+            TimeSpan window,
+            CancellationToken cancellationToken)
         {
             var ratesKey = RatesKey(symbol, date, $"{timeframe.TotalSeconds}s");
             var lastRate = await GetLastRateAsync(ratesKey);
@@ -89,6 +86,9 @@ namespace Application.Services
             return rates.Select(it => Rate.Parser.ParseFrom(it));
         }
 
+        public async Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
+            => await _marketDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);
+
         private async Task<Rate?> GetLastRateAsync(string ratesKey)
         {
             var rates = await _database.SortedSetRangeByRankAsync(ratesKey, stop: 0, order: StackExchange.Redis.Order.Descending);
@@ -100,7 +100,7 @@ namespace Application.Services
         }
 
         private static double Score(Rate rate)
-            => rate.Time.ToDateTime().ToTimestamp();
+            => rate.Time.ToDateTime().ToUnixEpochTimestamp();
 
         private static string RatesKey(string symbol, DateOnly date, string timeframe)
             => $"{symbol.ToLower()}:{date:yyyyMMdd}:rates:{timeframe}";

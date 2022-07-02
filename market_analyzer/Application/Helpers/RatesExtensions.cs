@@ -16,6 +16,6 @@ namespace Application.Helpers
                     Low = Convert.ToDecimal(it.Low),
                     Close = Convert.ToDecimal(it.Close),
                     Volume = Convert.ToDecimal(it.Volume),
-                });
+                }).ToArray();
     }
 }

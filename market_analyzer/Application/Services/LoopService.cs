@@ -1,5 +1,6 @@
 ﻿using Application.Helpers;
 using Application.Options;
+using Application.Services.Providers.Rates;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
@@ -10,32 +11,23 @@ using OoplesFinance.StockIndicators.Models;
 
 namespace Application.Services
 {
-
-    public interface ILoopService
-    {
-        Task RunAsync(OperationSettings operationSettings, CancellationToken cancellationToken);
-    }
-
     public class LoopService : ILoopService
     {
-        private Signal _lastSignal = Signal.None;
-        private DateTime _lastSinalDate = DateTime.MinValue;
-
-        private readonly IRatesStateService _ratesStateService;
-        private readonly IMarketDataWrapper _marketDataWrapper;
+        private readonly IRatesProvider _ratesStateService;
         private readonly IOrderManagementWrapper _orderManagementWrapper;
         private readonly IOrderCreator _orderCreator;
         private readonly ILogger<ILoopService> _logger;
 
+        private Signal _lastSignal = Signal.None;
+        private DateTime _lastSinalDate = DateTime.MinValue;
+
         public LoopService(
-            IRatesStateService ratesStateService,
-            IMarketDataWrapper marketDataWrapper,
+            IRatesProvider ratesStateService,
             IOrderManagementWrapper orderManagementWrapper,
             IOrderCreator orderCreator,
             ILogger<ILoopService> logger)
         {
             _ratesStateService = ratesStateService;
-            _marketDataWrapper = marketDataWrapper;
             _orderManagementWrapper = orderManagementWrapper;
             _orderCreator = orderCreator;
             _logger = logger;
@@ -44,10 +36,10 @@ namespace Application.Services
         public async Task RunAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
             await _ratesStateService.CheckNewRatesAsync(
-                operationSettings.Symbol!,
-                operationSettings.Date,
-                operationSettings.Timeframe,
-                operationSettings.ChunkSize,
+                operationSettings.MarketData.Symbol!,
+                operationSettings.MarketData.Date,
+                operationSettings.MarketData.Timeframe,
+                operationSettings.Infra.ChunkSize,
                 cancellationToken);
 
             if (!await CanProceedAsync(operationSettings, cancellationToken))
@@ -59,27 +51,33 @@ namespace Application.Services
 
             var rates = await GetRatesAsync(operationSettings, cancellationToken);
             var tickerData = rates.ToTickerData();
-
             var stockData = new StockData(tickerData)
-                .CalculateGannHiLoActivator(length: operationSettings.IndicatorLength);
+                .CalculateGannHiLoActivator(length: operationSettings.Indicator.Length);
+
+            if (stockData.Count == 0)
+            {
+                _logger.LogWarning("No market data!");
+
+                return;
+            }
 
             await CheckSignalAsync(operationSettings, stockData, cancellationToken);
         }
 
         private async Task<bool> CanProceedAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
-            if (!operationSettings.ExecOrder)
+            if (!operationSettings.ProductionMode)
                 return true;
 
             var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
-                group: operationSettings.Symbol, cancellationToken: cancellationToken);
+                group: operationSettings.MarketData.Symbol, cancellationToken: cancellationToken);
 
-            if (pendingOrders.ResponseCode != Res.SOk)
+            if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
             {
                 _logger.LogError("Grpc server error {@data}", new
                 {
-                    pendingOrders.ResponseCode,
-                    pendingOrders.ResponseMessage
+                    pendingOrders.ResponseStatus.ResponseCode,
+                    pendingOrders.ResponseStatus.ResponseMessage
                 });
 
                 return false;
@@ -90,7 +88,7 @@ namespace Application.Services
 
         private async Task CheckSignalAsync(OperationSettings operationSettings, StockData stockData, CancellationToken cancellationToken)
         {
-            var current = stockData.SignalsList[^operationSettings.IndicatorSignalShift];
+            var current = stockData.SignalsList[^operationSettings.Indicator.SignalShift];
             var date = stockData.Dates.Last();
 
             if (!HasChanged(date, current))
@@ -101,9 +99,11 @@ namespace Application.Services
 
             var price = stockData.ClosePrices.Last();
 
-            if (!operationSettings.ExecOrder)
+            if (!operationSettings.ProductionMode)
             {
-                var tick = await _marketDataWrapper.GetSymbolTickAsync(operationSettings.Symbol!, cancellationToken);
+                var tick = await _ratesStateService.GetSymbolTickAsync(operationSettings.MarketData.Symbol!, cancellationToken);
+
+                date = tick.Trade.Time.ToDateTime();
 
                 if (_lastSignal.IsSignalBuy())
                     price = Convert.ToDecimal(tick.Trade.Ask!.Value);
@@ -120,7 +120,7 @@ namespace Application.Services
                 Signal = current
             });
 
-            if (operationSettings.ExecOrder)
+            if (operationSettings.ProductionMode)
                 await CheckPositionAsync(operationSettings, cancellationToken);
         }
 
@@ -141,7 +141,7 @@ namespace Application.Services
 
         private async Task CheckPositionAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
-            var positions = await GetPositionsAsync(operationSettings.Symbol!, cancellationToken);
+            var positions = await GetPositionsAsync(operationSettings.MarketData.Symbol!, cancellationToken);
 
             if (_lastSignal.IsSignalBuy())
             {
@@ -157,10 +157,10 @@ namespace Application.Services
                 }
 
                 await BuyAsync(
-                    operationSettings.Symbol!,
-                    volume, 
-                    operationSettings.Deviation,
-                    operationSettings.Magic,
+                    operationSettings.MarketData.Symbol!,
+                    volume,
+                    operationSettings.Order.Deviation,
+                    operationSettings.Order.Magic,
                     cancellationToken);
 
                 return;
@@ -180,10 +180,10 @@ namespace Application.Services
                 }
 
                 await SellAsync(
-                    operationSettings.Symbol!,
-                    volume, 
-                    operationSettings.Deviation,
-                    operationSettings.Magic,
+                    operationSettings.MarketData.Symbol!,
+                    volume,
+                    operationSettings.Order.Deviation,
+                    operationSettings.Order.Magic,
                     cancellationToken);
 
                 return;
@@ -192,7 +192,7 @@ namespace Application.Services
 
         private async Task BuyAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
         {
-            var tick = await _marketDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);
+            var tick = await _ratesStateService.GetSymbolTickAsync(symbol, cancellationToken);
 
             var request = _orderCreator.BuyAtMarket(
                 symbol: symbol,
@@ -208,7 +208,7 @@ namespace Application.Services
 
         private async Task SellAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
         {
-            var tick = await _marketDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);
+            var tick = await _ratesStateService.GetSymbolTickAsync(symbol, cancellationToken);
 
             var request = _orderCreator.SellAtMarket(
                 symbol: symbol,
@@ -230,10 +230,10 @@ namespace Application.Services
         private async Task<IEnumerable<Rate>> GetRatesAsync(OperationSettings operationSettings, CancellationToken cancellationToken)
         {
             var result = await _ratesStateService.GetRatesAsync(
-                operationSettings.Symbol!,
-                operationSettings.Date,
-                operationSettings.Timeframe,
-                operationSettings.IndicatorWindow,
+                operationSettings.MarketData.Symbol!,
+                operationSettings.MarketData.Date,
+                operationSettings.MarketData.Timeframe,
+                operationSettings.Indicator.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time);

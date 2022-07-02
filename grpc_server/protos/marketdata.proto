@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option csharp_namespace = "Grpc.Terminal";
 
-import "enums.proto";
+import "contract.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
@@ -22,8 +22,7 @@ message GetSymbolTickRequest {
 
 message GetSymbolTickReply {
   Trade trade = 1;
-  Res responseCode = 2;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+  ResponseStatus responseStatus = 2;
 }
 
 message StreamTicksRangeRequest {
@@ -36,8 +35,7 @@ message StreamTicksRangeRequest {
 
 message StreamTicksRangeReply {
   repeated Trade trades = 1;
-  Res responseCode = 2;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+  ResponseStatus responseStatus = 2;
 }
 
 message StreamRatesRangeRequest {
@@ -50,8 +48,7 @@ message StreamRatesRangeRequest {
 
 message StreamRatesRangeReply {
   repeated Rate rates = 1;
-  Res responseCode = 2;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+  ResponseStatus responseStatus = 2;
 }
 
 message StreamRatesFromTicksRangeRequest {

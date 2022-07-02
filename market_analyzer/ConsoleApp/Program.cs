@@ -1,9 +1,12 @@
 ﻿using Application.BackgroupServices;
 using Application.Options;
 using Application.Services;
+using Application.Services.Providers;
+using Application.Services.Providers.Rates;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Serilog;
 using StackExchange.Redis;
 
@@ -36,31 +39,58 @@ builder.ConfigureServices(services =>
 
     services.AddMarketDataWrapper(configure =>
         configure.Endpoint = "http://host.docker.internal:5051");
-
     services.AddOrderManagementWrapper(configure =>
         configure.Endpoint = "http://host.docker.internal:5051");
 
-    services.AddSingleton<IOrderCreator, OrderCreator>();
-    services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
-    services.AddSingleton<IOrderManagementWrapper, OrderManagementWrapper>();
+    services.AddSingleton<OnlineDateTimeProvider>();
+    services.AddSingleton<BacktestDateTimeProvider>();
+    services.AddSingleton<IDateTimeProvider>(serviceProvider =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
 
-    services.AddSingleton<IRatesStateService, RatesStateService>();
-    services.AddSingleton<ILoopService, LoopService>();
+        if (options.Value.Backtest.Enabled)
+            return serviceProvider.GetRequiredService<BacktestDateTimeProvider>();
+
+        return serviceProvider.GetRequiredService<OnlineDateTimeProvider>();
+    });
+
+    services.AddSingleton<OnlineRatesProvider>();
+    services.AddSingleton<BacktestRatesProvider>();
+    services.AddSingleton<IRatesProvider>(serviceProvider =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+
+        if (options.Value.Backtest.Enabled)
+            return serviceProvider.GetRequiredService<BacktestRatesProvider>();
+
+        return serviceProvider.GetRequiredService<OnlineRatesProvider>();
+    });
 
     services.AddOperationSettings(configure =>
     {
-        configure.Symbol = "WINQ22";
-        configure.Date = new(2022, 6, 30);
-        configure.ChunkSize = 5000;
-        configure.Timeframe = TimeSpan.FromSeconds(2);
-        configure.Deviation = 10;
-        configure.Magic = 467276;
-        configure.ExecOrder = false;
-        configure.IndicatorWindow = TimeSpan.FromMinutes(3);
-        configure.IndicatorLength = 3;
-        configure.IndicatorSignalShift = 1;
+        configure.MarketData.Symbol = "WINQ22";
+        configure.MarketData.Date = new(2022, 6, 30);
+        configure.MarketData.Timeframe = TimeSpan.FromSeconds(5);
+        configure.MarketData.TimeZoneId = "America/Sao_Paulo";
+
+        configure.Backtest.Enabled = true;
+        configure.Backtest.Start = new TimeOnly(9, 10, 0);
+        configure.Backtest.End = new TimeOnly(17, 30, 0);
+        configure.Backtest.Step = TimeSpan.FromMilliseconds(200);
+
+        configure.Order.Deviation = 10;
+        configure.Order.Magic = 467276;
+        configure.Order.ExecOrder = false;
+
+        configure.Indicator.Window = TimeSpan.FromMinutes(5);
+        configure.Indicator.Length = 3;
+        configure.Indicator.SignalShift = 1;
+
+        configure.Infra.ChunkSize = 5000;
     });
 
+    services.AddSingleton<IBacktestDatabaseProvider, BacktestDatabaseProvider>();
+    services.AddSingleton<ILoopService, LoopService>();
     services.AddHostedService<WorkerService>();
 });
 

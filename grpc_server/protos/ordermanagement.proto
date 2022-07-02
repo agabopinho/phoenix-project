@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option csharp_namespace = "Grpc.Terminal";
 
-import "enums.proto";
+import "contract.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
@@ -27,8 +27,7 @@ message GetPositionsRequest {
 
 message GetPositionsReply {
   repeated Position positions = 1;
-  Res responseCode = 2;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+  ResponseStatus responseStatus = 2;
 }
 
 message GetOrdersRequest {
@@ -41,8 +40,7 @@ message GetOrdersRequest {
 
 message GetOrdersReply {
   repeated Order orders = 1;
-  Res responseCode = 2;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+  ResponseStatus responseStatus = 2;
 }
 
 message GetHistoryOrdersRequest {
@@ -60,8 +58,7 @@ message GetHistoryOrdersRequest {
 
 message GetHistoryOrdersReply {
   repeated Order orders = 1;
-  Res responseCode = 2;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+  ResponseStatus responseStatus = 2;
 }
 
 message GetHistoryDealsRequest {
@@ -79,8 +76,7 @@ message GetHistoryDealsRequest {
 
 message GetHistoryDealsReply {
   repeated Deal deals = 1;
-  Res responseCode = 2;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 3;  // Mt5 response message
+  ResponseStatus responseStatus = 2;
 }
 
 message OrderRequest {
@@ -114,8 +110,7 @@ message SendOrderReply {
   google.protobuf.StringValue comment = 8;          // The broker comment to operation (by default it is filled by description of trade server return code)
   google.protobuf.Int64Value requestId = 9;         // Request ID set by the terminal when sending to the trade server
   google.protobuf.Int64Value retcodeExternal = 10;  // The code of the error returned by an external trading system. The use and types of these errors depend on the broker and the external trading system, to which trading operations are sent.
-  Res responseCode = 11;                            // Mt5 response status
-  google.protobuf.StringValue responseMessage = 12; // Mt5 response message  
+  ResponseStatus responseStatus = 11;
 }
 
 message CheckOrderReply {   
@@ -127,8 +122,7 @@ message CheckOrderReply {
   google.protobuf.DoubleValue marginFree = 6;       // Free margin that will be left after the execution of the trade operation
   google.protobuf.DoubleValue marginLevel = 7;      // Margin level that will be set after the execution of the trade operation
   google.protobuf.StringValue comment = 8;          // Comment to the reply code, error description
-  Res responseCode = 9;                             // Mt5 response status
-  google.protobuf.StringValue responseMessage = 10; // Mt5 response message
+  ResponseStatus responseStatus = 9;
 }
 
 message Position {

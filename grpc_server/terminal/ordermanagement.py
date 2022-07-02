@@ -4,6 +4,7 @@ import google.protobuf.timestamp_pb2 as protoTimestamp
 import google.protobuf.wrappers_pb2 as protoWrappers
 import MetaTrader5 as mt5
 import ordermanagement_pb2 as protos
+import contract_pb2 as protosContract
 import ordermanagement_pb2_grpc as services
 import pytz
 
@@ -165,8 +166,10 @@ class OrderManagement(services.OrderManagementServicer):
 
         return protos.GetPositionsReply(
             positions=positions,
-            responseCode=int(error[0]),
-            responseMessage=protoWrappers.StringValue(value=error[1]),
+            responseStatus=protosContract.ResponseStatus(
+                responseCode=int(error[0]),
+                responseMessage=protoWrappers.StringValue(value=error[1]),
+            )
         )
 
     def GetOrders(self, request, _):
@@ -185,8 +188,10 @@ class OrderManagement(services.OrderManagementServicer):
 
         return protos.GetOrdersReply(
             orders=self.__parseOrders(result),
-            responseCode=int(error[0]),
-            responseMessage=protoWrappers.StringValue(value=error[1]),
+            responseStatus=protosContract.ResponseStatus(
+                responseCode=int(error[0]),
+                responseMessage=protoWrappers.StringValue(value=error[1]),
+            )
         )
 
     def GetHistoryOrders(self, request, _):
@@ -206,8 +211,10 @@ class OrderManagement(services.OrderManagementServicer):
 
         return protos.GetHistoryOrdersReply(
             orders=self.__parseOrders(result),
-            responseCode=int(error[0]),
-            responseMessage=protoWrappers.StringValue(value=error[1]),
+            responseStatus=protosContract.ResponseStatus(
+                responseCode=int(error[0]),
+                responseMessage=protoWrappers.StringValue(value=error[1]),
+            )
         )
 
     def GetHistoryDeals(self, request, _):
@@ -255,8 +262,10 @@ class OrderManagement(services.OrderManagementServicer):
 
         return protos.GetHistoryDealsReply(
             deals=deals,
-            responseCode=int(error[0]),
-            responseMessage=protoWrappers.StringValue(value=error[1]),
+            responseStatus=protosContract.ResponseStatus(
+                responseCode=int(error[0]),
+                responseMessage=protoWrappers.StringValue(value=error[1]),
+            )
         )
 
     def CheckOrder(self, request, _):
@@ -274,8 +283,10 @@ class OrderManagement(services.OrderManagementServicer):
             marginFree=protoWrappers.DoubleValue(value=result.margin_free),
             marginLevel=protoWrappers.DoubleValue(value=result.margin_level),
             comment=protoWrappers.StringValue(value=result.comment),
-            responseCode=int(error[0]),
-            responseMessage=protoWrappers.StringValue(value=error[1]),
+            responseStatus=protosContract.ResponseStatus(
+                responseCode=int(error[0]),
+                responseMessage=protoWrappers.StringValue(value=error[1]),
+            )
         )
 
     def SendOrder(self, request, _):
@@ -300,6 +311,8 @@ class OrderManagement(services.OrderManagementServicer):
             requestId=protoWrappers.Int64Value(value=result.request_id),
             retcodeExternal=protoWrappers.Int64Value(
                 value=result.retcode_external),
-            responseCode=int(error[0]),
-            responseMessage=protoWrappers.StringValue(value=error[1]),
+            responseStatus=protosContract.ResponseStatus(
+                responseCode=int(error[0]),
+                responseMessage=protoWrappers.StringValue(value=error[1]),
+            )
         )
