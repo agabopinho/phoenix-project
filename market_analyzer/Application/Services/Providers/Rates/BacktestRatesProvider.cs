@@ -72,6 +72,9 @@ namespace Application.Services.Providers.Rates
 
             foreach (var rate in resample.Select(CreateRatesSelector))
             {
+                if (rate is null)
+                    continue;
+
                 var rateTime = rate.Time.ToDateTime();
                 _rates[rateTime] = rate;
             }
@@ -106,7 +109,7 @@ namespace Application.Services.Providers.Rates
                 if (end < 0)
                     end = ~end - 1;
 
-                for (var t = end; t > 0; t++)
+                for (var t = end; t > 0; t--)
                 {
                     var tick = window[t];
 
@@ -225,10 +228,13 @@ namespace Application.Services.Providers.Rates
             return indexes;
         }
 
-        private static Rate CreateRatesSelector(KeyValuePair<DateTime, List<Trade>> sample)
+        private static Rate? CreateRatesSelector(KeyValuePair<DateTime, List<Trade>> sample)
         {
             var data = sample.Value;
             var prices = sample.Value.Where(it => it.Last > 0).Select(it => it.Last);
+
+            if (!prices.Any())
+                return null;
 
             return new Rate
             {

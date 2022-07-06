@@ -9,9 +9,17 @@ using Microsoft.Extensions.Options;
 using OoplesFinance.StockIndicators;
 using OoplesFinance.StockIndicators.Enums;
 using OoplesFinance.StockIndicators.Models;
+using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
+    public enum SignalType
+    {
+        None,
+        Buy,
+        Sell
+    }
+
     public class LoopService : ILoopService
     {
         private readonly IRatesProvider _ratesProvider;
@@ -20,8 +28,7 @@ namespace Application.Services
         private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
 
-        private Signal _lastSignal = Signal.None;
-        private DateTime _lastSinalDate = DateTime.MinValue;
+        private SignalType _lastSignal = SignalType.None;
 
         public LoopService(
             IRatesProvider ratesProvider,
@@ -55,19 +62,15 @@ namespace Application.Services
                 return;
             }
 
-            var rates = await GetRatesAsync(cancellationToken);
-            var tickerData = rates.ToTickerData();
-            var stockData = new StockData(tickerData)
-               .CalculateGannHiLoActivator(length: _operationSettings.Value.Indicator.Length);
+            var rates = (await GetRatesAsync(cancellationToken)).ToArray();
 
-            if (stockData.Count == 0)
-            {
-                _logger.LogWarning("No market data!");
+            var quotes = rates.ToQuotes().ToArray();
 
-                return;
-            }
 
-            await CheckSignalAsync(stockData, cancellationToken);
+            //var rsiFast = quotes.GetRsi(RSIFast).GetEma(RSISmooth).ToArray();
+            //var rsiSlow = quotes.GetRsi(RSISlow).GetEma(RSISmooth).ToArray();
+
+            //await CheckSignalAsync(rates, renko, cancellationToken);
         }
 
         private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
@@ -92,18 +95,22 @@ namespace Application.Services
             return !pendingOrders.Orders.Any();
         }
 
-        private async Task CheckSignalAsync(StockData stockData, CancellationToken cancellationToken)
+        private async Task CheckSignalAsync(
+            Rate[] rates,
+            RenkoResult[] renko,
+            CancellationToken cancellationToken)
         {
-            var current = stockData.SignalsList[^_operationSettings.Value.Indicator.SignalShift];
-            var date = stockData.Dates.Last();
+            var last = rates.Last();
+            var date = last.Time.ToDateTime();
 
-            if (!HasChanged(date, current))
+            var current = renko[^2].Close > renko[^2].Open ? SignalType.Buy : SignalType.Sell;
+
+            if (!HasChanged(current))
                 return;
 
             _lastSignal = current;
-            _lastSinalDate = date;
 
-            var price = stockData.ClosePrices.Last();
+            var price = last.Close;
 
             if (!_operationSettings.Value.ProductionMode)
             {
@@ -112,10 +119,10 @@ namespace Application.Services
                 date = tick.Trade.Time.ToDateTime();
 
                 if (_lastSignal.IsSignalBuy())
-                    price = Convert.ToDecimal(tick.Trade.Ask!.Value);
+                    price = tick.Trade.Ask!.Value;
 
                 if (_lastSignal.IsSignalSell())
-                    price = Convert.ToDecimal(tick.Trade.Bid!.Value);
+                    price = tick.Trade.Bid!.Value;
             }
 
             _logger.LogInformation("{@data}", new
@@ -129,7 +136,7 @@ namespace Application.Services
                 await CheckPositionAsync(cancellationToken);
         }
 
-        private bool HasChanged(DateTime date, Signal current)
+        private bool HasChanged(SignalType current)
         {
             if (current.IsNone())
                 return false;
@@ -137,8 +144,7 @@ namespace Application.Services
             if (_lastSignal.IsNone())
                 return true;
 
-            return _lastSignal.IsSignalBuy() && !current.IsSignalBuy() ||
-                   _lastSignal.IsSignalSell() && !current.IsSignalSell();
+            return !_lastSignal.IsSame(current);
         }
 
         private async Task CheckPositionAsync(CancellationToken cancellationToken)
@@ -235,7 +241,7 @@ namespace Application.Services
                 _operationSettings.Value.MarketData.Symbol!,
                 _operationSettings.Value.MarketData.Date,
                 _operationSettings.Value.MarketData.Timeframe,
-                _operationSettings.Value.Indicator.Window,
+                _operationSettings.Value.MarketData.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time);

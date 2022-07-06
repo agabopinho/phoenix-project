@@ -57,7 +57,6 @@ namespace Application.Services.Providers.Rates
                 {
                     var score = Score(removeLastRate);
                     await _database.SortedSetRemoveRangeByScoreAsync(ratesKey, score, score);
-
                     removeLastRate = null;
                 }
 

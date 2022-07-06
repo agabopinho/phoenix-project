@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace Application.BackgroupServices
+namespace Application.Workers
 {
     public class WorkerService : BackgroundService
     {
@@ -28,10 +28,9 @@ namespace Application.BackgroupServices
                 try
                 {
                     _stopwatch.Restart();
-                    await _loopService.RunAsync(stoppingToken);
-                    _stopwatch.Stop();
 
-                    _logger.LogDebug("Complete loop in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
+                    await _loopService.RunAsync(stoppingToken);
+                    _logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
                 }
                 catch (BacktestFinishException)
                 {
