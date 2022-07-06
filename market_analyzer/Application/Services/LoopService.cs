@@ -6,9 +6,6 @@ using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OoplesFinance.StockIndicators;
-using OoplesFinance.StockIndicators.Enums;
-using OoplesFinance.StockIndicators.Models;
 using Skender.Stock.Indicators;
 
 namespace Application.Services
@@ -65,12 +62,10 @@ namespace Application.Services
             var rates = (await GetRatesAsync(cancellationToken)).ToArray();
 
             var quotes = rates.ToQuotes().ToArray();
+            var fast = quotes.GetRsi(50).GetEma(3).ToArray();
+            var slow = quotes.GetRsi(150).GetEma(3).ToArray();
 
-
-            //var rsiFast = quotes.GetRsi(RSIFast).GetEma(RSISmooth).ToArray();
-            //var rsiSlow = quotes.GetRsi(RSISlow).GetEma(RSISmooth).ToArray();
-
-            //await CheckSignalAsync(rates, renko, cancellationToken);
+            await CheckSignalAsync(rates, fast, slow, cancellationToken);
         }
 
         private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
@@ -97,13 +92,14 @@ namespace Application.Services
 
         private async Task CheckSignalAsync(
             Rate[] rates,
-            RenkoResult[] renko,
+            EmaResult[] fast,
+            EmaResult[] slow,
             CancellationToken cancellationToken)
         {
             var last = rates.Last();
             var date = last.Time.ToDateTime();
 
-            var current = renko[^2].Close > renko[^2].Open ? SignalType.Buy : SignalType.Sell;
+            var current = fast[^2].Ema > slow[^2].Ema ? SignalType.Sell : SignalType.Buy;
 
             if (!HasChanged(current))
                 return;
