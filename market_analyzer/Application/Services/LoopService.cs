@@ -59,47 +59,54 @@ namespace Application.Services
                 return;
             }
 
-            var rates = (await GetRatesAsync(cancellationToken)).ToArray();
-
-            var quotes = rates.ToQuotes().ToArray();
-            var fast = quotes.GetRsi(50).GetEma(3).ToArray();
-            var slow = quotes.GetRsi(150).GetEma(3).ToArray();
-
-            await CheckSignalAsync(rates, fast, slow, cancellationToken);
+            await CheckAsync(cancellationToken);
         }
 
-        private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
+        private async Task CheckAsync(CancellationToken cancellationToken)
         {
-            if (!_operationSettings.Value.ProductionMode)
-                return true;
+            var rates = await GetRatesAsync(cancellationToken);
+            var quotes = rates.ToQuotes().ToArray();
 
-            var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
-                group: _operationSettings.Value.MarketData.Symbol, cancellationToken: cancellationToken);
+            var rsiFast = quotes.GetRsi(45).GetEma(3).ToArray();
+            var rsiSlow = quotes.GetRsi(80).GetEma(3).ToArray();
 
-            if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
+            var current = rsiFast[^2].Ema > rsiSlow[^2].Ema ? SignalType.Buy : SignalType.Sell;
+
+            if (!HasChanged(current))
+                return;
+
+            _lastSignal = current;
+
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
+
+            var last = rates.Last();
+            var price = last.Close;
+            var date = tick.Trade.Time.ToDateTime();
+
+            if (_lastSignal.IsSignalBuy())
+                price = tick.Trade.Ask!.Value;
+
+            if (_lastSignal.IsSignalSell())
+                price = tick.Trade.Bid!.Value;
+
+            _logger.LogInformation("{@data}", new
             {
-                _logger.LogError("Grpc server error {@data}", new
-                {
-                    pendingOrders.ResponseStatus.ResponseCode,
-                    pendingOrders.ResponseStatus.ResponseMessage
-                });
-
-                return false;
-            }
-
-            return !pendingOrders.Orders.Any();
+                Date = date,
+                Price = price,
+                Signal = current
+            });
         }
 
         private async Task CheckSignalAsync(
             Rate[] rates,
-            EmaResult[] fast,
-            EmaResult[] slow,
             CancellationToken cancellationToken)
         {
+            var quotes = rates.ToQuotes().ToArray();
+
             var last = rates.Last();
             var date = last.Time.ToDateTime();
 
-            var current = fast[^2].Ema > slow[^2].Ema ? SignalType.Sell : SignalType.Buy;
+            var current = SignalType.Sell;
 
             if (!HasChanged(current))
                 return;
@@ -141,6 +148,28 @@ namespace Application.Services
                 return true;
 
             return !_lastSignal.IsSame(current);
+        }
+
+        private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
+        {
+            if (!_operationSettings.Value.ProductionMode)
+                return true;
+
+            var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
+                group: _operationSettings.Value.MarketData.Symbol, cancellationToken: cancellationToken);
+
+            if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
+            {
+                _logger.LogError("Grpc server error {@data}", new
+                {
+                    pendingOrders.ResponseStatus.ResponseCode,
+                    pendingOrders.ResponseStatus.ResponseMessage
+                });
+
+                return false;
+            }
+
+            return !pendingOrders.Orders.Any();
         }
 
         private async Task CheckPositionAsync(CancellationToken cancellationToken)
@@ -240,7 +269,7 @@ namespace Application.Services
                 _operationSettings.Value.MarketData.Window,
                 cancellationToken);
 
-            return result.OrderBy(it => it.Time);
+            return result.OrderBy(it => it.Time).ToArray();
         }
     }
 }
