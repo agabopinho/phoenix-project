@@ -14,8 +14,8 @@ namespace Application.Services.Providers.Cycle
             var marketData = operationSettings.Value.MarketData;
             var backtest = operationSettings.Value.Backtest;
 
-            Start = marketData.Date.ToDateTime(backtest.Start);
-            End = marketData.Date.ToDateTime(backtest.End);
+            Start = marketData.Date.ToDateTime(operationSettings.Value.Start);
+            End = marketData.Date.ToDateTime(operationSettings.Value.End);
             Step = backtest.Step;
 
             NextDate = DateTime.SpecifyKind(Start, DateTimeKind.Utc);

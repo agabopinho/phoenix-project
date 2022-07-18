@@ -46,18 +46,15 @@ namespace Application.Services.Providers.Rates
                 chunkSize,
                 cancellationToken);
 
-            var removeLastRate = lastRate;
-
             await foreach (var reply in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
             {
                 if (!reply.Rates.Any())
                     continue;
 
-                if (removeLastRate is not null)
+                if (lastRate is not null)
                 {
-                    var score = Score(removeLastRate);
-                    await _database.SortedSetRemoveRangeByScoreAsync(ratesKey, score, score);
-                    removeLastRate = null;
+                    var removed = await _database.SortedSetRemoveAsync(ratesKey, lastRate.ToByteArray());
+                    lastRate = null;
                 }
 
                 var sortedSetEntries = reply.Rates.Select(it => new SortedSetEntry(it.ToByteArray(), Score(it))).ToArray();

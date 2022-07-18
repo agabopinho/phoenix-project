@@ -25,7 +25,14 @@ namespace Application.Services
         private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
 
-        private SignalType _lastSignal = SignalType.None;
+        private readonly decimal _points = 200;
+        private readonly Dictionary<decimal, decimal> _incrementVolume = new()
+        {
+            { 1M, 1M },
+        };
+
+        private readonly List<Range> _ranges = new();
+        private int _rangesLastCount = 0;
 
         public LoopService(
             IRatesProvider ratesProvider,
@@ -52,6 +59,13 @@ namespace Application.Services
                 marketData.ChunkSize,
                 cancellationToken);
 
+            var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
+
+            if (!quotes.Any())
+                return;
+
+            UpdateRange(quotes);
+
             if (!await CanProceedAsync(cancellationToken))
             {
                 _logger.LogInformation("Can't proceed!");
@@ -59,95 +73,64 @@ namespace Application.Services
                 return;
             }
 
-            await CheckAsync(cancellationToken);
+            await CheckAsync(quotes, cancellationToken);
         }
 
-        private async Task CheckAsync(CancellationToken cancellationToken)
+        private async Task CheckAsync(CustomQuote[] quotes, CancellationToken cancellationToken)
         {
-            var rates = await GetRatesAsync(cancellationToken);
-            var quotes = rates.ToQuotes().ToArray();
+            var endOfDay = quotes.Last().Date.TimeOfDay >=
+                _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
 
-            var rsiFast = quotes.GetRsi(45).GetEma(3).ToArray();
-            var rsiSlow = quotes.GetRsi(80).GetEma(3).ToArray();
-
-            var current = rsiFast[^2].Ema > rsiSlow[^2].Ema ? SignalType.Buy : SignalType.Sell;
-
-            if (!HasChanged(current))
+            if (_ranges.Count == _rangesLastCount && !endOfDay)
                 return;
 
-            _lastSignal = current;
-
-            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
-
-            var last = rates.Last();
-            var price = last.Close;
-            var date = tick.Trade.Time.ToDateTime();
-
-            if (_lastSignal.IsSignalBuy())
-                price = tick.Trade.Ask!.Value;
-
-            if (_lastSignal.IsSignalSell())
-                price = tick.Trade.Bid!.Value;
-
-            _logger.LogInformation("{@data}", new
-            {
-                Date = date,
-                Price = price,
-                Signal = current
-            });
-        }
-
-        private async Task CheckSignalAsync(
-            Rate[] rates,
-            CancellationToken cancellationToken)
-        {
-            var quotes = rates.ToQuotes().ToArray();
-
-            var last = rates.Last();
-            var date = last.Time.ToDateTime();
-
-            var current = SignalType.Sell;
-
-            if (!HasChanged(current))
+            var current = await GetPositionAsync(cancellationToken);
+            if (endOfDay && current is null)
                 return;
 
-            _lastSignal = current;
+            _rangesLastCount = _ranges.Count;
 
-            var price = last.Close;
+            if (_ranges.Count == 1)
+                return;
 
-            if (!_operationSettings.Value.ProductionMode)
+            var last = _ranges[^1];
+            var previous = _ranges[^2];
+
+            var value = _incrementVolume.First();
+            var volume = last.Value > previous.Value ? -value.Value : value.Value; // up: sell, down: buy
+
+            if (current is not null)
             {
-                var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
+                var currentVolume = Convert.ToDecimal(current.Type == PositionType.Buy ? current.Volume : current.Volume * -1);
 
-                date = tick.Trade.Time.ToDateTime();
-
-                if (_lastSignal.IsSignalBuy())
-                    price = tick.Trade.Ask!.Value;
-
-                if (_lastSignal.IsSignalSell())
-                    price = tick.Trade.Bid!.Value;
+                if (endOfDay)
+                    volume = currentVolume * -1; // close
+                else if (currentVolume < 0 && volume > 0 || currentVolume > 0 && volume < 0)
+                    volume += currentVolume * -1; // invert
+                else
+                {
+                    // increment (avg price)
+                    value = _incrementVolume.Last(it => it.Key <= Math.Abs(currentVolume));
+                    volume = last.Value > previous.Value ? -value.Value : value.Value;
+                }
             }
 
-            _logger.LogInformation("{@data}", new
-            {
-                Date = date,
-                Price = price,
-                Signal = current
-            });
-
             if (_operationSettings.Value.ProductionMode)
-                await CheckPositionAsync(cancellationToken);
-        }
+            {
+                if (volume > 0)
+                {
+                    await BuyAsync(
+                        Convert.ToDouble(volume),
+                        cancellationToken);
+                }
 
-        private bool HasChanged(SignalType current)
-        {
-            if (current.IsNone())
-                return false;
-
-            if (_lastSignal.IsNone())
-                return true;
-
-            return !_lastSignal.IsSame(current);
+                if (volume < 0)
+                {
+                    await SellAsync(
+                         Convert.ToDouble(volume * -1),
+                         cancellationToken);
+                }
+            }
         }
 
         private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
@@ -156,7 +139,8 @@ namespace Application.Services
                 return true;
 
             var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
-                group: _operationSettings.Value.MarketData.Symbol, cancellationToken: cancellationToken);
+                group: _operationSettings.Value.MarketData.Symbol,
+                cancellationToken: cancellationToken);
 
             if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
             {
@@ -172,93 +156,63 @@ namespace Application.Services
             return !pendingOrders.Orders.Any();
         }
 
-        private async Task CheckPositionAsync(CancellationToken cancellationToken)
+        private async Task BuyAsync(double volume, CancellationToken cancellationToken)
         {
-            var positions = await GetPositionsAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
-
-            if (_lastSignal.IsSignalBuy())
-            {
-                if (positions.Positions.Any(it => it.Type == PositionType.Buy))
-                    return;
-
-                var volume = 1d;
-
-                if (positions.Positions.Any(it => it.Type == PositionType.Sell))
-                {
-                    var sellPosition = positions.Positions.First(it => it.Type == PositionType.Sell);
-                    volume = sellPosition.Volume!.Value * 2;
-                }
-
-                await BuyAsync(
-                    _operationSettings.Value.MarketData.Symbol!,
-                    volume,
-                    _operationSettings.Value.Order.Deviation,
-                    _operationSettings.Value.Order.Magic,
-                    cancellationToken);
-
-                return;
-            }
-
-            if (_lastSignal.IsSignalSell())
-            {
-                if (positions.Positions.Any(it => it.Type == PositionType.Sell))
-                    return;
-
-                var volume = 1d;
-
-                if (positions.Positions.Any(it => it.Type == PositionType.Buy))
-                {
-                    var buyPosition = positions.Positions.First(it => it.Type == PositionType.Buy);
-                    volume = buyPosition.Volume!.Value * 2;
-                }
-
-                await SellAsync(
-                    _operationSettings.Value.MarketData.Symbol!,
-                    volume,
-                    _operationSettings.Value.Order.Deviation,
-                    _operationSettings.Value.Order.Magic,
-                    cancellationToken);
-
-                return;
-            }
-        }
-
-        private async Task BuyAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
-        {
-            var tick = await _ratesProvider.GetSymbolTickAsync(symbol, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
 
             var request = _orderCreator.BuyAtMarket(
-                symbol: symbol,
+                symbol: _operationSettings.Value.MarketData.Symbol!,
                 price: tick.Trade.Bid!.Value,
                 volume: volume,
-                deviation: deviation,
-                magic: magic);
+                deviation: _operationSettings.Value.Order.Deviation,
+                magic: _operationSettings.Value.Order.Magic);
 
             _logger.LogInformation("Buy Request {@request}", request);
             var response = await _orderManagementWrapper.SendOrderAsync(request, cancellationToken);
             _logger.LogInformation("Buy Reply {@response}", response);
         }
 
-        private async Task SellAsync(string symbol, double volume, int deviation, long magic, CancellationToken cancellationToken)
+        private async Task SellAsync(double volume, CancellationToken cancellationToken)
         {
-            var tick = await _ratesProvider.GetSymbolTickAsync(symbol, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
 
             var request = _orderCreator.SellAtMarket(
-                symbol: symbol,
+                symbol: _operationSettings.Value.MarketData.Symbol!,
                 price: tick.Trade.Ask!.Value,
                 volume: volume,
-                deviation: deviation,
-                magic: magic);
+                deviation: _operationSettings.Value.Order.Deviation,
+                magic: _operationSettings.Value.Order.Magic);
 
             _logger.LogInformation("Sell Request {@request}", request);
             var response = await _orderManagementWrapper.SendOrderAsync(request, cancellationToken);
             _logger.LogInformation("Sell Reply {@response}", response);
         }
 
-        private async Task<GetPositionsReply> GetPositionsAsync(string symbol, CancellationToken cancellationToken)
-            => await _orderManagementWrapper.GetPositionsAsync(
-                group: symbol,
+        private async Task<Grpc.Terminal.Position?> GetPositionAsync(CancellationToken cancellationToken)
+        {
+            var positions = await _orderManagementWrapper.GetPositionsAsync(
+                group: _operationSettings.Value.MarketData.Symbol!,
                 cancellationToken: cancellationToken);
+
+            return positions.Positions.FirstOrDefault();
+        }
+
+        private void UpdateRange(CustomQuote[] quotes)
+        {
+            if (!quotes.Any())
+                return;
+
+            if (!_ranges.Any())
+                _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
+
+            var lastQuote = quotes.Last();
+
+            while (lastQuote.Close >= _ranges.Last().Value + _points)
+                _ranges.Add(new(_ranges.Last().Value + _points, lastQuote with { }));
+
+            while (lastQuote.Close <= _ranges.Last().Value - _points)
+                _ranges.Add(new(_ranges.Last().Value - _points, lastQuote with { }));
+        }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
         {

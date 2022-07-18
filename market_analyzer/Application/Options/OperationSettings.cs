@@ -2,6 +2,8 @@
 {
     public class OperationSettings
     {
+        public TimeOnly Start { get; set; }
+        public TimeOnly End { get; set; }
         public MarketDataSettings MarketData { get; set; } = new();
         public BacktestSettings Backtest { get; set; } = new();
         public OrderSettings Order { get; set; } = new();
@@ -20,8 +22,6 @@
         public class BacktestSettings
         {
             public bool Enabled { get; set; }
-            public TimeOnly Start { get; set; }
-            public TimeOnly End { get; set; }
             public TimeSpan Step { get; set; }
         }
 

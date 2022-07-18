@@ -86,7 +86,7 @@ namespace Application.Services
             UpdateRange(quotes);
 
             var endOfDay = quotes.Last().Date.TimeOfDay >= 
-                _operationSettings.Value.Backtest.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
+                _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
 
             if (_ranges.Count == _rangesLastCount && !endOfDay)
                 return;
