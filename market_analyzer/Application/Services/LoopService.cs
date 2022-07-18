@@ -18,10 +18,7 @@ namespace Application.Services
         private readonly ILogger<ILoopService> _logger;
 
         private readonly decimal _points = 200;
-        private readonly Dictionary<decimal, decimal> _incrementVolume = new()
-        {
-            { 1M, 1M },
-        };
+        private readonly Dictionary<decimal, decimal> _incrementVolume = new() { { 1M, 1M } };
 
         private readonly List<Range> _ranges = new();
         private int _rangesLastCount = 0;
@@ -89,7 +86,8 @@ namespace Application.Services
             var previous = _ranges[^2];
 
             var value = _incrementVolume.First();
-            var volume = last.Value > previous.Value ? -value.Value : value.Value; // up: sell, down: buy
+            var isUp = last.Value > previous.Value;
+            var volume = isUp ? -value.Value : value.Value; // up: sell, down: buy
 
             if (current is not null)
             {
@@ -103,7 +101,7 @@ namespace Application.Services
                 {
                     // increment (avg price)
                     value = _incrementVolume.Last(it => it.Key <= Math.Abs(currentVolume));
-                    volume = last.Value > previous.Value ? -value.Value : value.Value;
+                    volume = isUp ? -value.Value : value.Value;
                 }
             }
 

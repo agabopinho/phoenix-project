@@ -42,13 +42,13 @@ namespace Application.Services
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
 
-        private TimeSpan? _entryEver = null; 
+        private TimeSpan? _entryEvery = null;
         private readonly decimal _rangePoints = 200;
-        private readonly Dictionary<decimal, decimal> _incrementVolume = new() { { 0M, 1M } };
+        private readonly Dictionary<decimal, decimal> _volume = new() { { 0M, 1M } };
 
         private readonly List<Range> _ranges = new();
         private int _rangesLastCount = 0;
-        private TimeSpan _lastOperation = TimeSpan.Zero;
+        private TimeSpan _lastEntry = TimeSpan.Zero;
 
         private readonly List<Position> _positions = new();
 
@@ -87,7 +87,7 @@ namespace Application.Services
             UpdateRange(quotes);
 
             var currentTime = (_ratesProvider as BacktestRatesProvider)!.CurrentTime;
-            var runEver = _entryEver is not null && currentTime.TimeOfDay - _lastOperation > _entryEver;
+            var runEver = _entryEvery is not null && currentTime.TimeOfDay - _lastEntry > _entryEvery;
 
             var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
 
@@ -98,7 +98,7 @@ namespace Application.Services
             if (endOfDay && current is null)
                 return;
 
-            _lastOperation = currentTime.TimeOfDay;
+            _lastEntry = currentTime.TimeOfDay;
             _rangesLastCount = _ranges.Count;
 
             if (_ranges.Count == 1)
@@ -109,8 +109,9 @@ namespace Application.Services
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
-            var value = _incrementVolume.First();
-            var volume = last.Value > previous.Value ? -value.Value : value.Value; // up: sell, down: buy
+            var value = _volume.First();
+            var isUp = last.Value > previous.Value;
+            var volume = isUp ? -value.Value : value.Value; // up: sell, down: buy
 
             if (current is not null)
             {
@@ -123,8 +124,8 @@ namespace Application.Services
                 else
                 {
                     // increment (avg price)
-                    value = _incrementVolume.Last(it => it.Key <= Math.Abs(currentVolume));
-                    volume = last.Value > previous.Value ? -value.Value : value.Value;
+                    value = _volume.Last(it => it.Key <= Math.Abs(currentVolume));
+                    volume = isUp ? -value.Value : value.Value;
                 }
             }
 
