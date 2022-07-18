@@ -1,9 +1,8 @@
-﻿using Application.Workers;
-using Application.Options;
+﻿using Application.Options;
 using Application.Services;
 using Application.Services.Providers.Cycle;
-using Application.Services.Providers.Database;
 using Application.Services.Providers.Rates;
+using Application.Workers;
 using ConsoleApp.Converters;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Configuration;
@@ -88,7 +87,6 @@ builder.ConfigureServices((context, services) =>
         return serviceProvider.GetRequiredService<LoopService>();
     });
 
-    services.AddSingleton<IBacktestDatabaseProvider, InMemoryBacktestDatabaseProvider>();
     services.AddHostedService<WorkerService>();
 });
 

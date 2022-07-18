@@ -11,8 +11,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
     <PackageReference Include="OoplesFinance.StockIndicators" Version="1.0.44" />
-    <PackageReference Include="Skender.Stock.Indicators" Version="2.0.3" />
-    <PackageReference Include="StackExchange.Redis" Version="2.6.45" />
+    <PackageReference Include="Skender.Stock.Indicators" Version="2.1.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.6.48" />
   </ItemGroup>
 
   <ItemGroup>
