@@ -3,7 +3,6 @@
     public interface ICycleProvider
     {
         TimeZoneInfo TimeZone { get; }
-        DateTime Previous { get; }
 
         DateTime PlatformNow();
     }

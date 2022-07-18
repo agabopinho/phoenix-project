@@ -15,6 +15,7 @@ namespace Application.Services.Providers.Rates
         private readonly ILogger<BacktestRatesProvider> _logger;
         private readonly Stopwatch _stopwatch;
 
+        private DateTime _currentTime;
         private readonly SortedList<DateTime, Rate> _rates = new();
 
         public BacktestRatesProvider(
@@ -37,7 +38,7 @@ namespace Application.Services.Providers.Rates
             int chunkSize,
             CancellationToken cancellationToken)
         {
-            _cycleProvider.PlatformNow();
+            _currentTime = _cycleProvider.PlatformNow();
 
             if (Started)
                 return;
@@ -55,7 +56,7 @@ namespace Application.Services.Providers.Rates
         {
             _stopwatch.Restart();
 
-            var now = _cycleProvider.Previous;
+            var now = _currentTime;
 
             var fromDate = _rates.Any() ? _rates.Keys.Last() : now.Subtract(window);
             var toDate = now;
@@ -90,7 +91,7 @@ namespace Application.Services.Providers.Rates
 
         public Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
         {
-            var now = _cycleProvider.Previous;
+            var now = _currentTime;
             var toPartitionKey = _backtestDatabase.PartitionKey(now);
             var index = _backtestDatabase.TicksDatabase.Keys.ToList().BinarySearch(toPartitionKey);
 

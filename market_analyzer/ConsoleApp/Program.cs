@@ -42,6 +42,9 @@ builder.ConfigureServices((context, services) =>
     services.AddOrderManagementWrapper(configure =>
         context.Configuration.GetSection("GrpcServer:OrderManagement").Bind(configure));
 
+    services.AddOperationSettings(configure
+        => context.Configuration.GetSection("Operation").Bind(configure));
+
     services.AddSingleton<OnlineCycleProvider>();
     services.AddSingleton<BacktestCycleProvider>();
     services.AddSingleton<ICycleProvider>(serviceProvider =>
@@ -66,11 +69,19 @@ builder.ConfigureServices((context, services) =>
         return serviceProvider.GetRequiredService<OnlineRatesProvider>();
     });
 
-    services.AddOperationSettings(configure
-        => context.Configuration.GetSection("Operation").Bind(configure));
+    services.AddSingleton<BacktestLoopService>();
+    services.AddSingleton<LoopService>();
+    services.AddSingleton<ILoopService>(serviceProvider =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+
+        if (options.Value.Backtest.Enabled)
+            return serviceProvider.GetRequiredService<BacktestLoopService>();
+
+        return serviceProvider.GetRequiredService<LoopService>();
+    });
 
     services.AddSingleton<IBacktestDatabaseProvider, BacktestDatabaseProvider>();
-    services.AddSingleton<ILoopService, LoopService>();
     services.AddHostedService<WorkerService>();
 });
 
