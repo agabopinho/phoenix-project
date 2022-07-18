@@ -40,15 +40,15 @@ namespace Application.Services
         private readonly IRatesProvider _ratesProvider;
         private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
+        private readonly TimeSpan _end;
 
-        private readonly decimal _points = 200;
-        private readonly Dictionary<decimal, decimal> _incrementVolume = new()
-        {
-            { 1M, 1M },
-        };
+        private TimeSpan? _entryEver = null; 
+        private readonly decimal _rangePoints = 200;
+        private readonly Dictionary<decimal, decimal> _incrementVolume = new() { { 0M, 1M } };
 
         private readonly List<Range> _ranges = new();
         private int _rangesLastCount = 0;
+        private TimeSpan _lastOperation = TimeSpan.Zero;
 
         private readonly List<Position> _positions = new();
 
@@ -60,6 +60,7 @@ namespace Application.Services
             _ratesProvider = ratesProvider;
             _operationSettings = operationSettings;
             _logger = logger;
+            _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -85,16 +86,19 @@ namespace Application.Services
 
             UpdateRange(quotes);
 
-            var endOfDay = quotes.Last().Date.TimeOfDay >= 
-                _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
+            var currentTime = (_ratesProvider as BacktestRatesProvider)!.CurrentTime;
+            var runEver = _entryEver is not null && currentTime.TimeOfDay - _lastOperation > _entryEver;
 
-            if (_ranges.Count == _rangesLastCount && !endOfDay)
+            var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
+
+            if (_ranges.Count == _rangesLastCount && !endOfDay && !runEver)
                 return;
 
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
             if (endOfDay && current is null)
                 return;
 
+            _lastOperation = currentTime.TimeOfDay;
             _rangesLastCount = _ranges.Count;
 
             if (_ranges.Count == 1)
@@ -161,11 +165,11 @@ namespace Application.Services
 
             var lastQuote = quotes.Last();
 
-            while (lastQuote.Close >= _ranges.Last().Value + _points)
-                _ranges.Add(new(_ranges.Last().Value + _points, lastQuote with { }));
+            while (lastQuote.Close >= _ranges.Last().Value + _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote with { }));
 
-            while (lastQuote.Close <= _ranges.Last().Value - _points)
-                _ranges.Add(new(_ranges.Last().Value - _points, lastQuote with { }));
+            while (lastQuote.Close <= _ranges.Last().Value - _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote with { }));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
