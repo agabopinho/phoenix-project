@@ -107,21 +107,25 @@ namespace Application.Services
                 }
             }
 
-            if (_operationSettings.Value.ProductionMode)
+            if (!_operationSettings.Value.ProductionMode)
             {
-                if (volume > 0)
-                {
-                    await BuyAsync(
-                        Convert.ToDouble(volume),
-                        cancellationToken);
-                }
+                _logger.LogInformation("{@data}", new { volume });
 
-                if (volume < 0)
-                {
-                    await SellAsync(
-                         Convert.ToDouble(volume * -1),
-                         cancellationToken);
-                }
+                return;
+            }
+
+            if (volume > 0)
+            {
+                await BuyAsync(
+                    Convert.ToDouble(volume),
+                    cancellationToken);
+            }
+
+            if (volume < 0)
+            {
+                await SellAsync(
+                     Convert.ToDouble(volume * -1),
+                     cancellationToken);
             }
         }
 
