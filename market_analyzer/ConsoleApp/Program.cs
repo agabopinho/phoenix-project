@@ -32,10 +32,17 @@ builder.UseSerilog((context, services, configuration) => configuration
 
 builder.ConfigureServices((context, services) =>
 {
-    services.AddSingleton(_
-        => ConnectionMultiplexer
-            .Connect(context.Configuration.GetValue<string>("Redis"))
-            .GetDatabase(0));
+    services.AddSingleton<IDatabase>(serviceProvider =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+
+        if (options.Value.Backtest.Enabled)
+            return ConnectionMultiplexer
+                .Connect(context.Configuration.GetValue<string>("Redis"))
+                .GetDatabase(0);
+
+        throw new NotImplementedException();
+    });
 
     services.AddMarketDataWrapper(configure =>
         context.Configuration.GetSection("GrpcServer:MarketData").Bind(configure));
