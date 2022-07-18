@@ -6,17 +6,9 @@ using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
-    public enum SignalType
-    {
-        None,
-        Buy,
-        Sell
-    }
-
     public class LoopService : ILoopService
     {
         private readonly IRatesProvider _ratesProvider;

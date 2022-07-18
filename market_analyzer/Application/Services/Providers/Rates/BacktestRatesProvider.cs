@@ -14,9 +14,9 @@ namespace Application.Services.Providers.Rates
         private readonly ICycleProvider _cycleProvider;
         private readonly ILogger<BacktestRatesProvider> _logger;
         private readonly Stopwatch _stopwatch;
+        private readonly SortedList<DateTime, Rate> _rates = new();
 
         private DateTime _currentTime;
-        private readonly SortedList<DateTime, Rate> _rates = new();
 
         public BacktestRatesProvider(
             IBacktestDatabaseProvider backtestDatabase,

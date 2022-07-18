@@ -57,7 +57,7 @@ builder.ConfigureServices((context, services) =>
         return serviceProvider.GetRequiredService<OnlineCycleProvider>();
     });
 
-    services.AddSingleton<OnlineRatesProvider>();
+    services.AddSingleton<InMemoryOnlineRatesProvider>();
     services.AddSingleton<BacktestRatesProvider>();
     services.AddSingleton<IRatesProvider>(serviceProvider =>
     {
@@ -66,7 +66,7 @@ builder.ConfigureServices((context, services) =>
         if (options.Value.Backtest.Enabled)
             return serviceProvider.GetRequiredService<BacktestRatesProvider>();
 
-        return serviceProvider.GetRequiredService<OnlineRatesProvider>();
+        return serviceProvider.GetRequiredService<InMemoryOnlineRatesProvider>();
     });
 
     services.AddSingleton<BacktestLoopService>();
@@ -81,7 +81,7 @@ builder.ConfigureServices((context, services) =>
         return serviceProvider.GetRequiredService<LoopService>();
     });
 
-    services.AddSingleton<IBacktestDatabaseProvider, BacktestDatabaseProvider>();
+    services.AddSingleton<IBacktestDatabaseProvider, InMemoryBacktestDatabaseProvider>();
     services.AddHostedService<WorkerService>();
 });
 
