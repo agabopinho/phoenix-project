@@ -87,11 +87,11 @@ namespace Application.Services
             UpdateRange(quotes);
 
             var currentTime = (_ratesProvider as BacktestRatesProvider)!.CurrentTime;
-            var runEver = _entryEvery is not null && currentTime.TimeOfDay - _lastEntry > _entryEvery;
+            var runEvery = _entryEvery is not null && currentTime.TimeOfDay - _lastEntry > _entryEvery;
 
             var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
 
-            if (_ranges.Count == _rangesLastCount && !endOfDay && !runEver)
+            if (_ranges.Count == _rangesLastCount && !endOfDay && !runEvery)
                 return;
 
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
@@ -110,7 +110,7 @@ namespace Application.Services
             var previous = _ranges[^2];
 
             var value = _volume.First();
-            var isUp = last.Value > previous.Value;
+            var isUp = (last.Value > previous.Value);
             var volume = isUp ? -value.Value : value.Value; // up: sell, down: buy
 
             if (current is not null)
@@ -137,23 +137,28 @@ namespace Application.Services
 
             current.Add(transaction);
 
-            if (_positions.Count > 0)
+            PrintPosition(quotes, transaction);
+        }
+
+        private void PrintPosition(CustomQuote[] quotes, Transaction transaction)
+        {
+            if (_positions.Count == 0)
+                return;
+
+            var posProfit = 0M;
+            var posVolume = 0M;
+
+            foreach (var item in _positions)
             {
-                var posProfit = 0M;
-                var posVolume = 0M;
-
-                foreach (var item in _positions)
-                {
-                    posProfit += item.Profit(quotes.Last().Close);
-                    posVolume += item.Volume();
-                }
-
-                _logger.LogInformation("{@profit}", new
-                {
-                    transaction,
-                    position = new { volume = posVolume, profit = posProfit }
-                });
+                posProfit += item.Profit(quotes.Last().Close);
+                posVolume += item.Volume();
             }
+
+            _logger.LogInformation("{@profit}", new
+            {
+                transaction,
+                position = new { volume = posVolume, profit = posProfit }
+            });
         }
 
         private void UpdateRange(CustomQuote[] quotes)

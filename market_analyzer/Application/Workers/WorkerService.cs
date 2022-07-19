@@ -28,7 +28,6 @@ namespace Application.Workers
                 try
                 {
                     _stopwatch.Restart();
-
                     await _loopService.RunAsync(stoppingToken);
                     _logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
                 }
