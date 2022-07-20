@@ -6,13 +6,13 @@ using System.Diagnostics;
 
 namespace Application.Workers
 {
-    public class WorkerService : BackgroundService
+    public class BacktestWorkerService : BackgroundService
     {
         private readonly ILoopService _loopService;
         private readonly ILogger<WorkerService> _logger;
         private readonly Stopwatch _stopwatch;
 
-        public WorkerService(
+        public BacktestWorkerService(
             ILoopService loopService,
             ILogger<WorkerService> logger)
         {
@@ -30,6 +30,12 @@ namespace Application.Workers
                     _stopwatch.Restart();
                     await _loopService.RunAsync(stoppingToken);
                     _logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
+                }
+                catch (BacktestFinishException)
+                {
+                    _logger.LogInformation("Backtest finish.");
+
+                    break;
                 }
                 catch (Exception e)
                 {

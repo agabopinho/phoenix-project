@@ -13,81 +13,104 @@ using Serilog;
 using StackExchange.Redis;
 using System.ComponentModel;
 
-TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof(DateOnlyTypeConverter)));
-TypeDescriptor.AddAttributes(typeof(TimeOnly), new TypeConverterAttribute(typeof(TimeOnlyTypeConverter)));
+namespace ConsoleApp;
 
-Log.Logger = new LoggerConfiguration()
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
-
-var builder = Host.CreateDefaultBuilder(args);
-
-builder.UseSerilog((context, services, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
-    .ReadFrom.Services(services)
-    .Enrich.FromLogContext()
-    .WriteTo.Console());
-
-builder.ConfigureServices((context, services) =>
+public class Program
 {
-    services.AddSingleton<IDatabase>(serviceProvider =>
+    public static async Task Main(string[] args)
     {
-        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+        TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof(DateOnlyTypeConverter)));
+        TypeDescriptor.AddAttributes(typeof(TimeOnly), new TypeConverterAttribute(typeof(TimeOnlyTypeConverter)));
 
-        if (options.Value.Backtest.Enabled)
-            return ConnectionMultiplexer
-                .Connect(context.Configuration.GetValue<string>("Redis"))
-                .GetDatabase(0);
+        Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
 
-        throw new NotImplementedException();
-    });
+        var builder = Host.CreateDefaultBuilder(args);
 
-    services.AddMarketDataWrapper(configure =>
-        context.Configuration.GetSection("GrpcServer:MarketData").Bind(configure));
-    services.AddOrderManagementWrapper(configure =>
-        context.Configuration.GetSection("GrpcServer:OrderManagement").Bind(configure));
+        builder.UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .WriteTo.Console());
 
-    services.AddOperationSettings(configure
-        => context.Configuration.GetSection("Operation").Bind(configure));
+        Configure(builder);
 
-    services.AddSingleton<OnlineCycleProvider>();
-    services.AddSingleton<BacktestCycleProvider>();
-    services.AddSingleton<ICycleProvider>(serviceProvider =>
+        await builder.Build().RunAsync();
+    }
+
+    private static void Configure(IHostBuilder builder)
     {
-        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+        builder.ConfigureServices((context, services) =>
+        {
+            services.AddSingleton<IDatabase>(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
 
-        if (options.Value.Backtest.Enabled)
-            return serviceProvider.GetRequiredService<BacktestCycleProvider>();
+                if (options.Value.Backtest.Enabled)
+                    return ConnectionMultiplexer
+                        .Connect(context.Configuration.GetValue<string>("Redis"))
+                        .GetDatabase(0);
 
-        return serviceProvider.GetRequiredService<OnlineCycleProvider>();
-    });
+                throw new NotImplementedException();
+            });
 
-    services.AddSingleton<InMemoryOnlineRatesProvider>();
-    services.AddSingleton<BacktestRatesProvider>();
-    services.AddSingleton<IRatesProvider>(serviceProvider =>
-    {
-        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+            services.AddMarketDataWrapper(configure =>
+                context.Configuration.GetSection("GrpcServer:MarketData").Bind(configure));
+            services.AddOrderManagementWrapper(configure =>
+                context.Configuration.GetSection("GrpcServer:OrderManagement").Bind(configure));
 
-        if (options.Value.Backtest.Enabled)
-            return serviceProvider.GetRequiredService<BacktestRatesProvider>();
+            services.AddOperationSettings(configure
+                => context.Configuration.GetSection("Operation").Bind(configure));
 
-        return serviceProvider.GetRequiredService<InMemoryOnlineRatesProvider>();
-    });
+            services.AddSingleton<OnlineCycleProvider>();
+            services.AddSingleton<BacktestCycleProvider>();
+            services.AddSingleton<ICycleProvider>(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
 
-    services.AddSingleton<BacktestLoopService>();
-    services.AddSingleton<LoopService>();
-    services.AddSingleton<ILoopService>(serviceProvider =>
-    {
-        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+                if (options.Value.Backtest.Enabled)
+                    return serviceProvider.GetRequiredService<BacktestCycleProvider>();
 
-        if (options.Value.Backtest.Enabled)
-            return serviceProvider.GetRequiredService<BacktestLoopService>();
+                return serviceProvider.GetRequiredService<OnlineCycleProvider>();
+            });
 
-        return serviceProvider.GetRequiredService<LoopService>();
-    });
+            services.AddSingleton<InMemoryOnlineRatesProvider>();
+            services.AddSingleton<BacktestRatesProvider>();
+            services.AddSingleton<IRatesProvider>(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
 
-    services.AddHostedService<WorkerService>();
-});
+                if (options.Value.Backtest.Enabled)
+                    return serviceProvider.GetRequiredService<BacktestRatesProvider>();
 
-await builder.Build().RunAsync();
+                return serviceProvider.GetRequiredService<InMemoryOnlineRatesProvider>();
+            });
+
+            services.AddSingleton<BacktestLoopService>();
+            services.AddSingleton<LoopService>();
+            services.AddSingleton<ILoopService>(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+
+                if (options.Value.Backtest.Enabled)
+                    return serviceProvider.GetRequiredService<BacktestLoopService>();
+
+                return serviceProvider.GetRequiredService<LoopService>();
+            });
+
+            services.AddSingleton<BacktestWorkerService>();
+            services.AddSingleton<WorkerService>();
+            services.AddHostedService<BackgroundService>(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+
+                if (options.Value.Backtest.Enabled)
+                    return serviceProvider.GetRequiredService<BacktestWorkerService>();
+
+                return serviceProvider.GetRequiredService<WorkerService>();
+            });
+        });
+    }
+}

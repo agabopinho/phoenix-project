@@ -11,7 +11,7 @@ namespace Application.Services
 
     public class Position
     {
-        private List<Transaction> _transactions = new();
+        private readonly List<Transaction> _transactions = new();
 
         public IEnumerable<Transaction> Transactions => _transactions.ToArray();
 
@@ -42,13 +42,11 @@ namespace Application.Services
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
 
-        private TimeSpan? _entryEvery = null;
-        private readonly decimal _rangePoints = 200;
-        private readonly Dictionary<decimal, decimal> _volume = new() { { 0M, 1M } };
+        private readonly decimal _rangePoints = 120;
+        private readonly decimal _volume = 1;
 
         private readonly List<Range> _ranges = new();
         private int _rangesLastCount = 0;
-        private TimeSpan _lastEntry = TimeSpan.Zero;
 
         private readonly List<Position> _positions = new();
 
@@ -86,48 +84,30 @@ namespace Application.Services
 
             UpdateRange(quotes);
 
-            var currentTime = (_ratesProvider as BacktestRatesProvider)!.CurrentTime;
-            var runEvery = _entryEvery is not null && currentTime.TimeOfDay - _lastEntry > _entryEvery;
-
             var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
 
-            if (_ranges.Count == _rangesLastCount && !endOfDay && !runEvery)
+            if (_ranges.Count == _rangesLastCount && !endOfDay)
                 return;
 
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
             if (endOfDay && current is null)
                 return;
 
-            _lastEntry = currentTime.TimeOfDay;
             _rangesLastCount = _ranges.Count;
 
             if (_ranges.Count == 1)
                 return;
 
-            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
+            var tick = await GetTick(cancellationToken);
 
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
-            var value = _volume.First();
             var isUp = (last.Value > previous.Value);
-            var volume = isUp ? -value.Value : value.Value; // up: sell, down: buy
+            var volume = isUp ? -_volume : _volume;
 
-            if (current is not null)
-            {
-                var currentVolume = current.Volume();
-
-                if (endOfDay)
-                    volume = currentVolume * -1; // close
-                else if (currentVolume < 0 && volume > 0 || currentVolume > 0 && volume < 0)
-                    volume += currentVolume * -1; // invert
-                else
-                {
-                    // increment (avg price)
-                    value = _volume.Last(it => it.Key <= Math.Abs(currentVolume));
-                    volume = isUp ? -value.Value : value.Value;
-                }
-            }
+            if (current is not null && endOfDay)
+                volume = current.Volume() * -1;
 
             var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
             var transaction = new Transaction(quotes.Last().Date, price, volume);
@@ -139,6 +119,9 @@ namespace Application.Services
 
             PrintPosition(quotes, transaction);
         }
+
+        private async Task<GetSymbolTickReply> GetTick(CancellationToken cancellationToken)
+            => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
 
         private void PrintPosition(CustomQuote[] quotes, Transaction transaction)
         {
@@ -156,8 +139,11 @@ namespace Application.Services
 
             _logger.LogInformation("{@profit}", new
             {
-                transaction,
-                position = new { volume = posVolume, profit = posProfit }
+                EntryTime = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss"),
+                EntryPrice = transaction.Price,
+                EntryVolume = transaction.Volume,
+                Volume = posVolume,
+                Profit = posProfit
             });
         }
 
