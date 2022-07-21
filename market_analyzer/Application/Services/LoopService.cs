@@ -16,9 +16,7 @@ namespace Application.Services
         private readonly IOrderCreator _orderCreator;
         private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
-
-        private readonly decimal _points = 200;
-        private readonly Dictionary<decimal, decimal> _incrementVolume = new() { { 1M, 1M } };
+        private readonly TimeSpan _end;
 
         private readonly List<Range> _ranges = new();
         private int _rangesLastCount = 0;
@@ -35,6 +33,7 @@ namespace Application.Services
             _orderCreator = orderCreator;
             _operationSettings = operationSettings;
             _logger = logger;
+            _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -67,8 +66,7 @@ namespace Application.Services
 
         private async Task CheckAsync(CustomQuote[] quotes, CancellationToken cancellationToken)
         {
-            var endOfDay = quotes.Last().Date.TimeOfDay >=
-                _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
+            var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
 
             if (_ranges.Count == _rangesLastCount && !endOfDay)
                 return;
@@ -85,25 +83,36 @@ namespace Application.Services
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
-            var value = _incrementVolume.First();
-            var isUp = last.Value > previous.Value;
-            var volume = isUp ? -value.Value : value.Value; // up: sell, down: buy
+            var strategy = _operationSettings.Value.StrategyData;
+            var isUp = (last.Value > previous.Value);
+            var volume = isUp ? -strategy.Volume : strategy.Volume;
 
             if (current is not null)
             {
-                var currentVolume = Convert.ToDecimal(current.Type == PositionType.Buy ? current.Volume : current.Volume * -1);
+                var symbol = _operationSettings.Value.SymbolData;
 
-                if (endOfDay)
-                    volume = currentVolume * -1; // close
-                else if (currentVolume < 0 && volume > 0 || currentVolume > 0 && volume < 0)
-                    volume += currentVolume * -1; // invert
+                var moreVolume = Convert.ToDecimal(current.Volume) * strategy.MoreVolumeFactor;
+                var mod = moreVolume % symbol.StandardLot;
+
+                if (volume > 0)
+                    volume += moreVolume - mod;
                 else
-                {
-                    // increment (avg price)
-                    value = _incrementVolume.Last(it => it.Key <= Math.Abs(currentVolume));
-                    volume = isUp ? -value.Value : value.Value;
-                }
+                    volume -= moreVolume - mod;
             }
+
+            if (current is not null)
+            {
+                var currentVolume = Convert.ToDecimal(current.Volume);
+
+                if (current.Type == PositionType.Sell)
+                    currentVolume *= -1;
+
+                if (currentVolume + volume == 0)
+                    volume *= 2;
+            }
+
+            if (current is not null && endOfDay)
+                volume = Convert.ToDecimal(current.Volume) * -1;
 
             if (!_operationSettings.Value.ProductionMode)
             {
@@ -200,12 +209,13 @@ namespace Application.Services
                 _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
 
             var lastQuote = quotes.Last();
+            var strategy = _operationSettings.Value.StrategyData;
 
-            while (lastQuote.Close >= _ranges.Last().Value + _points)
-                _ranges.Add(new(_ranges.Last().Value + _points, lastQuote with { }));
+            while (lastQuote.Close >= _ranges.Last().Value + strategy.RangePoints)
+                _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote with { }));
 
-            while (lastQuote.Close <= _ranges.Last().Value - _points)
-                _ranges.Add(new(_ranges.Last().Value - _points, lastQuote with { }));
+            while (lastQuote.Close <= _ranges.Last().Value - strategy.RangePoints)
+                _ranges.Add(new(_ranges.Last().Value - strategy.RangePoints, lastQuote with { }));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
