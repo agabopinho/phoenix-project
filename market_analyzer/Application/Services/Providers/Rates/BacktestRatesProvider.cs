@@ -8,6 +8,7 @@ using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Application.Services.Providers.Rates
 {
@@ -188,8 +189,14 @@ namespace Application.Services.Providers.Rates
             _logger.LogInformation("Loading backtest data {@data}", new { symbol, Date = date.ToShortDateString() });
 
             var key = TicksKey(symbol, date);
+            var keyDone = DoneTicksKey(symbol, date);
 
             await FromCacheAsync(key);
+
+            if (Ticks.Count > 0 &&
+                date.ToDateTime(TimeOnly.MinValue) != DateTime.Today &&
+                await _database.KeyExistsAsync(keyDone))
+                return true;
 
             var fromDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var toDate = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
@@ -227,6 +234,13 @@ namespace Application.Services.Providers.Rates
 
                 _logger.LogInformation("Chunk {@data}", new { reply.Trades.Count, Total = Ticks.Sum(it => it.Value.Count) });
             }
+
+            var done = new
+            {
+                Last = Ticks.Keys.Last()
+            };
+
+            await _database.ListRightPushAsync(keyDone, JsonSerializer.Serialize(done));
 
             return true;
         }
@@ -325,11 +339,14 @@ namespace Application.Services.Providers.Rates
                 (trade.Flags & TickFlags.Ask) == TickFlags.Ask &&
                 (trade.Flags & TickFlags.Last) == TickFlags.Last;
 
-        private DateTime PartitionKey(DateTime time)
+        private static DateTime PartitionKey(DateTime time)
             => new(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, DateTimeKind.Utc);
 
         private static string TicksKey(string symbol, DateOnly date)
             => $"{symbol.ToLower()}:ticks:backtest:{date:yyyyMMdd}";
+
+        private static string DoneTicksKey(string symbol, DateOnly date)
+            => $"{symbol.ToLower()}:ticks:backtest:{date:yyyyMMdd}:done";
 
         private class TradeOnlyTimeComparer : IComparer<Trade>
         {
