@@ -7,14 +7,14 @@ namespace Application.Services.Providers.Rates
 {
     public class InMemoryOnlineRatesProvider : IRatesProvider
     {
-        private readonly IMarketDataWrapper _marketDataWrapper;
+        private readonly IMarketDataWrapper _symbolDataWrapper;
         private readonly ICycleProvider _cycleProvider;
 
         public InMemoryOnlineRatesProvider(
-            IMarketDataWrapper marketDataWrapper,
+            IMarketDataWrapper symbolDataWrapper,
             ICycleProvider cycleProvider)
         {
-            _marketDataWrapper = marketDataWrapper;
+            _symbolDataWrapper = symbolDataWrapper;
             _cycleProvider = cycleProvider;
         }
 
@@ -33,7 +33,7 @@ namespace Application.Services.Providers.Rates
                 date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) :
                 lastRate.Time.ToDateTime();
 
-            using var call = _marketDataWrapper.StreamRatesFromTicksRange(
+            using var call = _symbolDataWrapper.StreamRatesFromTicksRange(
                 symbol,
                 fromDate,
                 _cycleProvider.PlatformNow().AddSeconds(10),
@@ -69,6 +69,6 @@ namespace Application.Services.Providers.Rates
         }
 
         public async Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
-            => await _marketDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);
+            => await _symbolDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);
     }
 }

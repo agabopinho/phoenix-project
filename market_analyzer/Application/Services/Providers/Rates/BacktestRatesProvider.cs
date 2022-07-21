@@ -13,19 +13,19 @@ namespace Application.Services.Providers.Rates
 {
     public class BacktestRatesProvider : IRatesProvider
     {
-        private readonly IMarketDataWrapper _marketDataWrapper;
+        private readonly IMarketDataWrapper _symbolDataWrapper;
         private readonly ICycleProvider _cycleProvider;
         private readonly IDatabase _database;
         private readonly ILogger<BacktestRatesProvider> _logger;
         private readonly Stopwatch _stopwatch;
 
         public BacktestRatesProvider(
-            IMarketDataWrapper marketDataWrapper,
+            IMarketDataWrapper symbolDataWrapper,
             ICycleProvider cycleProvider,
             IDatabase database,
             ILogger<BacktestRatesProvider> logger)
         {
-            _marketDataWrapper = marketDataWrapper;
+            _symbolDataWrapper = symbolDataWrapper;
             _cycleProvider = cycleProvider;
             _database = database;
             _logger = logger;
@@ -197,7 +197,7 @@ namespace Application.Services.Providers.Rates
             if (Ticks.Count > 0)
                 fromDate = Ticks.Last().Value.Last().Time.ToDateTime();
 
-            using var call = _marketDataWrapper.StreamTicksRange(symbol, fromDate, toDate, CopyTicks.All, chunkSize, cancellationToken);
+            using var call = _symbolDataWrapper.StreamTicksRange(symbol, fromDate, toDate, CopyTicks.All, chunkSize, cancellationToken);
 
             await foreach (var reply in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
             {

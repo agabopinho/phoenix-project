@@ -14,7 +14,7 @@ namespace Application.Services.Providers.Cycle
             _operationSettings = operationSettings;
         }
 
-        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.MarketData.TimeZoneId!);
+        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.SymbolData.TimeZoneId!);
         public DateTime Previous => _previous;
 
         public DateTime PlatformNow()

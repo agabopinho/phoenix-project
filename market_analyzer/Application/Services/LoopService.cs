@@ -39,13 +39,13 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var marketData = _operationSettings.Value.MarketData;
+            var symbolData = _operationSettings.Value.SymbolData;
 
             await _ratesProvider.CheckNewRatesAsync(
-                marketData.Symbol!,
-                marketData.Date,
-                marketData.Timeframe,
-                marketData.ChunkSize,
+                symbolData.Name!,
+                symbolData.Date,
+                symbolData.Timeframe,
+                symbolData.ChunkSize,
                 cancellationToken);
 
             var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
@@ -133,7 +133,7 @@ namespace Application.Services
                 return true;
 
             var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
-                group: _operationSettings.Value.MarketData.Symbol,
+                group: _operationSettings.Value.SymbolData.Name,
                 cancellationToken: cancellationToken);
 
             if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
@@ -152,10 +152,10 @@ namespace Application.Services
 
         private async Task BuyAsync(double volume, CancellationToken cancellationToken)
         {
-            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.SymbolData.Name!, cancellationToken);
 
             var request = _orderCreator.BuyAtMarket(
-                symbol: _operationSettings.Value.MarketData.Symbol!,
+                symbol: _operationSettings.Value.SymbolData.Name!,
                 price: tick.Trade.Bid!.Value,
                 volume: volume,
                 deviation: _operationSettings.Value.Order.Deviation,
@@ -168,10 +168,10 @@ namespace Application.Services
 
         private async Task SellAsync(double volume, CancellationToken cancellationToken)
         {
-            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.SymbolData.Name!, cancellationToken);
 
             var request = _orderCreator.SellAtMarket(
-                symbol: _operationSettings.Value.MarketData.Symbol!,
+                symbol: _operationSettings.Value.SymbolData.Name!,
                 price: tick.Trade.Ask!.Value,
                 volume: volume,
                 deviation: _operationSettings.Value.Order.Deviation,
@@ -185,7 +185,7 @@ namespace Application.Services
         private async Task<Grpc.Terminal.Position?> GetPositionAsync(CancellationToken cancellationToken)
         {
             var positions = await _orderManagementWrapper.GetPositionsAsync(
-                group: _operationSettings.Value.MarketData.Symbol!,
+                group: _operationSettings.Value.SymbolData.Name!,
                 cancellationToken: cancellationToken);
 
             return positions.Positions.FirstOrDefault();
@@ -211,10 +211,10 @@ namespace Application.Services
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
         {
             var result = await _ratesProvider.GetRatesAsync(
-                _operationSettings.Value.MarketData.Symbol!,
-                _operationSettings.Value.MarketData.Date,
-                _operationSettings.Value.MarketData.Timeframe,
-                _operationSettings.Value.MarketData.Window,
+                _operationSettings.Value.SymbolData.Name!,
+                _operationSettings.Value.SymbolData.Date,
+                _operationSettings.Value.SymbolData.Timeframe,
+                _operationSettings.Value.SymbolData.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time).ToArray();

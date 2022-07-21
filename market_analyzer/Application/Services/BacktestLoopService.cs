@@ -31,6 +31,25 @@ namespace Application.Services
 
             return (open + close) * -1;
         }
+
+        public decimal Price()
+        {
+            var sells = _transactions.Where(it => it.Volume < 0);
+            var sellPrice = Math.Abs(sells.Sum(it => it.Price * it.Volume));
+            var sellVolume = Math.Abs(sells.Sum(it => it.Volume));
+
+            var buys = _transactions.Where(it => it.Volume > 0);
+            var buyPrice = buys.Sum(it => it.Price * it.Volume);
+            var buyVolume = buys.Sum(it => it.Volume);
+
+            if (sellPrice > 0 && buyPrice > 0)
+                return (sellPrice / sellVolume + buyPrice / buyVolume) / 2;
+
+            if (sellPrice > 0)
+                return sellPrice / sellVolume;
+
+            return buyPrice / buyVolume;
+        }
     }
 
     public record class Range(decimal Value, CustomQuote Quote);
@@ -63,13 +82,13 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var marketData = _operationSettings.Value.MarketData;
+            var symbolData = _operationSettings.Value.SymbolData;
 
             await _ratesProvider.CheckNewRatesAsync(
-                marketData.Symbol!,
-                marketData.Date,
-                marketData.Timeframe,
-                marketData.ChunkSize,
+                symbolData.Name!,
+                symbolData.Date,
+                symbolData.Timeframe,
+                symbolData.ChunkSize,
                 cancellationToken);
 
             await CheckAsync(cancellationToken);
@@ -106,6 +125,23 @@ namespace Application.Services
             var isUp = (last.Value > previous.Value);
             var volume = isUp ? -_volume : _volume;
 
+            if (current is not null)
+            {
+                var symbol = _operationSettings.Value.SymbolData;
+                var strategy = _operationSettings.Value.StrategyData;
+
+                var moreVolume = Math.Abs(current.Volume()) * strategy.MoreVolumeFactor;
+                var mod = moreVolume % symbol.StandardLot;
+
+                if (volume > 0)
+                    volume += moreVolume / symbol.StandardLot - mod;
+                else
+                    volume -= moreVolume / symbol.StandardLot - mod;
+            }
+
+            if (current is not null && current.Volume() + volume == 0)
+                volume *= 2;
+
             if (current is not null && endOfDay)
                 volume = current.Volume() * -1;
 
@@ -121,7 +157,7 @@ namespace Application.Services
         }
 
         private async Task<GetSymbolTickReply> GetTick(CancellationToken cancellationToken)
-            => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.MarketData.Symbol!, cancellationToken);
+            => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.SymbolData.Name!, cancellationToken);
 
         private void PrintPosition(CustomQuote[] quotes, Transaction transaction)
         {
@@ -130,20 +166,25 @@ namespace Application.Services
 
             var posProfit = 0M;
             var posVolume = 0M;
+            var posPrice = 0M;
 
             foreach (var item in _positions)
             {
                 posProfit += item.Profit(quotes.Last().Close);
                 posVolume += item.Volume();
+                posPrice = item.Price();
             }
+
+            var symbol = _operationSettings.Value.SymbolData;
 
             _logger.LogInformation("{@profit}", new
             {
-                EntryTime = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss"),
-                EntryPrice = transaction.Price,
-                EntryVolume = transaction.Volume,
-                Volume = posVolume,
-                Profit = posProfit
+                Time = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss"),
+                transaction.Price,
+                Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
+                PosPrice = Math.Round(posPrice, symbol.PriceDecimals),
+                PosVolume = Math.Round(posVolume, symbol.VolumeDecimals),
+                PosProfit = Math.Round(posProfit, symbol.PriceDecimals),
             });
         }
 
@@ -166,13 +207,13 @@ namespace Application.Services
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
         {
-            var marketData = _operationSettings.Value.MarketData;
+            var symbolData = _operationSettings.Value.SymbolData;
 
             var result = await _ratesProvider.GetRatesAsync(
-                marketData.Symbol!,
-                marketData.Date,
-                marketData.Timeframe,
-                marketData.Window,
+                symbolData.Name!,
+                symbolData.Date,
+                symbolData.Timeframe,
+                symbolData.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time).ToArray();
