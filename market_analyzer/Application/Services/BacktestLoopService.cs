@@ -7,62 +7,12 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Services
 {
-    public record class Transaction(DateTime Time, decimal Price, decimal Volume);
-
-    public class Position
-    {
-        private readonly List<Transaction> _transactions = new();
-
-        public IEnumerable<Transaction> Transactions => _transactions.ToArray();
-
-        public void Add(Transaction transaction)
-            => _transactions.Add(transaction);
-
-        public decimal Volume()
-            => _transactions.Sum(it => it.Volume);
-
-        public decimal Profit()
-            => _transactions.Sum(it => it.Price * it.Volume) * -1;
-
-        public decimal Profit(decimal marketPrice)
-        {
-            var open = _transactions.Sum(it => it.Price * it.Volume);
-            var close = marketPrice * Volume() * -1;
-
-            return (open + close) * -1;
-        }
-
-        public decimal Price()
-        {
-            var sells = _transactions.Where(it => it.Volume < 0);
-            var sellPrice = Math.Abs(sells.Sum(it => it.Price * it.Volume));
-            var sellVolume = Math.Abs(sells.Sum(it => it.Volume));
-
-            var buys = _transactions.Where(it => it.Volume > 0);
-            var buyPrice = buys.Sum(it => it.Price * it.Volume);
-            var buyVolume = buys.Sum(it => it.Volume);
-
-            if (sellPrice > 0 && buyPrice > 0)
-                return (sellPrice / sellVolume + buyPrice / buyVolume) / 2;
-
-            if (sellPrice > 0)
-                return sellPrice / sellVolume;
-
-            return buyPrice / buyVolume;
-        }
-    }
-
-    public record class Range(decimal Value, CustomQuote Quote);
-
     public class BacktestLoopService : ILoopService
     {
         private readonly IRatesProvider _ratesProvider;
         private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
-
-        private readonly decimal _rangePoints = 120;
-        private readonly decimal _volume = 1;
 
         private readonly List<Range> _ranges = new();
         private int _rangesLastCount = 0;
@@ -122,21 +72,21 @@ namespace Application.Services
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
+            var strategy = _operationSettings.Value.StrategyData;
             var isUp = (last.Value > previous.Value);
-            var volume = isUp ? -_volume : _volume;
+            var volume = isUp ? -strategy.Volume : strategy.Volume;
 
             if (current is not null)
             {
                 var symbol = _operationSettings.Value.SymbolData;
-                var strategy = _operationSettings.Value.StrategyData;
 
                 var moreVolume = Math.Abs(current.Volume()) * strategy.MoreVolumeFactor;
                 var mod = moreVolume % symbol.StandardLot;
 
                 if (volume > 0)
-                    volume += moreVolume / symbol.StandardLot - mod;
+                    volume += moreVolume - mod;
                 else
-                    volume -= moreVolume / symbol.StandardLot - mod;
+                    volume -= moreVolume - mod;
             }
 
             if (current is not null && current.Volume() + volume == 0)
@@ -197,12 +147,13 @@ namespace Application.Services
                 _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
 
             var lastQuote = quotes.Last();
+            var strategy = _operationSettings.Value.StrategyData;
 
-            while (lastQuote.Close >= _ranges.Last().Value + _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote with { }));
+            while (lastQuote.Close >= _ranges.Last().Value + strategy.RangePoints)
+                _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote with { }));
 
-            while (lastQuote.Close <= _ranges.Last().Value - _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote with { }));
+            while (lastQuote.Close <= _ranges.Last().Value - strategy.RangePoints)
+                _ranges.Add(new(_ranges.Last().Value - strategy.RangePoints, lastQuote with { }));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)

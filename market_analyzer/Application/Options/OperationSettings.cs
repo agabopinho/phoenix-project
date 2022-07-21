@@ -25,6 +25,8 @@
 
         public class StrategyDataSettings
         {
+            public decimal RangePoints { get; set; }
+            public decimal Volume { get; set; }
             public decimal MoreVolumeFactor { get; set; }
         }
 
