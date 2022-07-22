@@ -18,9 +18,6 @@ logging.getLogger("chardet.charsetprober").disabled = True
 logger = logging.getLogger("app")
 
 
-CONN_STR = 'DRIVER={ODBC Driver 17 for SQL Server};Server=localhost;Database=backtest_data;Trusted_Connection=Yes;'
-
-
 def chunks(l, n):
     if l is None:
         return
