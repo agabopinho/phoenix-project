@@ -6,6 +6,8 @@ import MetaTrader5 as mt5
 import pyodbc
 import pytz
 
+from settings import *
+
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
     level=logging.DEBUG,
@@ -15,10 +17,6 @@ logging.basicConfig(
 logging.getLogger("chardet.charsetprober").disabled = True
 logger = logging.getLogger("app")
 
-
-SYMBOL = 'WIN$'
-FROM_DATE = date(2022, 6, 1)
-TO_DATE = date(2022, 7, 1)
 
 CONN_STR = 'DRIVER={ODBC Driver 17 for SQL Server};Server=localhost;Database=backtest_data;Trusted_Connection=Yes;'
 
