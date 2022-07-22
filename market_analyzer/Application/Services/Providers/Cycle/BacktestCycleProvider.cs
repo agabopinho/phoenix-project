@@ -11,11 +11,11 @@ namespace Application.Services.Providers.Cycle
         {
             _operationSettings = operationSettings;
 
-            var symbolData = operationSettings.Value.SymbolData;
+            var symbolData = operationSettings.Value.Symbol;
             var backtest = operationSettings.Value.Backtest;
 
-            Start = symbolData.Date.ToDateTime(operationSettings.Value.Start);
-            End = symbolData.Date.ToDateTime(operationSettings.Value.End);
+            Start = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.Start);
+            End = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.End);
             Step = backtest.Step;
 
             NextDate = DateTime.SpecifyKind(Start, DateTimeKind.Utc);
@@ -26,7 +26,7 @@ namespace Application.Services.Providers.Cycle
         public TimeSpan Step { get; }
         public DateTime Previous { get; private set; }
         public DateTime NextDate { get; private set; }
-        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.SymbolData.TimeZoneId!);
+        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.TimeZoneId!);
 
         public DateTime PlatformNow()
         {

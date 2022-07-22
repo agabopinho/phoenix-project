@@ -32,13 +32,13 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var symbolData = _operationSettings.Value.SymbolData;
+            var symbolData = _operationSettings.Value.Symbol;
 
             await _ratesProvider.CheckNewRatesAsync(
                 symbolData.Name!,
-                symbolData.Date,
-                symbolData.Timeframe,
-                symbolData.ChunkSize,
+                _operationSettings.Value.Date,
+                _operationSettings.Value.Timeframe,
+                _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
             await CheckAsync(cancellationToken);
@@ -72,13 +72,13 @@ namespace Application.Services
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
-            var strategy = _operationSettings.Value.StrategyData;
+            var strategy = _operationSettings.Value.Strategy;
             var isUp = (last.Value > previous.Value);
             var volume = isUp ? -strategy.Volume : strategy.Volume;
 
             if (current is not null)
             {
-                var symbol = _operationSettings.Value.SymbolData;
+                var symbol = _operationSettings.Value.Symbol;
 
                 var moreVolume = Math.Abs(current.Volume()) * strategy.MoreVolumeFactor;
                 var mod = moreVolume % symbol.StandardLot;
@@ -107,7 +107,7 @@ namespace Application.Services
         }
 
         private async Task<GetSymbolTickReply> GetTick(CancellationToken cancellationToken)
-            => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.SymbolData.Name!, cancellationToken);
+            => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
 
         private void PrintPosition(CustomQuote[] quotes, Transaction transaction)
         {
@@ -125,7 +125,7 @@ namespace Application.Services
                 posPrice = item.Price();
             }
 
-            var symbol = _operationSettings.Value.SymbolData;
+            var symbol = _operationSettings.Value.Symbol;
 
             _logger.LogInformation("{@profit}", new
             {
@@ -147,7 +147,7 @@ namespace Application.Services
                 _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
 
             var lastQuote = quotes.Last();
-            var strategy = _operationSettings.Value.StrategyData;
+            var strategy = _operationSettings.Value.Strategy;
 
             while (lastQuote.Close >= _ranges.Last().Value + strategy.RangePoints)
                 _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote with { }));
@@ -158,13 +158,13 @@ namespace Application.Services
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
         {
-            var symbolData = _operationSettings.Value.SymbolData;
+            var symbolData = _operationSettings.Value.Symbol;
 
             var result = await _ratesProvider.GetRatesAsync(
                 symbolData.Name!,
-                symbolData.Date,
-                symbolData.Timeframe,
-                symbolData.Window,
+                _operationSettings.Value.Date,
+                _operationSettings.Value.Timeframe,
+                _operationSettings.Value.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time).ToArray();

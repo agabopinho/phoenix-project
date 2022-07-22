@@ -1,5 +1,4 @@
-﻿using Application.Services;
-using OoplesFinance.StockIndicators.Enums;
+﻿using OoplesFinance.StockIndicators.Enums;
 
 namespace Application.Helpers
 {

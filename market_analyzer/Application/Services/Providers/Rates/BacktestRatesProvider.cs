@@ -1,34 +1,27 @@
 ﻿using Application.Services.Providers.Cycle;
-using Google.Protobuf;
+using Application.Services.Providers.Rates.BacktestRates;
 using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
-using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
 using System.Diagnostics;
-using System.Text.Json;
 
 namespace Application.Services.Providers.Rates
 {
     public class BacktestRatesProvider : IRatesProvider
     {
-        private readonly IMarketDataWrapper _symbolDataWrapper;
+        private readonly IBacktestRatesRepository _backtestRatesRepository;
         private readonly ICycleProvider _cycleProvider;
-        private readonly IDatabase _database;
         private readonly ILogger<BacktestRatesProvider> _logger;
         private readonly Stopwatch _stopwatch;
 
         public BacktestRatesProvider(
-            IMarketDataWrapper symbolDataWrapper,
+            IBacktestRatesRepository backtestRatesRepository,
             ICycleProvider cycleProvider,
-            IDatabase database,
             ILogger<BacktestRatesProvider> logger)
         {
-            _symbolDataWrapper = symbolDataWrapper;
+            _backtestRatesRepository = backtestRatesRepository;
             _cycleProvider = cycleProvider;
-            _database = database;
             _logger = logger;
             _stopwatch = new Stopwatch();
         }
@@ -50,8 +43,11 @@ namespace Application.Services.Providers.Rates
             if (Started)
                 return;
 
-            if (await LoadAsync(symbol, date, chunkSize, cancellationToken))
-                Started = true;
+            _logger.LogInformation("Loading backtest data {@data}", new { symbol, Date = date.ToShortDateString() });
+
+            await LoadFromRepositoryAsync(symbol, date, cancellationToken);
+
+            Started = true;
         }
 
         public Task<IEnumerable<Rate>> GetRatesAsync(
@@ -184,74 +180,23 @@ namespace Application.Services.Providers.Rates
             return windowData;
         }
 
-        private async Task<bool> LoadAsync(string symbol, DateOnly date, int chunkSize, CancellationToken cancellationToken)
+        private async Task LoadFromRepositoryAsync(string symbol, DateOnly date, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Loading backtest data {@data}", new { symbol, Date = date.ToShortDateString() });
+            var ticks = await _backtestRatesRepository.GetTicksAsync(symbol, date, cancellationToken);
 
-            var key = TicksKey(symbol, date);
-            var keyDone = DoneTicksKey(symbol, date);
-
-            await FromCacheAsync(key);
-
-            if (Ticks.Count > 0 &&
-                date.ToDateTime(TimeOnly.MinValue) != DateTime.Today &&
-                await _database.KeyExistsAsync(keyDone))
-                return true;
-
-            var fromDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var toDate = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-
-            if (Ticks.Count > 0)
-                fromDate = Ticks.Last().Value.Last().Time.ToDateTime();
-
-            using var call = _symbolDataWrapper.StreamTicksRange(symbol, fromDate, toDate, CopyTicks.All, chunkSize, cancellationToken);
-
-            await foreach (var reply in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+            foreach (var value in ticks)
             {
-                if (reply.ResponseStatus.ResponseCode != Res.SOk)
-                    return false;
-
-                var values = new List<RedisValue>(reply.Trades.Count);
-
-                foreach (var trade in reply.Trades)
+                var trade = new Trade
                 {
-                    var tradeTime = trade.Time.ToDateTime();
+                    Ask = value.Ask,
+                    Bid = value.Bid,
+                    Flags = (TickFlags)value.Flags,
+                    Last = value.Last,
+                    Time = Timestamp.FromDateTime(DateTime.SpecifyKind(value.Time, DateTimeKind.Utc)),
+                    Volume = value.Volume,
+                    VolumeReal = value.VolumeReal
+                };
 
-                    if (tradeTime <= fromDate)
-                        continue;
-
-                    var partitionKey = PartitionKey(tradeTime);
-
-                    if (!Ticks.ContainsKey(partitionKey))
-                        Ticks[partitionKey] = new();
-
-                    Ticks[partitionKey].Add(trade);
-
-                    values.Add((RedisValue)trade.ToByteArray());
-                }
-
-                await _database.ListRightPushAsync(key, values.ToArray());
-
-                _logger.LogInformation("Chunk {@data}", new { reply.Trades.Count, Total = Ticks.Sum(it => it.Value.Count) });
-            }
-
-            var done = new
-            {
-                Last = Ticks.Keys.Last()
-            };
-
-            await _database.ListRightPushAsync(keyDone, JsonSerializer.Serialize(done));
-
-            return true;
-        }
-
-        private async Task FromCacheAsync(string key)
-        {
-            var values = await _database.ListRangeAsync(key);
-
-            foreach (var value in values)
-            {
-                var trade = Trade.Parser.ParseFrom((byte[])value!);
                 var partitionKey = PartitionKey(trade.Time.ToDateTime());
 
                 if (!Ticks.ContainsKey(partitionKey))
@@ -344,9 +289,6 @@ namespace Application.Services.Providers.Rates
 
         private static string TicksKey(string symbol, DateOnly date)
             => $"{symbol.ToLower()}:ticks:backtest:{date:yyyyMMdd}";
-
-        private static string DoneTicksKey(string symbol, DateOnly date)
-            => $"{symbol.ToLower()}:ticks:backtest:{date:yyyyMMdd}:done";
 
         private class TradeOnlyTimeComparer : IComparer<Trade>
         {

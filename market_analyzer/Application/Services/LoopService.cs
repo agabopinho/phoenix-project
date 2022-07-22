@@ -38,13 +38,13 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var symbolData = _operationSettings.Value.SymbolData;
+            var symbolData = _operationSettings.Value.Symbol;
 
             await _ratesProvider.CheckNewRatesAsync(
                 symbolData.Name!,
-                symbolData.Date,
-                symbolData.Timeframe,
-                symbolData.ChunkSize,
+                _operationSettings.Value.Date,
+                _operationSettings.Value.Timeframe,
+                _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
             var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
@@ -83,13 +83,13 @@ namespace Application.Services
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
-            var strategy = _operationSettings.Value.StrategyData;
+            var strategy = _operationSettings.Value.Strategy;
             var isUp = (last.Value > previous.Value);
             var volume = isUp ? -strategy.Volume : strategy.Volume;
 
             if (current is not null)
             {
-                var symbol = _operationSettings.Value.SymbolData;
+                var symbol = _operationSettings.Value.Symbol;
 
                 var moreVolume = Convert.ToDecimal(current.Volume) * strategy.MoreVolumeFactor;
                 var mod = moreVolume % symbol.StandardLot;
@@ -142,7 +142,7 @@ namespace Application.Services
                 return true;
 
             var pendingOrders = await _orderManagementWrapper.GetOrdersAsync(
-                group: _operationSettings.Value.SymbolData.Name,
+                group: _operationSettings.Value.Symbol.Name,
                 cancellationToken: cancellationToken);
 
             if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
@@ -161,10 +161,10 @@ namespace Application.Services
 
         private async Task BuyAsync(double volume, CancellationToken cancellationToken)
         {
-            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.SymbolData.Name!, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
 
             var request = _orderCreator.BuyAtMarket(
-                symbol: _operationSettings.Value.SymbolData.Name!,
+                symbol: _operationSettings.Value.Symbol.Name!,
                 price: tick.Trade.Bid!.Value,
                 volume: volume,
                 deviation: _operationSettings.Value.Order.Deviation,
@@ -177,10 +177,10 @@ namespace Application.Services
 
         private async Task SellAsync(double volume, CancellationToken cancellationToken)
         {
-            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.SymbolData.Name!, cancellationToken);
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
 
             var request = _orderCreator.SellAtMarket(
-                symbol: _operationSettings.Value.SymbolData.Name!,
+                symbol: _operationSettings.Value.Symbol.Name!,
                 price: tick.Trade.Ask!.Value,
                 volume: volume,
                 deviation: _operationSettings.Value.Order.Deviation,
@@ -194,7 +194,7 @@ namespace Application.Services
         private async Task<Grpc.Terminal.Position?> GetPositionAsync(CancellationToken cancellationToken)
         {
             var positions = await _orderManagementWrapper.GetPositionsAsync(
-                group: _operationSettings.Value.SymbolData.Name!,
+                group: _operationSettings.Value.Symbol.Name!,
                 cancellationToken: cancellationToken);
 
             return positions.Positions.FirstOrDefault();
@@ -209,7 +209,7 @@ namespace Application.Services
                 _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
 
             var lastQuote = quotes.Last();
-            var strategy = _operationSettings.Value.StrategyData;
+            var strategy = _operationSettings.Value.Strategy;
 
             while (lastQuote.Close >= _ranges.Last().Value + strategy.RangePoints)
                 _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote with { }));
@@ -221,10 +221,10 @@ namespace Application.Services
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
         {
             var result = await _ratesProvider.GetRatesAsync(
-                _operationSettings.Value.SymbolData.Name!,
-                _operationSettings.Value.SymbolData.Date,
-                _operationSettings.Value.SymbolData.Timeframe,
-                _operationSettings.Value.SymbolData.Window,
+                _operationSettings.Value.Symbol.Name!,
+                _operationSettings.Value.Date,
+                _operationSettings.Value.Timeframe,
+                _operationSettings.Value.Window,
                 cancellationToken);
 
             return result.OrderBy(it => it.Time).ToArray();

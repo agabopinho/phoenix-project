@@ -2,6 +2,7 @@
 using Application.Services;
 using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
+using Application.Services.Providers.Rates.BacktestRates;
 using Application.Workers;
 using ConsoleApp.Converters;
 using Infrastructure.GrpcServerTerminal;
@@ -10,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Serilog;
-using StackExchange.Redis;
 using System.ComponentModel;
 
 namespace ConsoleApp;
@@ -44,18 +44,6 @@ public class Program
     {
         builder.ConfigureServices((context, services) =>
         {
-            services.AddSingleton<IDatabase>(serviceProvider =>
-            {
-                var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
-
-                if (options.Value.Backtest.Enabled)
-                    return ConnectionMultiplexer
-                        .Connect(context.Configuration.GetValue<string>("Redis"))
-                        .GetDatabase(0);
-
-                throw new NotImplementedException();
-            });
-
             services.AddMarketDataWrapper(configure =>
                 context.Configuration.GetSection("GrpcServer:MarketData").Bind(configure));
             services.AddOrderManagementWrapper(configure =>
@@ -63,6 +51,8 @@ public class Program
 
             services.AddOperationSettings(configure
                 => context.Configuration.GetSection("Operation").Bind(configure));
+
+            services.AddSingleton<IBacktestRatesRepository, BacktestRatesRepository>();
 
             services.AddSingleton<OnlineCycleProvider>();
             services.AddSingleton<BacktestCycleProvider>();
