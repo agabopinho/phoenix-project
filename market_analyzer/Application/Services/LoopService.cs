@@ -116,7 +116,7 @@ namespace Application.Services
 
             if (!_operationSettings.Value.ProductionMode)
             {
-                _logger.LogInformation("{@data}", new { volume });
+                _logger.LogInformation("{@data}", new { quotes.Last().Close, Volume = volume });
 
                 return;
             }
