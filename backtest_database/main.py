@@ -60,7 +60,7 @@ def main():
     date = FROM_DATE
 
     while date <= TO_DATE:
-        logger.info(f'Loading {date}')
+        logger.info(f'Loading {SYMBOL} {date}')
         data = ticks(date)
         delete(date)
 

@@ -16,6 +16,7 @@ namespace Application.Services
 
         private readonly List<Range> _ranges = new();
         private int _rangesLastCount = 0;
+        public decimal _rangePoints;
 
         private readonly List<Position> _positions = new();
 
@@ -28,6 +29,7 @@ namespace Application.Services
             _operationSettings = operationSettings;
             _logger = logger;
             _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
+            _rangePoints = _operationSettings.Value.Strategy.RangePoints;
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -51,7 +53,7 @@ namespace Application.Services
             if (!quotes.Any())
                 return;
 
-            UpdateRange(quotes);
+            ComputeRange(quotes);
 
             var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
 
@@ -87,7 +89,17 @@ namespace Application.Services
                     volume += moreVolume - mod;
                 else
                     volume -= moreVolume - mod;
+
+                if (Math.Abs(volume) > strategy.MaxMoreVolume)
+                {
+                    if (volume > 0)
+                        volume = strategy.MaxMoreVolume;
+                    else
+                        volume = -strategy.MaxMoreVolume;
+                }
             }
+
+            ResizeRange(current is not null ? current.Volume() : volume);
 
             if (current is not null && current.Volume() + volume == 0)
                 volume *= 2;
@@ -138,7 +150,16 @@ namespace Application.Services
             });
         }
 
-        private void UpdateRange(CustomQuote[] quotes)
+        private void ResizeRange(decimal volume)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var rangePoints = strategy.RangePoints;
+            var p = strategy.MoreRangeFactor * Math.Abs(volume) / strategy.Volume / 100;
+            if (p > strategy.MaxMoreRange) p = strategy.MaxMoreRange;
+            _rangePoints = rangePoints + rangePoints * p;
+        }
+
+        private void ComputeRange(CustomQuote[] quotes)
         {
             if (!quotes.Any())
                 return;
@@ -147,13 +168,12 @@ namespace Application.Services
                 _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
 
             var lastQuote = quotes.Last();
-            var strategy = _operationSettings.Value.Strategy;
 
-            while (lastQuote.Close >= _ranges.Last().Value + strategy.RangePoints)
-                _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote with { }));
+            while (lastQuote.Close >= _ranges.Last().Value + _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote with { }));
 
-            while (lastQuote.Close <= _ranges.Last().Value - strategy.RangePoints)
-                _ranges.Add(new(_ranges.Last().Value - strategy.RangePoints, lastQuote with { }));
+            while (lastQuote.Close <= _ranges.Last().Value - _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote with { }));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)

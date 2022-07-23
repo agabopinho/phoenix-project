@@ -28,6 +28,9 @@
             public decimal RangePoints { get; set; }
             public decimal Volume { get; set; }
             public decimal MoreVolumeFactor { get; set; }
+            public decimal MaxMoreVolume { get; set; }
+            public decimal MoreRangeFactor { get; set; }
+            public decimal MaxMoreRange { get; set; }    
         }
 
         public class BacktestSettings
