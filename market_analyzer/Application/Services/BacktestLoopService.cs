@@ -56,8 +56,12 @@ namespace Application.Services
             ComputeRange(quotes);
 
             var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
+            var strategy = _operationSettings.Value.Strategy;
 
             if (_ranges.Count == _rangesLastCount && !endOfDay)
+                return;
+
+            if (!endOfDay && _ranges.Count % strategy.RangeMod != 0)
                 return;
 
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
@@ -69,14 +73,16 @@ namespace Application.Services
             if (_ranges.Count == 1)
                 return;
 
-            var tick = await GetTick(cancellationToken);
-
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
-            var strategy = _operationSettings.Value.Strategy;
             var isUp = (last.Value > previous.Value);
-            var volume = isUp ? -strategy.Volume : strategy.Volume;
+            var volume = 0M;
+
+            if (strategy.TowardsTrend)
+                volume = isUp ? strategy.Volume : -strategy.Volume;
+            else
+                volume = isUp ? -strategy.Volume : strategy.Volume;
 
             if (current is not null)
             {
@@ -84,19 +90,15 @@ namespace Application.Services
 
                 var moreVolume = Math.Abs(current.Volume()) * strategy.MoreVolumeFactor;
                 var mod = moreVolume % symbol.StandardLot;
+                var v = moreVolume - mod;
+
+                if (v > strategy.MaxMoreVolume)
+                    v = strategy.MaxMoreVolume;
 
                 if (volume > 0)
-                    volume += moreVolume - mod;
+                    volume += v;
                 else
-                    volume -= moreVolume - mod;
-
-                if (Math.Abs(volume) > strategy.MaxMoreVolume)
-                {
-                    if (volume > 0)
-                        volume = strategy.MaxMoreVolume;
-                    else
-                        volume = -strategy.MaxMoreVolume;
-                }
+                    volume -= v;
             }
 
             ResizeRange(current is not null ? current.Volume() : volume);
@@ -107,6 +109,7 @@ namespace Application.Services
             if (current is not null && endOfDay)
                 volume = current.Volume() * -1;
 
+            var tick = await GetTick(cancellationToken);
             var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
             var transaction = new Transaction(quotes.Last().Date, price, volume);
 
@@ -155,7 +158,10 @@ namespace Application.Services
             var strategy = _operationSettings.Value.Strategy;
             var rangePoints = strategy.RangePoints;
             var p = strategy.MoreRangeFactor * Math.Abs(volume) / strategy.Volume / 100;
-            if (p > strategy.MaxMoreRange) p = strategy.MaxMoreRange;
+
+            if (p > strategy.MaxMoreRange)
+                p = strategy.MaxMoreRange;
+
             _rangePoints = rangePoints + rangePoints * p;
         }
 
