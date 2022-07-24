@@ -182,16 +182,16 @@ namespace Application.Services
                 return;
 
             if (!_ranges.Any())
-                _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
+                _ranges.Add(new(quotes.Last().Open, quotes.Last().Date));
 
             var lastQuote = quotes.Last();
             var strategy = _operationSettings.Value.Strategy;
 
             while (lastQuote.Close >= _ranges.Last().Value + strategy.RangePoints)
-                _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote with { }));
+                _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote.Date));
 
             while (lastQuote.Close <= _ranges.Last().Value - strategy.RangePoints)
-                _ranges.Add(new(_ranges.Last().Value - strategy.RangePoints, lastQuote with { }));
+                _ranges.Add(new(_ranges.Last().Value - strategy.RangePoints, lastQuote.Date));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)

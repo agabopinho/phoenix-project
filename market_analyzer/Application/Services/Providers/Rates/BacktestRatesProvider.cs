@@ -177,7 +177,7 @@ namespace Application.Services.Providers.Rates
                 windowData.AddRange(Ticks.Values[i]);
             }
 
-            return windowData;
+            return windowData.OrderBy(it => it.Time).ToList();
         }
 
         private async Task LoadFromRepositoryAsync(string symbol, DateOnly date, CancellationToken cancellationToken)

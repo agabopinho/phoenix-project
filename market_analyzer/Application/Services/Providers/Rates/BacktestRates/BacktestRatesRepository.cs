@@ -23,7 +23,7 @@ namespace Application.Services.Providers.Rates.BacktestRates
                 "order by [time]";
 
             return await connection.QueryAsync<TickData>(
-                command, 
+                command,
                 new { symbol, date = date.ToDateTime(TimeOnly.MinValue) },
                 commandTimeout: 60);
         }

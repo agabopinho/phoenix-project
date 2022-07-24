@@ -17,7 +17,8 @@ namespace Application.Helpers
                     Low = Convert.ToDecimal(it.Low),
                     Close = Convert.ToDecimal(it.Close),
                     Volume = Convert.ToDecimal(it.Volume),
-                });
+                })
+                .OrderBy(it => it.Date);
 
         public static IEnumerable<CustomQuote> ToQuotes(this IEnumerable<Rate> rates)
             => rates
@@ -30,7 +31,8 @@ namespace Application.Helpers
                     Low = Convert.ToDecimal(it.Low),
                     Close = Convert.ToDecimal(it.Close),
                     Volume = Convert.ToDecimal(it.Volume),
-                });
+                })
+                .OrderBy(it => it.Date);
     }
 
     public record class CustomQuote : IQuote

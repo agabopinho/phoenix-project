@@ -105,15 +105,15 @@ namespace Application.Services
                 return;
 
             if (!_ranges.Any())
-                _ranges.Add(new(quotes.Last().Open, quotes.First() with { }));
+                _ranges.Add(new(quotes.Last().Open, quotes.Last().Date));
 
             var lastQuote = quotes.Last();
 
             while (lastQuote.Close >= _ranges.Last().Value + _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote with { }));
+                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote.Date));
 
             while (lastQuote.Close <= _ranges.Last().Value - _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote with { }));
+                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote.Date));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
@@ -127,7 +127,7 @@ namespace Application.Services
                 _operationSettings.Value.Window,
                 cancellationToken);
 
-            return result.OrderBy(it => it.Time).ToArray();
+            return result.ToArray();
         }
 
         private async Task<GetSymbolTickReply> GetTick(CancellationToken cancellationToken)

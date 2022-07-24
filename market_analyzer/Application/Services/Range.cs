@@ -1,6 +1,4 @@
-﻿using Application.Helpers;
-
-namespace Application.Services
+﻿namespace Application.Services
 {
-    public record class Range(decimal Value, CustomQuote Quote);
+    public record class Range(decimal Value, DateTime Date);
 }
