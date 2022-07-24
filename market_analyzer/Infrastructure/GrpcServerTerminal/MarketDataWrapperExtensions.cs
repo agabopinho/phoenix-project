@@ -16,7 +16,7 @@ namespace Infrastructure.GrpcServerTerminal
 
             services.AddGrpcClient<MarketData.MarketDataClient>(MarketDataWrapper.ClientName, (serviceProvider, configure) =>
             {
-                var options = serviceProvider.GetRequiredService<IOptionsSnapshot<MarketDataWrapperOptions>>();
+                var options = serviceProvider.GetRequiredService<IOptions<MarketDataWrapperOptions>>();
                 configure.Address = new Uri(options.Value.Endpoint!);
             })
             .ConfigureChannel((serviceProvider, configure) =>

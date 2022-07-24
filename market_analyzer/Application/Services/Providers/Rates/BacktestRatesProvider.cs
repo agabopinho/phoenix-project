@@ -206,10 +206,10 @@ namespace Application.Services.Providers.Rates
             }
         }
 
-        private static IDictionary<DateTime, List<Trade>> ResampleData(DateTime fromDate, DateTime toDate, List<Trade> data, TimeSpan timeframe)
+        private static SortedDictionary<DateTime, List<Trade>> ResampleData(DateTime fromDate, DateTime toDate, List<Trade> data, TimeSpan timeframe)
         {
             var indexes = GetIndexes(timeframe, fromDate, toDate);
-            var resample = new Dictionary<DateTime, List<Trade>>(indexes.Count);
+            var resample = new SortedDictionary<DateTime, List<Trade>>();
 
             var fromDateTimestamp = fromDate.ToTimestamp();
             var toDateTimestamp = toDate.ToTimestamp();

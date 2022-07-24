@@ -5,9 +5,9 @@ namespace Application.Services.Providers.Cycle
 {
     public class BacktestCycleProvider : ICycleProvider
     {
-        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
+        private readonly IOptions<OperationSettings> _operationSettings;
 
-        public BacktestCycleProvider(IOptionsSnapshot<OperationSettings> operationSettings)
+        public BacktestCycleProvider(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
 

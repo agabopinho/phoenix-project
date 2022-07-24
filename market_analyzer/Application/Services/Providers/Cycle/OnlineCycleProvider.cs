@@ -5,11 +5,11 @@ namespace Application.Services.Providers.Cycle
 {
     public class OnlineCycleProvider : ICycleProvider
     {
-        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
+        private readonly IOptions<OperationSettings> _operationSettings;
 
         private DateTime _previous;
 
-        public OnlineCycleProvider(IOptionsSnapshot<OperationSettings> operationSettings)
+        public OnlineCycleProvider(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }

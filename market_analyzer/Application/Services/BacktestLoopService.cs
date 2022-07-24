@@ -10,7 +10,7 @@ namespace Application.Services
     public class BacktestLoopService : ILoopService
     {
         private readonly IRatesProvider _ratesProvider;
-        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
+        private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
 
@@ -22,7 +22,7 @@ namespace Application.Services
 
         public BacktestLoopService(
             IRatesProvider ratesProvider,
-            IOptionsSnapshot<OperationSettings> operationSettings,
+            IOptions<OperationSettings> operationSettings,
             ILogger<ILoopService> logger)
         {
             _ratesProvider = ratesProvider;
@@ -84,21 +84,6 @@ namespace Application.Services
             else
                 volume = isUp ? -strategy.Volume : strategy.Volume;
 
-            if (current is not null)
-            {
-                var v = GetMoreVolume(current);
-
-                if (volume > 0)
-                    volume += v;
-                else
-                    volume -= v;
-            }
-
-            ResizeRange(current is not null ? current.Volume() : volume);
-
-            if (current is not null && current.Volume() + volume == 0)
-                volume *= 2;
-
             if (current is not null && endOfDay)
                 volume = current.Volume() * -1;
 
@@ -114,40 +99,13 @@ namespace Application.Services
             PrintPosition(quotes, transaction);
         }
 
-        private decimal GetMoreVolume(Position current)
-        {
-            var symbol = _operationSettings.Value.Symbol;
-            var strategy = _operationSettings.Value.Strategy;
-
-            var moreVolume = Math.Abs(current.Volume()) * strategy.MoreVolumeFactor;
-            var v = moreVolume - moreVolume % symbol.StandardLot;
-
-            if (v > strategy.MaxMoreVolume)
-                v = strategy.MaxMoreVolume;
-
-            return v;
-        }
-
-        private void ResizeRange(decimal volume)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var rangePoints = strategy.RangePoints;
-            var p = Math.Abs(volume) / strategy.Volume / 100;
-            var r = rangePoints * p * strategy.MoreRangeFactor;
-
-            if (r > strategy.MaxMoreRange)
-                r = strategy.MaxMoreRange;
-
-            _rangePoints = rangePoints + r;
-        }
-
         private void ComputeRange(CustomQuote[] quotes)
         {
             if (!quotes.Any())
                 return;
 
             if (!_ranges.Any())
-                _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
+                _ranges.Add(new(quotes.Last().Open, quotes.First() with { }));
 
             var lastQuote = quotes.Last();
 

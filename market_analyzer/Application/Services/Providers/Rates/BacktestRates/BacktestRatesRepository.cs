@@ -16,11 +16,15 @@ namespace Application.Services.Providers.Rates.BacktestRates
         public async Task<IEnumerable<TickData>> GetTicksAsync(string symbol, DateOnly date, CancellationToken cancellationToken)
         {
             var connection = new SqlConnection(_connStr);
+
             var command = "" +
                 "select * from trade " +
-                "where symbol=@symbol and convert(date, [time]) = @date";
+                "where symbol=@symbol and convert(date, [time]) = @date " +
+                "order by [time]";
 
-            return await connection.QueryAsync<TickData>(command, new { symbol, date = date.ToDateTime(TimeOnly.MinValue) },
+            return await connection.QueryAsync<TickData>(
+                command, 
+                new { symbol, date = date.ToDateTime(TimeOnly.MinValue) },
                 commandTimeout: 60);
         }
     }

@@ -14,7 +14,7 @@ namespace Application.Services
         private readonly IRatesProvider _ratesProvider;
         private readonly IOrderManagementWrapper _orderManagementWrapper;
         private readonly IOrderCreator _orderCreator;
-        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
+        private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
 
@@ -25,7 +25,7 @@ namespace Application.Services
             IRatesProvider ratesProvider,
             IOrderManagementWrapper orderManagementWrapper,
             IOrderCreator orderCreator,
-            IOptionsSnapshot<OperationSettings> operationSettings,
+            IOptions<OperationSettings> operationSettings,
             ILogger<ILoopService> logger)
         {
             _ratesProvider = ratesProvider;
@@ -86,30 +86,6 @@ namespace Application.Services
             var strategy = _operationSettings.Value.Strategy;
             var isUp = (last.Value > previous.Value);
             var volume = isUp ? -strategy.Volume : strategy.Volume;
-
-            if (current is not null)
-            {
-                var symbol = _operationSettings.Value.Symbol;
-
-                var moreVolume = Convert.ToDecimal(current.Volume) * strategy.MoreVolumeFactor;
-                var mod = moreVolume % symbol.StandardLot;
-
-                if (volume > 0)
-                    volume += moreVolume - mod;
-                else
-                    volume -= moreVolume - mod;
-            }
-
-            if (current is not null)
-            {
-                var currentVolume = Convert.ToDecimal(current.Volume);
-
-                if (current.Type == PositionType.Sell)
-                    currentVolume *= -1;
-
-                if (currentVolume + volume == 0)
-                    volume *= 2;
-            }
 
             if (current is not null && endOfDay)
                 volume = Convert.ToDecimal(current.Volume) * -1;
