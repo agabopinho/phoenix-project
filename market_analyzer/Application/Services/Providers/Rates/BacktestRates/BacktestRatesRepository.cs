@@ -18,7 +18,8 @@ namespace Application.Services.Providers.Rates.BacktestRates
             var connection = new SqlConnection(_connStr);
 
             var command = "" +
-                "select * from trade " +
+                "select * " +
+                "from trade " +
                 "where symbol=@symbol and convert(date, [time]) = @date " +
                 "order by [time]";
 

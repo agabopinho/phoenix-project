@@ -79,8 +79,7 @@ namespace Application.Services.Providers.Rates
                 if (rate is null)
                     continue;
 
-                var rateTime = rate.Time.ToDateTime();
-                Rates[rateTime] = rate;
+                Rates[rate.Time.ToDateTime()] = rate;
             }
 
             foreach (var key in Rates.Keys.Where(key => key < now.Subtract(window)).ToArray())
