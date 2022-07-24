@@ -86,14 +86,7 @@ namespace Application.Services
 
             if (current is not null)
             {
-                var symbol = _operationSettings.Value.Symbol;
-
-                var moreVolume = Math.Abs(current.Volume()) * strategy.MoreVolumeFactor;
-                var mod = moreVolume % symbol.StandardLot;
-                var v = moreVolume - mod;
-
-                if (v > strategy.MaxMoreVolume)
-                    v = strategy.MaxMoreVolume;
+                var v = GetMoreVolume(current);
 
                 if (volume > 0)
                     volume += v;
@@ -119,6 +112,64 @@ namespace Application.Services
             current.Add(transaction);
 
             PrintPosition(quotes, transaction);
+        }
+
+        private decimal GetMoreVolume(Position current)
+        {
+            var symbol = _operationSettings.Value.Symbol;
+            var strategy = _operationSettings.Value.Strategy;
+
+            var moreVolume = Math.Abs(current.Volume()) * strategy.MoreVolumeFactor;
+            var v = moreVolume - moreVolume % symbol.StandardLot;
+
+            if (v > strategy.MaxMoreVolume)
+                v = strategy.MaxMoreVolume;
+
+            return v;
+        }
+
+        private void ResizeRange(decimal volume)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var rangePoints = strategy.RangePoints;
+            var p = Math.Abs(volume) / strategy.Volume / 100;
+            var r = rangePoints * p * strategy.MoreRangeFactor;
+
+            if (r > strategy.MaxMoreRange)
+                r = strategy.MaxMoreRange;
+
+            _rangePoints = rangePoints + r;
+        }
+
+        private void ComputeRange(CustomQuote[] quotes)
+        {
+            if (!quotes.Any())
+                return;
+
+            if (!_ranges.Any())
+                _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
+
+            var lastQuote = quotes.Last();
+
+            while (lastQuote.Close >= _ranges.Last().Value + _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote with { }));
+
+            while (lastQuote.Close <= _ranges.Last().Value - _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote with { }));
+        }
+
+        private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
+        {
+            var symbolData = _operationSettings.Value.Symbol;
+
+            var result = await _ratesProvider.GetRatesAsync(
+                symbolData.Name!,
+                _operationSettings.Value.Date,
+                _operationSettings.Value.Timeframe,
+                _operationSettings.Value.Window,
+                cancellationToken);
+
+            return result.OrderBy(it => it.Time).ToArray();
         }
 
         private async Task<GetSymbolTickReply> GetTick(CancellationToken cancellationToken)
@@ -151,49 +202,6 @@ namespace Application.Services
                 PosVolume = Math.Round(posVolume, symbol.VolumeDecimals),
                 PosProfit = Math.Round(posProfit, symbol.PriceDecimals),
             });
-        }
-
-        private void ResizeRange(decimal volume)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var rangePoints = strategy.RangePoints;
-            var p = strategy.MoreRangeFactor * Math.Abs(volume) / strategy.Volume / 100;
-
-            if (p > strategy.MaxMoreRange)
-                p = strategy.MaxMoreRange;
-
-            _rangePoints = rangePoints + rangePoints * p;
-        }
-
-        private void ComputeRange(CustomQuote[] quotes)
-        {
-            if (!quotes.Any())
-                return;
-
-            if (!_ranges.Any())
-                _ranges.Add(new(quotes.First().Open, quotes.First() with { }));
-
-            var lastQuote = quotes.Last();
-
-            while (lastQuote.Close >= _ranges.Last().Value + _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote with { }));
-
-            while (lastQuote.Close <= _ranges.Last().Value - _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote with { }));
-        }
-
-        private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
-        {
-            var symbolData = _operationSettings.Value.Symbol;
-
-            var result = await _ratesProvider.GetRatesAsync(
-                symbolData.Name!,
-                _operationSettings.Value.Date,
-                _operationSettings.Value.Timeframe,
-                _operationSettings.Value.Window,
-                cancellationToken);
-
-            return result.OrderBy(it => it.Time).ToArray();
         }
     }
 }
