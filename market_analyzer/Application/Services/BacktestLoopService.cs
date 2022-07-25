@@ -1,5 +1,6 @@
 ﻿using Application.Helpers;
 using Application.Options;
+using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
 using Grpc.Terminal;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ namespace Application.Services
     public class BacktestLoopService : ILoopService
     {
         private readonly IRatesProvider _ratesProvider;
+        private readonly BacktestCycleProvider _cycleProvider;
         private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
@@ -22,10 +24,12 @@ namespace Application.Services
 
         public BacktestLoopService(
             IRatesProvider ratesProvider,
+            BacktestCycleProvider cycleProvider,
             IOptions<OperationSettings> operationSettings,
             ILogger<ILoopService> logger)
         {
             _ratesProvider = ratesProvider;
+            _cycleProvider = cycleProvider;
             _operationSettings = operationSettings;
             _logger = logger;
             _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
@@ -55,17 +59,17 @@ namespace Application.Services
 
             ComputeRange(quotes);
 
-            var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
+            var isEndOfDay = quotes.Last().Date.TimeOfDay >= _end;
             var strategy = _operationSettings.Value.Strategy;
 
-            if (_ranges.Count == _rangesLastCount && !endOfDay)
+            if (_ranges.Count == _rangesLastCount && !isEndOfDay)
                 return;
 
-            if (!endOfDay && _ranges.Count % strategy.RangeMod != 0)
+            if (!isEndOfDay && _ranges.Count % strategy.RangeMod != 0)
                 return;
 
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
-            if (endOfDay && current is null)
+            if (isEndOfDay && current is null)
                 return;
 
             _rangesLastCount = _ranges.Count;
@@ -84,12 +88,12 @@ namespace Application.Services
             else
                 volume = isUp ? -strategy.Volume : strategy.Volume;
 
-            if (current is not null && endOfDay)
+            if (current is not null && isEndOfDay)
                 volume = current.Volume() * -1;
 
             var tick = await GetTick(cancellationToken);
             var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
-            var transaction = new Transaction(quotes.Last().Date, price, volume);
+            var transaction = new Transaction(_cycleProvider.Previous, price, volume);
 
             if (current is null)
                 _positions.Add(current = new Position());
@@ -153,7 +157,7 @@ namespace Application.Services
 
             _logger.LogInformation("{@profit}", new
             {
-                Time = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss"),
+                Time = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff"),
                 transaction.Price,
                 Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
                 PosPrice = Math.Round(posPrice, symbol.PriceDecimals),

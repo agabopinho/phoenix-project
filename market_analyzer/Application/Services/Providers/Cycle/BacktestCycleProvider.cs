@@ -11,12 +11,9 @@ namespace Application.Services.Providers.Cycle
         {
             _operationSettings = operationSettings;
 
-            var symbolData = operationSettings.Value.Symbol;
-            var backtest = operationSettings.Value.Backtest;
-
             Start = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.Start);
             End = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.End);
-            Step = backtest.Step;
+            Step = operationSettings.Value.Backtest.Step;
 
             NextDate = DateTime.SpecifyKind(Start, DateTimeKind.Utc);
         }
