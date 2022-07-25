@@ -50,12 +50,12 @@ namespace Application.Services
 
         private async Task StrategyAsync(CancellationToken cancellationToken)
         {
-            var quotes = await GetRatesAsync(cancellationToken);
+            var rates = await GetRatesAsync(cancellationToken);
 
-            if (!quotes.Any())
+            if (!rates.Any())
                 return;
 
-            ComputeRange(quotes);
+            ComputeRange(rates);
 
             var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
             var strategy = _operationSettings.Value.Strategy;
@@ -119,15 +119,16 @@ namespace Application.Services
             return true;
         }
 
-        private void ComputeRange(IEnumerable<Rate> quotes)
+        private void ComputeRange(IEnumerable<Rate> rates)
         {
-            if (!quotes.Any())
+            if (!rates.Any())
                 return;
 
-            var last = quotes.Last();
-            var time = last.Time.ToDateTime();
-            var open = Convert.ToDecimal(last.Open);
-            var close = Convert.ToDecimal(last.Close);
+            var lastRate = rates.Last();
+
+            var time = lastRate.Time.ToDateTime();
+            var open = Convert.ToDecimal(lastRate.Open);
+            var close = Convert.ToDecimal(lastRate.Close);
 
             if (!_ranges.Any())
                 _ranges.Add(new(open, time));
