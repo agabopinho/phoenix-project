@@ -50,14 +50,14 @@ namespace Application.Services
 
         private async Task StrategyAsync(CancellationToken cancellationToken)
         {
-            var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
+            var quotes = await GetRatesAsync(cancellationToken);
 
             if (!quotes.Any())
                 return;
 
             ComputeRange(quotes);
 
-            var isEndOfDay = quotes.Last().Date.TimeOfDay >= _end;
+            var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
             var strategy = _operationSettings.Value.Strategy;
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
 
@@ -97,7 +97,7 @@ namespace Application.Services
 
             current.Add(transaction);
 
-            PrintPosition(quotes, transaction);
+            PrintPosition(tick, transaction);
         }
 
         private bool ValidRange(bool isEndOfDay, OperationSettings.StrategySettings strategy, Position? current)
@@ -119,51 +119,53 @@ namespace Application.Services
             return true;
         }
 
-        private void ComputeRange(CustomQuote[] quotes)
+        private void ComputeRange(IEnumerable<Rate> quotes)
         {
             if (!quotes.Any())
                 return;
 
+            var last = quotes.Last();
+            var time = last.Time.ToDateTime();
+            var open = Convert.ToDecimal(last.Open);
+            var close = Convert.ToDecimal(last.Close);
+
             if (!_ranges.Any())
-                _ranges.Add(new(quotes.Last().Open, quotes.Last().Date));
+                _ranges.Add(new(open, time));
 
-            var lastQuote = quotes.Last();
+            while (close >= _ranges.Last().Value + _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value + _rangePoints, time));
 
-            while (lastQuote.Close >= _ranges.Last().Value + _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value + _rangePoints, lastQuote.Date));
-
-            while (lastQuote.Close <= _ranges.Last().Value - _rangePoints)
-                _ranges.Add(new(_ranges.Last().Value - _rangePoints, lastQuote.Date));
+            while (close <= _ranges.Last().Value - _rangePoints)
+                _ranges.Add(new(_ranges.Last().Value - _rangePoints, time));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
-        {
-            var result = await _ratesProvider.GetRatesAsync(
+            => await _ratesProvider.GetRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
                 _operationSettings.Value.Date,
                 _operationSettings.Value.Timeframe,
                 _operationSettings.Value.Window,
                 cancellationToken);
 
-            return result.ToArray();
-        }
-
         private async Task<GetSymbolTickReply> GetTick(CancellationToken cancellationToken)
             => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
 
-        private void PrintPosition(CustomQuote[] quotes, Transaction transaction)
+        private void PrintPosition(GetSymbolTickReply tick, Transaction transaction)
         {
             if (_positions.Count == 0)
                 return;
 
-            var posProfit = 0M;
             var posVolume = 0M;
+            var posProfit = 0M;
             var posPrice = 0M;
 
             foreach (var item in _positions)
             {
-                posProfit += item.Profit(quotes.Last().Close);
-                posVolume += item.Volume();
+                var volume = item.Volume();
+                var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
+
+                posVolume += volume;
+                posProfit += item.Profit(Convert.ToDecimal(price));
                 posPrice = item.Price();
             }
 
@@ -174,8 +176,8 @@ namespace Application.Services
                 Time = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff"),
                 transaction.Price,
                 Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
-                PosPrice = Math.Round(posPrice, symbol.PriceDecimals),
                 PosVolume = Math.Round(posVolume, symbol.VolumeDecimals),
+                PosPrice = Math.Round(posPrice, symbol.PriceDecimals),
                 PosProfit = Math.Round(posProfit, symbol.PriceDecimals),
             });
         }
