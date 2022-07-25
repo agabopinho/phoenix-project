@@ -45,10 +45,10 @@ namespace Application.Services
                 _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
-            await StreategyAsync(cancellationToken);
+            await StrategyAsync(cancellationToken);
         }
 
-        private async Task StreategyAsync(CancellationToken cancellationToken)
+        private async Task StrategyAsync(CancellationToken cancellationToken)
         {
             var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
 

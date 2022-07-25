@@ -18,7 +18,7 @@ namespace Application.Services.Providers.Rates
             _cycleProvider = cycleProvider;
         }
 
-        public SortedDictionary<DateTime, Rate> Rates { get; } = new();
+        public SortedList<DateTime, Rate> Rates { get; } = new();
 
         public async Task CheckNewRatesAsync(
             string symbol,

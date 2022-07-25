@@ -11,11 +11,11 @@ namespace Application.Services.Providers.Cycle
         {
             _operationSettings = operationSettings;
 
-            Start = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.Start);
-            End = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.End);
+            Start = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.Start, DateTimeKind.Utc);
+            End = _operationSettings.Value.Date.ToDateTime(operationSettings.Value.End, DateTimeKind.Utc);
             Step = operationSettings.Value.Backtest.Step;
 
-            NextDate = DateTime.SpecifyKind(Start, DateTimeKind.Utc);
+            NextDate = Start;
         }
 
         public DateTime Start { get; }
