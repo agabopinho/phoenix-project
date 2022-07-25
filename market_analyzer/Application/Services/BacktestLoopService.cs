@@ -72,7 +72,7 @@ namespace Application.Services
 
             if (current is not null)
             {
-                var v = Math.Abs(current.Volume()) * 0.5M;
+                var v = Math.Abs(current.Volume()) * strategy.IncrementVolume;
 
                 v -= v % _operationSettings.Value.Symbol.StandardLot;
 

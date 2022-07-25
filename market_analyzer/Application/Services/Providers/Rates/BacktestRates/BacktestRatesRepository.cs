@@ -26,7 +26,7 @@ namespace Application.Services.Providers.Rates.BacktestRates
             return await connection.QueryAsync<TickData>(
                 command,
                 new { symbol, date = date.ToDateTime(TimeOnly.MinValue) },
-                commandTimeout: 60);
+                commandTimeout: 300);
         }
     }
 }
