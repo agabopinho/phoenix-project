@@ -82,6 +82,9 @@ namespace Application.Services
                     volume -= v;
             }
 
+            if (current is not null && current.Volume() - volume == 0)
+                volume *= 2;
+
             if (current is not null && isEndOfDay)
                 volume = current.Volume() * -1;
 
