@@ -38,19 +38,17 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var symbolData = _operationSettings.Value.Symbol;
-
             await _ratesProvider.CheckNewRatesAsync(
-                symbolData.Name!,
+                _operationSettings.Value.Symbol.Name!,
                 _operationSettings.Value.Date,
                 _operationSettings.Value.Timeframe,
                 _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
-            await CheckAsync(cancellationToken);
+            await StreategyAsync(cancellationToken);
         }
 
-        private async Task CheckAsync(CancellationToken cancellationToken)
+        private async Task StreategyAsync(CancellationToken cancellationToken)
         {
             var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
 
@@ -61,32 +59,28 @@ namespace Application.Services
 
             var isEndOfDay = quotes.Last().Date.TimeOfDay >= _end;
             var strategy = _operationSettings.Value.Strategy;
-
-            if (_ranges.Count == _rangesLastCount && !isEndOfDay)
-                return;
-
-            if (!isEndOfDay && _ranges.Count % strategy.RangeMod != 0)
-                return;
-
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
-            if (isEndOfDay && current is null)
-                return;
 
-            _rangesLastCount = _ranges.Count;
-
-            if (_ranges.Count == 1)
+            if (!ValidRange(isEndOfDay, strategy, current))
                 return;
 
             var last = _ranges[^1];
             var previous = _ranges[^2];
 
             var isUp = (last.Value > previous.Value);
-            var volume = 0M;
+            var volume = isUp ? -strategy.Volume : strategy.Volume;
 
-            if (strategy.TowardsTrend)
-                volume = isUp ? strategy.Volume : -strategy.Volume;
-            else
-                volume = isUp ? -strategy.Volume : strategy.Volume;
+            if (current is not null)
+            {
+                var v = Math.Abs(current.Volume()) * 0.5M;
+
+                v -= v % _operationSettings.Value.Symbol.StandardLot;
+
+                if (volume > 0)
+                    volume += v;
+                else
+                    volume -= v;
+            }
 
             if (current is not null && isEndOfDay)
                 volume = current.Volume() * -1;
@@ -101,6 +95,25 @@ namespace Application.Services
             current.Add(transaction);
 
             PrintPosition(quotes, transaction);
+        }
+
+        private bool ValidRange(bool isEndOfDay, OperationSettings.StrategySettings strategy, Position? current)
+        {
+            if (_ranges.Count == _rangesLastCount && !isEndOfDay)
+                return false;
+
+            if (!isEndOfDay && _ranges.Count % strategy.RangeMod != 0)
+                return false;
+
+            if (isEndOfDay && current is null)
+                return false;
+
+            _rangesLastCount = _ranges.Count;
+
+            if (_ranges.Count == 1)
+                return false;
+
+            return true;
         }
 
         private void ComputeRange(CustomQuote[] quotes)
@@ -122,10 +135,8 @@ namespace Application.Services
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
         {
-            var symbolData = _operationSettings.Value.Symbol;
-
             var result = await _ratesProvider.GetRatesAsync(
-                symbolData.Name!,
+                _operationSettings.Value.Symbol.Name!,
                 _operationSettings.Value.Date,
                 _operationSettings.Value.Timeframe,
                 _operationSettings.Value.Window,

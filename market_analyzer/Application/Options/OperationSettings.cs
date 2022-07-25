@@ -25,7 +25,6 @@
 
         public class StrategySettings
         {
-            public bool TowardsTrend { get; set; }
             public int RangeMod { get; set; }
             public decimal RangePoints { get; set; }
             public decimal Volume { get; set; }
