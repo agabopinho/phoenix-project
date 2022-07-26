@@ -1,5 +1,4 @@
-﻿using Application.Helpers;
-using Application.Options;
+﻿using Application.Options;
 using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
 using Grpc.Terminal;
@@ -89,7 +88,6 @@ namespace Application.Services
             if (current is not null && isEndOfDay)
                 volume = current.Volume() * -1;
 
-            
             var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
             var transaction = new Transaction(_cycleProvider.Previous, price, volume);
 
