@@ -52,8 +52,6 @@ namespace Application.Services
             if (!quotes.Any())
                 return;
 
-            UpdateRange(quotes);
-
             if (!await CanProceedAsync(cancellationToken))
             {
                 _logger.LogInformation("Can't proceed!");
@@ -174,24 +172,6 @@ namespace Application.Services
                 cancellationToken: cancellationToken);
 
             return positions.Positions.FirstOrDefault();
-        }
-
-        private void UpdateRange(CustomQuote[] quotes)
-        {
-            if (!quotes.Any())
-                return;
-
-            if (!_ranges.Any())
-                _ranges.Add(new(quotes.Last().Open, quotes.Last().Date));
-
-            var lastQuote = quotes.Last();
-            var strategy = _operationSettings.Value.Strategy;
-
-            while (lastQuote.Close >= _ranges.Last().Value + strategy.RangePoints)
-                _ranges.Add(new(_ranges.Last().Value + strategy.RangePoints, lastQuote.Date));
-
-            while (lastQuote.Close <= _ranges.Last().Value - strategy.RangePoints)
-                _ranges.Add(new(_ranges.Last().Value - strategy.RangePoints, lastQuote.Date));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)

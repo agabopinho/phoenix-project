@@ -26,8 +26,6 @@
 
     public class StrategySettings
     {
-        public int RangeMod { get; set; }
-        public decimal RangePoints { get; set; }
         public decimal Volume { get; set; }
         public decimal IncrementVolume { get; set; }
     }
