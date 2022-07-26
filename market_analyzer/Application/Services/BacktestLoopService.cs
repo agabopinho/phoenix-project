@@ -62,7 +62,7 @@ namespace Application.Services
                 return;
             _lastRateDate = lastRate.Date;
 
-            var volume = rates[^2].Close > rates[^3].Close ? -strategy.Volume : strategy.Volume;
+            var volume = rates[^2].Close > rates[^2].Open ? -strategy.Volume : strategy.Volume;
 
             if (current is not null)
             {
