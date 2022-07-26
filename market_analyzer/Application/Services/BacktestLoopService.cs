@@ -50,12 +50,9 @@ namespace Application.Services
 
         private async Task StrategyAsync(CancellationToken cancellationToken)
         {
-            var rates = await GetRatesAsync(cancellationToken);
+            var tick = await GetTickAsync(cancellationToken);
 
-            if (!rates.Any())
-                return;
-
-            ComputeRange(rates);
+            ComputeRange(tick);
 
             var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
             var strategy = _operationSettings.Value.Strategy;
@@ -82,13 +79,16 @@ namespace Application.Services
                     volume -= v;
             }
 
-            if (current is not null && current.Volume() - volume == 0)
+            var beforeVolume = current is null ? 0 : current.Volume();
+            var afterVolume = beforeVolume + volume;
+
+            if (current is not null && afterVolume == 0)
                 volume *= 2;
 
             if (current is not null && isEndOfDay)
                 volume = current.Volume() * -1;
 
-            var tick = await GetTick(cancellationToken);
+            
             var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
             var transaction = new Transaction(_cycleProvider.Previous, price, volume);
 
@@ -100,7 +100,7 @@ namespace Application.Services
             PrintPosition(tick, transaction);
         }
 
-        private bool ValidRange(bool isEndOfDay, OperationSettings.StrategySettings strategy, Position? current)
+        private bool ValidRange(bool isEndOfDay, StrategySettings strategy, Position? current)
         {
             if (_ranges.Count == _rangesLastCount && !isEndOfDay)
                 return false;
@@ -119,19 +119,13 @@ namespace Application.Services
             return true;
         }
 
-        private void ComputeRange(IEnumerable<Rate> rates)
+        private void ComputeRange(GetSymbolTickReply tick)
         {
-            if (!rates.Any())
-                return;
-
-            var lastRate = rates.Last();
-
-            var time = lastRate.Time.ToDateTime();
-            var open = Convert.ToDecimal(lastRate.Open);
-            var close = Convert.ToDecimal(lastRate.Close);
+            var time = tick.Trade.Time.ToDateTime();
+            var close = Convert.ToDecimal(tick.Trade.Last);
 
             if (!_ranges.Any())
-                _ranges.Add(new(open, time));
+                _ranges.Add(new(close, time));
 
             while (close >= _ranges.Last().Value + _rangePoints)
                 _ranges.Add(new(_ranges.Last().Value + _rangePoints, time));
@@ -140,15 +134,7 @@ namespace Application.Services
                 _ranges.Add(new(_ranges.Last().Value - _rangePoints, time));
         }
 
-        private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
-            => await _ratesProvider.GetRatesAsync(
-                _operationSettings.Value.Symbol.Name!,
-                _operationSettings.Value.Date,
-                _operationSettings.Value.Timeframe,
-                _operationSettings.Value.Window,
-                cancellationToken);
-
-        private async Task<GetSymbolTickReply> GetTick(CancellationToken cancellationToken)
+        private async Task<GetSymbolTickReply> GetTickAsync(CancellationToken cancellationToken)
             => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
 
         private void PrintPosition(GetSymbolTickReply tick, Transaction transaction)

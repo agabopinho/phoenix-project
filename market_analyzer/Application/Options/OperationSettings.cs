@@ -14,39 +14,39 @@
         public OrderSettings Order { get; set; } = new();
         public StreamingSettings StreamingData { get; set; } = new();
         public bool ProductionMode => Order.ExecOrder && !Backtest.Enabled;
+    }
 
-        public class SymbolSettings
-        {
-            public string? Name { get; set; }
-            public int PriceDecimals { get; set; }
-            public int VolumeDecimals { get; set; }
-            public decimal StandardLot { get; set; }
-        }
+    public class SymbolSettings
+    {
+        public string? Name { get; set; }
+        public int PriceDecimals { get; set; }
+        public int VolumeDecimals { get; set; }
+        public decimal StandardLot { get; set; }
+    }
 
-        public class StrategySettings
-        {
-            public int RangeMod { get; set; }
-            public decimal RangePoints { get; set; }
-            public decimal Volume { get; set; }
-            public decimal IncrementVolume { get; set; }
-        }
+    public class StrategySettings
+    {
+        public int RangeMod { get; set; }
+        public decimal RangePoints { get; set; }
+        public decimal Volume { get; set; }
+        public decimal IncrementVolume { get; set; }
+    }
 
-        public class BacktestSettings
-        {
-            public bool Enabled { get; set; }
-            public TimeSpan Step { get; set; }
-        }
+    public class BacktestSettings
+    {
+        public bool Enabled { get; set; }
+        public TimeSpan Step { get; set; }
+    }
 
-        public class OrderSettings
-        {
-            public int Deviation { get; set; }
-            public long Magic { get; set; }
-            public bool ExecOrder { get; set; }
-        }
+    public class OrderSettings
+    {
+        public int Deviation { get; set; }
+        public long Magic { get; set; }
+        public bool ExecOrder { get; set; }
+    }
 
-        public class StreamingSettings
-        {
-            public int ChunkSize { get; set; }
-        }
+    public class StreamingSettings
+    {
+        public int ChunkSize { get; set; }
     }
 }
