@@ -21,8 +21,7 @@ create table trade
     volume float not null,
     flags int not null,
     volumeReal float not null,
-    createAt datetime2 not null constraint df_trade_createAt default (getdate()),
-    updateAt datetime2 not null constraint df_trade_updateAt default (getdate()),
+    createAt datetime2 not null constraint df_trade_createAt default (getdate())
 
     constraint pk_trade primary key (id)
 );

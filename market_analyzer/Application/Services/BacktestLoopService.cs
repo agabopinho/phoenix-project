@@ -55,6 +55,7 @@ namespace Application.Services
             ComputeRange(tick);
 
             var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
+
             var strategy = _operationSettings.Value.Strategy;
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
 
