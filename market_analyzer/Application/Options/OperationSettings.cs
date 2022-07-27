@@ -28,6 +28,8 @@
     {
         public decimal Volume { get; set; }
         public decimal IncrementVolume { get; set; }
+        public int AtrLookbackPeriods { get; set; }
+        public double AtrMultiplier { get; set; }
     }
 
     public class BacktestSettings

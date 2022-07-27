@@ -5,6 +5,7 @@ using Application.Services.Providers.Rates;
 using Grpc.Terminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
@@ -17,6 +18,7 @@ namespace Application.Services
         private readonly TimeSpan _end;
 
         private readonly List<Position> _positions = new();
+        private static DateTime _lastRateDate;
 
         public BacktestLoopService(
             IRatesProvider ratesProvider,
@@ -43,7 +45,6 @@ namespace Application.Services
             await StrategyAsync(cancellationToken);
         }
 
-        private static DateTime _lastRateDate;
         private async Task StrategyAsync(CancellationToken cancellationToken)
         {
             var rates = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
@@ -54,7 +55,10 @@ namespace Application.Services
             var strategy = _operationSettings.Value.Strategy;
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
 
-            if (rates.Length < 2)
+            if (current is null && isEndOfDay)
+                return;
+
+            if (rates.Length < strategy.AtrLookbackPeriods + 1)
                 return;
 
             var lastRate = rates[^1];
@@ -62,7 +66,10 @@ namespace Application.Services
                 return;
             _lastRateDate = lastRate.Date;
 
-            var volume = rates[^2].Close > rates[^2].Open ? -strategy.Volume : strategy.Volume;
+            var stopAtr = rates.GetVolatilityStop(strategy.AtrLookbackPeriods, strategy.AtrMultiplier);
+            var lastStopAtr = stopAtr.Last();
+
+            var volume = lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
 
             if (current is not null)
             {
