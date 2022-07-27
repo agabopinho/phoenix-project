@@ -54,7 +54,7 @@ namespace Application.Services
             var strategy = _operationSettings.Value.Strategy;
             var current = _positions.LastOrDefault(it => it.Volume() != 0);
 
-            if (rates.Length < 3)
+            if (rates.Length < 2)
                 return;
 
             var lastRate = rates[^1];
