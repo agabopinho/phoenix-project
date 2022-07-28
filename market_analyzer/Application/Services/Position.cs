@@ -1,4 +1,6 @@
-﻿namespace Application.Services
+﻿using Application.Services.Providers.Cycle;
+
+namespace Application.Services
 {
     public record class Transaction(DateTime Time, decimal Price, decimal Volume);
 
@@ -61,27 +63,37 @@
 
     public class Backtest
     {
-
+        private readonly BacktestCycleProvider _cycleProvider;
         private readonly List<Position> _positions = new();
+
+        public Backtest(BacktestCycleProvider cycleProvider)
+        {
+            _cycleProvider = cycleProvider;
+        }
 
         public IEnumerable<Position> Positions => _positions;
 
         public BacktestSummary Summary { get; private set; } = new();
 
-        public void Add(Transaction transaction)
+        public Transaction Execute(BookPrice currentPrice, decimal volume)
         {
             var current = OpenPosition();
 
             if (current is null)
                 _positions.Add(current = new Position());
 
+            var price = volume > 0 ? currentPrice.Ask : currentPrice.Bid;
+            var transaction = new Transaction(_cycleProvider.Previous, price, volume);
+
             current.Add(transaction);
+
+            return transaction;
         }
 
         public Position? OpenPosition()
             => _positions.FirstOrDefault(it => it.BalanceVolume() != 0);
 
-        public Balance Balance(BookPrice lastPrice)
+        public Balance Balance(BookPrice currentPrice)
         {
             var openVolume = 0M;
             var openPrice = 0M;
@@ -95,7 +107,7 @@
                 if (balanceVolume != 0)
                 {
                     openPrice = position.OpenPrice();
-                    closePrice = balanceVolume > 0 ? lastPrice.Bid : lastPrice.Ask;
+                    closePrice = balanceVolume > 0 ? currentPrice.Bid : currentPrice.Ask;
                 }
 
                 profit += position.Profit(closePrice);

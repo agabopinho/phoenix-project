@@ -15,9 +15,9 @@ namespace Application.Services
         private readonly BacktestCycleProvider _cycleProvider;
         private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
-        private readonly TimeSpan _end;
 
-        private readonly Backtest _backtest = new();
+        private readonly TimeSpan _end;
+        private readonly Backtest _backtest;
 
         private bool _summaryPrinted = false;
         private DateTime _lastRateDate;
@@ -32,7 +32,9 @@ namespace Application.Services
             _cycleProvider = cycleProvider;
             _operationSettings = operationSettings;
             _logger = logger;
+
             _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
+            _backtest = new(cycleProvider);
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -44,13 +46,7 @@ namespace Application.Services
                 _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
-            await StrategyAsync(cancellationToken);
-        }
-
-        private async Task StrategyAsync(CancellationToken cancellationToken)
-        {
             var rates = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
-            var tick = await GetTickAsync(cancellationToken);
 
             var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
 
@@ -105,12 +101,11 @@ namespace Application.Services
             if (volume == 0)
                 return;
 
-            var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
-            var transaction = new Transaction(_cycleProvider.Previous, price, volume);
+            var tick = await GetTickAsync(cancellationToken);
+            var bookPrice = new BookPrice(Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
+            var transaction = _backtest.Execute(bookPrice, volume);
 
-            _backtest.Add(transaction);
-
-            PrintPosition(tick, transaction);
+            Print(bookPrice, transaction);
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
@@ -124,12 +119,11 @@ namespace Application.Services
         private async Task<GetSymbolTickReply> GetTickAsync(CancellationToken cancellationToken)
             => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
 
-        private void PrintPosition(GetSymbolTickReply tick, Transaction transaction)
+        private void Print(BookPrice bookPrice, Transaction transaction)
         {
-            if (_backtest.Positions.Count() == 0)
+            if (!_backtest.Positions.Any())
                 return;
 
-            var bookPrice = new BookPrice(Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
             var result = _backtest.Balance(bookPrice);
             var symbol = _operationSettings.Value.Symbol;
 
