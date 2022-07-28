@@ -135,8 +135,8 @@ namespace Application.Services
             if (balance.Profit > Summary.MaxProfit)
                 Summary = Summary with { MaxProfit = balance.Profit };
 
-            var maxLot = _positions.Max(it => it.Transactions.Max(t => t.Volume));
-            var minLot = _positions.Min(it => it.Transactions.Min(t => t.Volume));
+            var maxLot = _positions.Any() ? _positions.Max(it => it.Transactions.Max(t => t.Volume)) : 0;
+            var minLot = _positions.Any() ? _positions.Min(it => it.Transactions.Min(t => t.Volume)) : 0;
 
             if (minLot < Summary.MinLot)
                 Summary = Summary with { MinLot = minLot };

@@ -49,9 +49,14 @@ namespace Application.Services
             var rates = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
 
             var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
-
             var strategy = _operationSettings.Value.Strategy;
             var current = _backtest.OpenPosition();
+            var tick = await GetTickAsync(cancellationToken);
+            var bookPrice = new BookPrice(Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
+            var balance = _backtest.Balance(bookPrice);
+
+            if (strategy.Profit is not null && balance.Profit >= strategy.Profit)
+                isEndOfDay = true;
 
             if (current is null && isEndOfDay)
             {
@@ -60,6 +65,9 @@ namespace Application.Services
                     _summaryPrinted = true;
                     _logger.LogInformation("{@summary}", _backtest.Summary);
                 }
+
+                if (strategy.Profit is not null && balance.Profit >= strategy.Profit)
+                    throw new BacktestFinishException();
 
                 return;
             }
@@ -101,8 +109,6 @@ namespace Application.Services
             if (volume == 0)
                 return;
 
-            var tick = await GetTickAsync(cancellationToken);
-            var bookPrice = new BookPrice(Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
             var transaction = _backtest.Execute(bookPrice, volume);
 
             Print(bookPrice, transaction);

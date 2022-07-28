@@ -30,6 +30,7 @@
         public decimal IncrementVolume { get; set; }
         public int AtrLookbackPeriods { get; set; }
         public double AtrMultiplier { get; set; }
+        public decimal? Profit { get; set; }
     }
 
     public class BacktestSettings
