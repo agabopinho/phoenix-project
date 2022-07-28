@@ -1,16 +1,19 @@
 ﻿using Application.Helpers;
 using Application.Options;
+using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
     public class LoopService : ILoopService
     {
+        private readonly ICycleProvider _cycleProvider;
         private readonly IRatesProvider _ratesProvider;
         private readonly IOrderManagementWrapper _orderManagementWrapper;
         private readonly IOrderCreator _orderCreator;
@@ -18,16 +21,17 @@ namespace Application.Services
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
 
-        private readonly List<Range> _ranges = new();
-        private int _rangesLastCount = 0;
+        private DateTime _lastRateDate;
 
         public LoopService(
+            ICycleProvider cycleProvider,
             IRatesProvider ratesProvider,
             IOrderManagementWrapper orderManagementWrapper,
             IOrderCreator orderCreator,
             IOptions<OperationSettings> operationSettings,
             ILogger<ILoopService> logger)
         {
+            _cycleProvider = cycleProvider;
             _ratesProvider = ratesProvider;
             _orderManagementWrapper = orderManagementWrapper;
             _orderCreator = orderCreator;
@@ -38,19 +42,12 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            var symbolData = _operationSettings.Value.Symbol;
-
             await _ratesProvider.CheckNewRatesAsync(
-                symbolData.Name!,
-                _operationSettings.Value.Date,
-                _operationSettings.Value.Timeframe,
-                _operationSettings.Value.StreamingData.ChunkSize,
-                cancellationToken);
-
-            var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
-
-            if (!quotes.Any())
-                return;
+                 _operationSettings.Value.Symbol.Name!,
+                 _operationSettings.Value.Date,
+                 _operationSettings.Value.Timeframe,
+                 _operationSettings.Value.StreamingData.ChunkSize,
+                 cancellationToken);
 
             if (!await CanProceedAsync(cancellationToken))
             {
@@ -59,12 +56,58 @@ namespace Application.Services
                 return;
             }
 
-            await CheckAsync(quotes, cancellationToken);
-        }
+            var rates = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
 
-        private async Task CheckAsync(CustomQuote[] quotes, CancellationToken cancellationToken)
-        {
-            var volume = 0M;
+            var isEndOfDay = _cycleProvider.Now().TimeOfDay >= _end;
+            var strategy = _operationSettings.Value.Strategy;
+            var current = await GetPositionAsync(cancellationToken);
+            var balance = current is not null ? Convert.ToDecimal(current.Profit) : 0;
+
+            if (strategy.Profit is not null && balance >= strategy.Profit)
+                isEndOfDay = true;
+
+            if (current is null && isEndOfDay)
+                return;
+
+            if (rates.Length < strategy.AtrLookbackPeriods + 1)
+                return;
+
+            var lastRate = rates[^1];
+            if (_lastRateDate == lastRate.Date)
+                return;
+            _lastRateDate = lastRate.Date;
+
+            var stopAtr = rates.GetVolatilityStop(strategy.AtrLookbackPeriods, strategy.AtrMultiplier);
+            var lastStopAtr = stopAtr.Last();
+
+            var volume = lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
+            var beforeVolume = current is null ? 0 :
+                current.Type == PositionType.Buy ?
+                    Convert.ToDecimal(current.Volume) :
+                    Convert.ToDecimal(current.Volume) * -1;
+
+            if (current is not null)
+            {
+                var v = Math.Abs(beforeVolume) * strategy.IncrementVolume;
+
+                v -= v % _operationSettings.Value.Symbol.StandardLot;
+
+                if (volume > 0)
+                    volume += v;
+                else
+                    volume -= v;
+            }
+
+            var afterVolume = beforeVolume + volume;
+
+            if (current is not null && afterVolume == 0)
+                volume *= 2;
+
+            if (current is not null && isEndOfDay)
+                volume = beforeVolume * -1;
+
+            if (volume == 0)
+                return;
 
             if (volume > 0)
             {

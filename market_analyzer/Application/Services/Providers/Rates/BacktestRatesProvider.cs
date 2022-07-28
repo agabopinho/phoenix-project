@@ -39,7 +39,7 @@ namespace Application.Services.Providers.Rates
             int chunkSize,
             CancellationToken cancellationToken)
         {
-            CurrentTime = _cycleProvider.PlatformNow();
+            CurrentTime = _cycleProvider.Now();
 
             if (Started)
                 return;

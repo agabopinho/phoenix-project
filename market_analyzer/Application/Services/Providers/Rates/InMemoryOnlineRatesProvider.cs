@@ -36,7 +36,7 @@ namespace Application.Services.Providers.Rates
             using var call = _symbolDataWrapper.StreamRatesFromTicksRange(
                 symbol,
                 fromDate,
-                _cycleProvider.PlatformNow().AddSeconds(10),
+                _cycleProvider.Now().AddSeconds(10),
                 timeframe,
                 chunkSize,
                 cancellationToken);
@@ -57,16 +57,7 @@ namespace Application.Services.Providers.Rates
             TimeSpan timeframe,
             TimeSpan window,
             CancellationToken cancellationToken)
-        {
-            var lastRate = Rates.Values.LastOrDefault();
-
-            if (lastRate is null)
-                return Task.FromResult<IEnumerable<Rate>>(Array.Empty<Rate>());
-
-            var from = lastRate.Time.ToDateTime() - window;
-
-            return Task.FromResult(Rates.Where(it => it.Key >= from).Select(it => it.Value));
-        }
+            => Task.FromResult<IEnumerable<Rate>>(Rates.Values);
 
         public async Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
             => await _symbolDataWrapper.GetSymbolTickAsync(symbol, cancellationToken);

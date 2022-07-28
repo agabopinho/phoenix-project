@@ -25,7 +25,7 @@ namespace Application.Services.Providers.Cycle
         public DateTime NextDate { get; private set; }
         public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.TimeZoneId!);
 
-        public DateTime PlatformNow()
+        public DateTime Now()
         {
             Previous = NextDate;
             NextDate = NextDate.Add(Step);

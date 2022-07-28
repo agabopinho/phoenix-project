@@ -84,10 +84,11 @@ namespace Application.Services
             var lastStopAtr = stopAtr.Last();
 
             var volume = lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
+            var beforeVolume = current is null ? 0 : current.BalanceVolume();
 
             if (current is not null)
             {
-                var v = Math.Abs(current.BalanceVolume()) * strategy.IncrementVolume;
+                var v = Math.Abs(beforeVolume) * strategy.IncrementVolume;
 
                 v -= v % _operationSettings.Value.Symbol.StandardLot;
 
@@ -97,14 +98,13 @@ namespace Application.Services
                     volume -= v;
             }
 
-            var beforeVolume = current is null ? 0 : current.BalanceVolume();
             var afterVolume = beforeVolume + volume;
 
             if (current is not null && afterVolume == 0)
                 volume *= 2;
 
             if (current is not null && isEndOfDay)
-                volume = current.BalanceVolume() * -1;
+                volume = beforeVolume * -1;
 
             if (volume == 0)
                 return;

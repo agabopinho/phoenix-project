@@ -17,7 +17,7 @@ namespace Application.Services.Providers.Cycle
         public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.TimeZoneId!);
         public DateTime Previous => _previous;
 
-        public DateTime PlatformNow()
+        public DateTime Now()
         {
             _previous = DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZone), DateTimeKind.Utc);
             return _previous;

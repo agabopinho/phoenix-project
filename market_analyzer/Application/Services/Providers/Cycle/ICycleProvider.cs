@@ -2,6 +2,6 @@
 {
     public interface ICycleProvider
     {
-        DateTime PlatformNow();
+        DateTime Now();
     }
 }
