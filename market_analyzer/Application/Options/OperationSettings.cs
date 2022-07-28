@@ -2,41 +2,63 @@
 {
     public class OperationSettings
     {
-        public MarketDataSettings MarketData { get; set; } = new();
+        public DateOnly Date { get; set; }
+        public TimeOnly Start { get; set; }
+        public TimeOnly End { get; set; }
+        public TimeSpan Timeframe { get; set; }
+        public TimeSpan Window { get; set; }
+        public string? TimeZoneId { get; set; }
+        public SymbolSettings Symbol { get; set; } = new();
+        public StrategySettings Strategy { get; set; } = new();
         public BacktestSettings Backtest { get; set; } = new();
         public OrderSettings Order { get; set; } = new();
-        public IndicatorSettings Indicator { get; set; } = new();
+        public StreamingSettings StreamingData { get; set; } = new();
         public bool ProductionMode => Order.ExecOrder && !Backtest.Enabled;
+    }
 
-        public class MarketDataSettings
+    public class SymbolSettings
+    {
+        public string? Name { get; set; }
+        public int PriceDecimals { get; set; }
+        public int VolumeDecimals { get; set; }
+        public decimal StandardLot { get; set; }
+    }
+
+    public class StrategySettings
+    {
+        public decimal Volume { get; set; }
+        public decimal? Profit { get; set; }
+        public string Use { get; set; } = "Atr";
+        public AtrSettings? Atr { get; set; }
+        public LinearRegressionSettings? LinearRegression { get; set; }
+
+        public class AtrSettings
         {
-            public string? Symbol { get; set; }
-            public DateOnly Date { get; set; }
-            public TimeSpan Timeframe { get; set; }
-            public string? TimeZoneId { get; set; }
-            public int ChunkSize { get; set; }
+            public int LookbackPeriods { get; set; }
+            public double Multiplier { get; set; }
         }
 
-        public class BacktestSettings
+        public class LinearRegressionSettings
         {
-            public bool Enabled { get; set; }
-            public TimeOnly Start { get; set; }
-            public TimeOnly End { get; set; }
-            public TimeSpan Step { get; set; }
+            public int LookbackPeriods { get; set; }
         }
+    }
 
-        public class OrderSettings
-        {
-            public int Deviation { get; set; }
-            public long Magic { get; set; }
-            public bool ExecOrder { get; set; }
-        }
+    public class BacktestSettings
+    {
+        public bool Enabled { get; set; }
+        public TimeSpan Step { get; set; }
+    }
 
-        public class IndicatorSettings
-        {
-            public TimeSpan Window { get; set; }
-            public int Length { get; set; }
-            public int SignalShift { get; set; }
-        }
+    public class OrderSettings
+    {
+        public int Deviation { get; set; }
+        public long Magic { get; set; }
+        public bool ExecOrder { get; set; }
+    }
+
+    public class StreamingSettings
+    {
+        public int ChunkSize { get; set; }
     }
 }

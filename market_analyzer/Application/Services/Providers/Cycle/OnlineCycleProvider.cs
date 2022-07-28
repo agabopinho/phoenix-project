@@ -5,19 +5,19 @@ namespace Application.Services.Providers.Cycle
 {
     public class OnlineCycleProvider : ICycleProvider
     {
-        private readonly IOptionsSnapshot<OperationSettings> _operationSettings;
+        private readonly IOptions<OperationSettings> _operationSettings;
 
         private DateTime _previous;
 
-        public OnlineCycleProvider(IOptionsSnapshot<OperationSettings> operationSettings)
+        public OnlineCycleProvider(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
 
-        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.MarketData.TimeZoneId!);
+        public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.TimeZoneId!);
         public DateTime Previous => _previous;
 
-        public DateTime PlatformNow()
+        public DateTime Now()
         {
             _previous = DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZone), DateTimeKind.Utc);
             return _previous;

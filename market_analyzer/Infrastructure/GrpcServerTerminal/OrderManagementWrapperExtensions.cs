@@ -16,7 +16,7 @@ namespace Infrastructure.GrpcServerTerminal
 
             services.AddGrpcClient<OrderManagement.OrderManagementClient>(OrderManagementWrapper.ClientName, (serviceProvider, configure) =>
             {
-                var options = serviceProvider.GetRequiredService<IOptionsSnapshot<OrderManagementWrapperOptions>>();
+                var options = serviceProvider.GetRequiredService<IOptions<OrderManagementWrapperOptions>>();
                 configure.Address = new Uri(options.Value.Endpoint!);
             })
             .ConfigureChannel((serviceProvider, configure) =>

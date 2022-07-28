@@ -1,9 +1,10 @@
-﻿using Application.BackgroupServices;
-using Application.Options;
+﻿using Application.Options;
 using Application.Services;
 using Application.Services.Providers.Cycle;
-using Application.Services.Providers.Database;
 using Application.Services.Providers.Rates;
+using Application.Services.Providers.Rates.BacktestRates;
+using Application.Services.Strategies;
+using Application.Workers;
 using ConsoleApp.Converters;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Serilog;
-using StackExchange.Redis;
 using System.ComponentModel;
 
 TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof(DateOnlyTypeConverter)));
@@ -32,15 +32,15 @@ builder.UseSerilog((context, services, configuration) => configuration
 
 builder.ConfigureServices((context, services) =>
 {
-    services.AddSingleton(_
-        => ConnectionMultiplexer
-            .Connect(context.Configuration.GetValue<string>("Redis"))
-            .GetDatabase(0));
-
     services.AddMarketDataWrapper(configure =>
         context.Configuration.GetSection("GrpcServer:MarketData").Bind(configure));
     services.AddOrderManagementWrapper(configure =>
         context.Configuration.GetSection("GrpcServer:OrderManagement").Bind(configure));
+
+    services.AddOperationSettings(configure
+        => context.Configuration.GetSection("Operation").Bind(configure));
+
+    services.AddSingleton<IBacktestRatesRepository, BacktestRatesRepository>();
 
     services.AddSingleton<OnlineCycleProvider>();
     services.AddSingleton<BacktestCycleProvider>();
@@ -54,7 +54,7 @@ builder.ConfigureServices((context, services) =>
         return serviceProvider.GetRequiredService<OnlineCycleProvider>();
     });
 
-    services.AddSingleton<OnlineRatesProvider>();
+    services.AddSingleton<InMemoryOnlineRatesProvider>();
     services.AddSingleton<BacktestRatesProvider>();
     services.AddSingleton<IRatesProvider>(serviceProvider =>
     {
@@ -63,15 +63,36 @@ builder.ConfigureServices((context, services) =>
         if (options.Value.Backtest.Enabled)
             return serviceProvider.GetRequiredService<BacktestRatesProvider>();
 
-        return serviceProvider.GetRequiredService<OnlineRatesProvider>();
+        return serviceProvider.GetRequiredService<InMemoryOnlineRatesProvider>();
     });
 
-    services.AddOperationSettings(configure
-        => context.Configuration.GetSection("Operation").Bind(configure));
+    services.AddSingleton<BacktestLoopService>();
+    services.AddSingleton<LoopService>();
+    services.AddSingleton<ILoopService>(serviceProvider =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
 
-    services.AddSingleton<IBacktestDatabaseProvider, BacktestDatabaseProvider>();
-    services.AddSingleton<ILoopService, LoopService>();
-    services.AddHostedService<WorkerService>();
+        if (options.Value.Backtest.Enabled)
+            return serviceProvider.GetRequiredService<BacktestLoopService>();
+
+        return serviceProvider.GetRequiredService<LoopService>();
+    });
+
+    services.AddSingleton<BacktestWorkerService>();
+    services.AddSingleton<WorkerService>();
+    services.AddHostedService<BackgroundService>(serviceProvider =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OperationSettings>>();
+
+        if (options.Value.Backtest.Enabled)
+            return serviceProvider.GetRequiredService<BacktestWorkerService>();
+
+        return serviceProvider.GetRequiredService<WorkerService>();
+    });
+
+    services.AddSingleton<IStrategy, Atr>();
+    services.AddSingleton<IStrategy, LinearRegression>();
+    services.AddSingleton<IStrategyFactory, StrategyFactory>();
 });
 
 await builder.Build().RunAsync();

@@ -4,15 +4,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace Application.BackgroupServices
+namespace Application.Workers
 {
-    public class WorkerService : BackgroundService
+    public class BacktestWorkerService : BackgroundService
     {
         private readonly ILoopService _loopService;
         private readonly ILogger<WorkerService> _logger;
         private readonly Stopwatch _stopwatch;
 
-        public WorkerService(
+        public BacktestWorkerService(
             ILoopService loopService,
             ILogger<WorkerService> logger)
         {
@@ -29,9 +29,7 @@ namespace Application.BackgroupServices
                 {
                     _stopwatch.Restart();
                     await _loopService.RunAsync(stoppingToken);
-                    _stopwatch.Stop();
-
-                    _logger.LogDebug("Complete loop in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
+                    _logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
                 }
                 catch (BacktestFinishException)
                 {

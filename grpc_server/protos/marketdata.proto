@@ -17,7 +17,7 @@ service MarketData {
 }
 
 message GetSymbolTickRequest {
-  string symbol = 1;
+  string symbol = 1; 
 }
 
 message GetSymbolTickReply {

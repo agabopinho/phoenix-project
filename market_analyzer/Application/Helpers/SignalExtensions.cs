@@ -12,5 +12,9 @@ namespace Application.Helpers
 
         public static bool IsSignalSell(this Signal signal)
             => signal == Signal.Sell || signal == Signal.StrongSell;
+
+        public static bool IsSame(this Signal signal, Signal other)
+            => signal.IsSignalBuy() && other.IsSignalBuy() ||
+               signal.IsSignalSell() && other.IsSignalSell();
     }
 }

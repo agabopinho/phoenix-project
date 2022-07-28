@@ -1,5 +1,5 @@
 ﻿using Application.Services.Providers.Cycle;
-using Application.Services.Providers.Database;
+using Application.Services.Providers.Rates.BacktestRates;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
@@ -10,25 +10,27 @@ namespace Application.Services.Providers.Rates
 {
     public class BacktestRatesProvider : IRatesProvider
     {
-        private readonly IBacktestDatabaseProvider _backtestDatabase;
+        private readonly IBacktestRatesRepository _backtestRatesRepository;
         private readonly ICycleProvider _cycleProvider;
         private readonly ILogger<BacktestRatesProvider> _logger;
         private readonly Stopwatch _stopwatch;
 
-        private readonly SortedList<DateTime, Rate> _rates = new();
-
         public BacktestRatesProvider(
-            IBacktestDatabaseProvider backtestDatabase,
+            IBacktestRatesRepository backtestRatesRepository,
             ICycleProvider cycleProvider,
             ILogger<BacktestRatesProvider> logger)
         {
-            _backtestDatabase = backtestDatabase;
+            _backtestRatesRepository = backtestRatesRepository;
             _cycleProvider = cycleProvider;
             _logger = logger;
             _stopwatch = new Stopwatch();
         }
 
         public bool Started { get; set; }
+        public DateTime CurrentTime { get; private set; }
+        public SortedList<DateTime, List<TickData>> Ticks { get; } = new();
+        public SortedList<DateTime, Rate> Rates { get; } = new();
+        public List<DateTime> Keys { get; private set; } = new();
 
         public async Task CheckNewRatesAsync(
             string symbol,
@@ -37,13 +39,16 @@ namespace Application.Services.Providers.Rates
             int chunkSize,
             CancellationToken cancellationToken)
         {
-            _cycleProvider.PlatformNow();
+            CurrentTime = _cycleProvider.Now();
 
             if (Started)
                 return;
 
-            if (await _backtestDatabase.LoadAsync(symbol, date, chunkSize, cancellationToken))
-                Started = true;
+            _logger.LogInformation("Loading backtest data {@data}", new { symbol, Date = date.ToShortDateString() });
+
+            await LoadFromRepositoryAsync(symbol, date, cancellationToken);
+
+            Started = true;
         }
 
         public Task<IEnumerable<Rate>> GetRatesAsync(
@@ -55,80 +60,79 @@ namespace Application.Services.Providers.Rates
         {
             _stopwatch.Restart();
 
-            var now = _cycleProvider.Previous;
+            var now = CurrentTime;
 
-            var fromDate = _rates.Any() ? _rates.Keys.Last() : now.Subtract(window);
+            var fromDate = Rates.Any() ? Rates.Keys.Last() : now.Subtract(window);
             var toDate = now;
 
-            var data = GetWindow(fromDate, toDate);
+            var windowData = GetWindow(fromDate, toDate);
 
-            _logger.LogTrace("Create window data {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, data.Count);
+            _logger.LogTrace("Create window data {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, windowData.Count);
             _stopwatch.Restart();
 
-            var resample = ResampleData(fromDate, toDate, data, timeframe);
+            var resample = ResampleData(fromDate, toDate, windowData, timeframe);
 
             _logger.LogTrace("Resample data {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, resample.Count);
             _stopwatch.Restart();
 
             foreach (var rate in resample.Select(CreateRatesSelector))
             {
-                var rateTime = rate.Time.ToDateTime();
-                _rates[rateTime] = rate;
+                if (rate is null)
+                    continue;
+
+                Rates[rate.Time.ToDateTime()] = rate;
             }
 
-            foreach (var key in _rates.Keys.Where(key => key < now.Subtract(window)).ToArray())
-                _rates.Remove(key);
-
-            _logger.LogTrace("Create rates {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, _rates.Count);
+            _logger.LogTrace("Create rates {@data}ms, count {@count}", _stopwatch.Elapsed.TotalMilliseconds, Rates.Count);
             _stopwatch.Restart();
 
-            return Task.FromResult<IEnumerable<Rate>>(_rates.Values);
+            return Task.FromResult<IEnumerable<Rate>>(Rates.Values);
         }
 
         public Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
         {
-            var now = _cycleProvider.Previous;
-            var toPartitionKey = _backtestDatabase.PartitionKey(now);
-            var index = _backtestDatabase.TicksDatabase.Keys.ToList().BinarySearch(toPartitionKey);
+            var now = CurrentTime;
+            var toPartitionKey = PartitionKey(now);
+            var index = Keys.BinarySearch(toPartitionKey);
 
             if (index < 0)
                 index = ~index - 1;
 
-            var toTrade = new Trade { Time = now.ToTimestamp() };
-            var tradeOnlyTimeComparer = new TradeOnlyTimeComparer();
-            var trade = new Trade { Flags = 0 };
+            var toTrade = new TickData { Time = now };
+            var onlyTimeComparer = new TickDataOnlyTimeComparer();
+            var trade = new TickData { Flags = 0 };
 
             for (int i = index; i > 0; i--)
             {
-                var window = _backtestDatabase.TicksDatabase.Values[i];
-                var end = window.BinarySearch(toTrade, tradeOnlyTimeComparer);
+                var window = Ticks.Values[i];
+                var end = window.BinarySearch(toTrade, onlyTimeComparer);
 
                 if (end < 0)
                     end = ~end - 1;
 
-                for (var t = end; t > 0; t++)
+                for (var t = end; t > 0; t--)
                 {
                     var tick = window[t];
 
-                    if (trade.Time is null)
+                    if (trade.Time == DateTime.MinValue)
                         trade.Time = tick.Time;
 
-                    if (trade.Bid is null && tick.Bid > 0)
+                    if (tick.Bid > 0 && trade.Bid <= 0)
                     {
                         trade.Bid = tick.Bid;
-                        trade.Flags |= TickFlags.Bid;
+                        trade.Flags |= (int)TickFlags.Bid;
                     }
 
-                    if (trade.Ask is null && tick.Ask > 0)
+                    if (tick.Ask > 0 && trade.Ask <= 0)
                     {
                         trade.Ask = tick.Ask;
-                        trade.Flags |= TickFlags.Ask;
+                        trade.Flags |= (int)TickFlags.Ask;
                     }
 
-                    if (trade.Last is null && tick.Last > 0)
+                    if (tick.Last > 0 && trade.Last <= 0)
                     {
                         trade.Last = tick.Last;
-                        trade.Flags |= TickFlags.Last;
+                        trade.Flags |= (int)TickFlags.Last;
                     }
 
                     if (TradeHasBidAskLast(trade))
@@ -139,52 +143,76 @@ namespace Application.Services.Providers.Rates
                     break;
             }
 
-            var reply = new GetSymbolTickReply
+            return Task.FromResult(new GetSymbolTickReply
             {
                 ResponseStatus = new ResponseStatus { ResponseCode = Res.SOk },
-                Trade = trade
-            };
-
-            return Task.FromResult(reply);
+                Trade = new Trade
+                {
+                    Ask = trade.Ask,
+                    Bid = trade.Bid,
+                    Flags = (TickFlags)trade.Flags,
+                    Last = trade.Last,
+                    Time = trade.Time.ToTimestamp(),
+                    Volume = trade.Volume,
+                    VolumeReal = trade.VolumeReal,
+                }
+            });
         }
 
-        private List<Trade> GetWindow(DateTime fromDate, DateTime toDate)
+        private async Task LoadFromRepositoryAsync(string symbol, DateOnly date, CancellationToken cancellationToken)
         {
-            var fromPartitionKey = _backtestDatabase.PartitionKey(fromDate);
-            var toPartitionKey = _backtestDatabase.PartitionKey(toDate);
+            var ticks = await _backtestRatesRepository.GetTicksAsync(symbol, date, cancellationToken);
 
-            var index = _backtestDatabase.TicksDatabase.Keys.ToList().BinarySearch(fromPartitionKey);
-
-            if (index < 0)
-                index = ~index;
-
-            var windowData = new List<Trade>();
-
-            for (var i = index; i < _backtestDatabase.TicksDatabase.Keys.Count; i++)
+            foreach (var trade in ticks)
             {
-                var key = _backtestDatabase.TicksDatabase.Keys[i];
+                trade.Time = DateTime.SpecifyKind(trade.Time, DateTimeKind.Utc);
+
+                var partitionKey = PartitionKey(trade.Time);
+
+                if (!Ticks.ContainsKey(partitionKey))
+                    Ticks[partitionKey] = new();
+
+                Ticks[partitionKey].Add(trade);
+            }
+
+            Keys = Ticks.Keys.ToList();
+        }
+
+        private List<List<TickData>> GetWindow(DateTime fromDate, DateTime toDate)
+        {
+            var fromPartitionKey = PartitionKey(fromDate);
+            var toPartitionKey = PartitionKey(toDate);
+
+            var startFrom = Keys.BinarySearch(fromPartitionKey);
+
+            if (startFrom < 0)
+                startFrom = ~startFrom;
+
+            var windowData = new List<List<TickData>>();
+
+            for (var i = startFrom; i < Ticks.Keys.Count; i++)
+            {
+                var key = Ticks.Keys[i];
 
                 if (key > toPartitionKey)
                     break;
 
-                windowData.AddRange(_backtestDatabase.TicksDatabase.Values[i]);
+                windowData.Add(Ticks.Values[i]);
             }
 
             return windowData;
         }
 
-        private static IDictionary<DateTime, List<Trade>> ResampleData(DateTime fromDate, DateTime toDate, List<Trade> data, TimeSpan timeframe)
+        private static SortedList<DateTime, List<TickData>> ResampleData(DateTime fromDate, DateTime toDate, List<List<TickData>> windowData, TimeSpan timeframe)
         {
             var indexes = GetIndexes(timeframe, fromDate, toDate);
-            var resample = new Dictionary<DateTime, List<Trade>>(indexes.Count);
+            var resample = new SortedList<DateTime, List<TickData>>();
 
-            var fromDateTimestamp = fromDate.ToTimestamp();
-            var toDateTimestamp = toDate.ToTimestamp();
+            var fromTrade = new TickData { Time = fromDate };
+            var onlyTimeComparer = new TickDataOnlyTimeComparer();
 
-            var fromTrade = new Trade { Time = fromDateTimestamp };
-            var tradeOnlyTimeComparer = new TradeOnlyTimeComparer();
-
-            var startFrom = data.BinarySearch(fromTrade, tradeOnlyTimeComparer);
+            var data = windowData.SelectMany(it => it).ToList();
+            var startFrom = data.BinarySearch(fromTrade, onlyTimeComparer);
 
             if (startFrom < 0)
                 startFrom = ~startFrom;
@@ -193,10 +221,10 @@ namespace Application.Services.Providers.Rates
             {
                 var trade = data[i];
 
-                if (trade.Time > toDateTimestamp)
+                if (trade.Time > toDate)
                     break;
 
-                int indexesIndex = indexes.BinarySearch(trade.Time.ToDateTime());
+                int indexesIndex = indexes.BinarySearch(trade.Time);
 
                 if (indexesIndex < 0)
                     indexesIndex = ~indexesIndex - 1;
@@ -225,10 +253,13 @@ namespace Application.Services.Providers.Rates
             return indexes;
         }
 
-        private static Rate CreateRatesSelector(KeyValuePair<DateTime, List<Trade>> sample)
+        private static Rate? CreateRatesSelector(KeyValuePair<DateTime, List<TickData>> sample)
         {
             var data = sample.Value;
             var prices = sample.Value.Where(it => it.Last > 0).Select(it => it.Last);
+
+            if (!prices.Any())
+                return null;
 
             return new Rate
             {
@@ -243,14 +274,17 @@ namespace Application.Services.Providers.Rates
             };
         }
 
-        private static bool TradeHasBidAskLast(Trade trade)
-            => (trade.Flags & TickFlags.Bid) == TickFlags.Bid &&
-                (trade.Flags & TickFlags.Ask) == TickFlags.Ask &&
-                (trade.Flags & TickFlags.Last) == TickFlags.Last;
+        private static bool TradeHasBidAskLast(TickData trade)
+            => (trade.Flags & (int)TickFlags.Bid) == (int)TickFlags.Bid &&
+                (trade.Flags & (int)TickFlags.Ask) == (int)TickFlags.Ask &&
+                (trade.Flags & (int)TickFlags.Last) == (int)TickFlags.Last;
 
-        private class TradeOnlyTimeComparer : IComparer<Trade>
+        private static DateTime PartitionKey(DateTime time)
+            => new(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, DateTimeKind.Utc);
+
+        private class TickDataOnlyTimeComparer : IComparer<TickData>
         {
-            public int Compare(Trade? x, Trade? y)
+            public int Compare(TickData? x, TickData? y)
             {
                 if (x is null && y is null)
                     return 0;

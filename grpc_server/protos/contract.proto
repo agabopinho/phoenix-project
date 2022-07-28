@@ -19,7 +19,7 @@ enum TickFlags {
     TICK_FLAGS_LAST    = 0x08;
     TICK_FLAGS_VOLUME  = 0x10;
     TICK_FLAGS_BUY     = 0x20;
-    TICK_FLAGS_SELL    = 0x40;
+    TICK_FLAGS_SELL    = 0x40; 
 }
 
 enum Timeframe {

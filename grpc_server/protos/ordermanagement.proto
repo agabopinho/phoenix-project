@@ -17,7 +17,7 @@ service OrderManagement {
   rpc SendOrder (OrderRequest) returns (SendOrderReply) {}
 }
 
-message GetPositionsRequest {
+message GetPositionsRequest { 
   oneof typeSearch {
     google.protobuf.StringValue symbol = 1; // Symbol name. Optional named parameter. If a symbol is specified, the ticket parameter is ignored.
     google.protobuf.StringValue group = 2;  // The filter for arranging a group of necessary symbols. Optional named parameter. If the group is specified, the function returns only positions meeting a specified criteria for a symbol name.
