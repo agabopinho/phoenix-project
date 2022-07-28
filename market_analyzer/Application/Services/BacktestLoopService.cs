@@ -2,10 +2,10 @@
 using Application.Options;
 using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
+using Application.Services.Strategies;
 using Grpc.Terminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
@@ -13,6 +13,7 @@ namespace Application.Services
     {
         private readonly IRatesProvider _ratesProvider;
         private readonly BacktestCycleProvider _cycleProvider;
+        private readonly IStrategyFactory _strategyFactory;
         private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
 
@@ -20,21 +21,25 @@ namespace Application.Services
         private readonly Backtest _backtest = new();
 
         private bool _summaryPrinted = false;
-        private DateTime _lastRateDate;
+        private DateTime _lastQuoteDate;
 
         public BacktestLoopService(
             IRatesProvider ratesProvider,
             BacktestCycleProvider cycleProvider,
+            IStrategyFactory strategyFactory,
             IOptions<OperationSettings> operationSettings,
             ILogger<ILoopService> logger)
         {
             _ratesProvider = ratesProvider;
             _cycleProvider = cycleProvider;
+            _strategyFactory = strategyFactory;
             _operationSettings = operationSettings;
             _logger = logger;
 
             _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
         }
+
+        public bool IsEndOfDay => _cycleProvider.Previous.TimeOfDay >= _end;
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
@@ -45,18 +50,21 @@ namespace Application.Services
                 _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
-            var rates = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
+            var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
 
-            var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
-            var strategy = _operationSettings.Value.Strategy;
-            var current = _backtest.OpenPosition();
             var bookPrice = await GetBookPriceAsync(cancellationToken);
+            var current = _backtest.OpenPosition();
             var balance = _backtest.Balance(bookPrice);
 
-            if (strategy.Profit is not null && balance.Profit >= strategy.Profit)
-                isEndOfDay = true;
+            var settings = _operationSettings.Value.Strategy;
+            var strategy = _strategyFactory.Get(settings.Use) ?? throw new InvalidOperationException();
 
-            if (current is null && isEndOfDay)
+            var endOfDay = IsEndOfDay;
+
+            if (settings.Profit is not null && balance.Profit >= settings.Profit)
+                endOfDay = true;
+
+            if (current is null && endOfDay)
             {
                 if (!_summaryPrinted)
                 {
@@ -64,44 +72,28 @@ namespace Application.Services
                     _logger.LogInformation("{@summary}", _backtest.Summary);
                 }
 
-                if (strategy.Profit is not null && balance.Profit >= strategy.Profit)
+                if (settings.Profit is not null && balance.Profit >= settings.Profit)
                     throw new BacktestFinishException();
 
                 return;
             }
 
-            if (rates.Length < strategy.AtrLookbackPeriods + 1)
+            if (quotes.Length < strategy.LookbackPeriods + 1)
                 return;
 
-            var lastRate = rates[^1];
-            if (_lastRateDate == lastRate.Date)
+            var lastRate = quotes[^1];
+            if (_lastQuoteDate == lastRate.Date)
                 return;
-            _lastRateDate = lastRate.Date;
+            _lastQuoteDate = lastRate.Date;
 
-            var stopAtr = rates.GetVolatilityStop(strategy.AtrLookbackPeriods, strategy.AtrMultiplier);
-            var lastStopAtr = stopAtr.Last();
-
-            var volume = lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
+            var volume = strategy.SignalVolume(quotes);
             var beforeVolume = current is null ? 0 : current.BalanceVolume();
-
-            if (current is not null)
-            {
-                var v = Math.Abs(beforeVolume) * strategy.IncrementVolume;
-
-                v -= v % _operationSettings.Value.Symbol.StandardLot;
-
-                if (volume > 0)
-                    volume += v;
-                else
-                    volume -= v;
-            }
-
             var afterVolume = beforeVolume + volume;
 
             if (current is not null && afterVolume == 0)
                 volume *= 2;
 
-            if (current is not null && isEndOfDay)
+            if (current is not null && endOfDay)
                 volume = beforeVolume * -1;
 
             if (volume == 0)

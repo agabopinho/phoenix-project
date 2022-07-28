@@ -27,10 +27,21 @@
     public class StrategySettings
     {
         public decimal Volume { get; set; }
-        public decimal IncrementVolume { get; set; }
-        public int AtrLookbackPeriods { get; set; }
-        public double AtrMultiplier { get; set; }
         public decimal? Profit { get; set; }
+        public string Use { get; set; } = "Atr";
+        public AtrSettings? Atr { get; set; }
+        public LinearRegressionSettings? LinearRegression { get; set; }
+
+        public class AtrSettings
+        {
+            public int LookbackPeriods { get; set; }
+            public double Multiplier { get; set; }
+        }
+
+        public class LinearRegressionSettings
+        {
+            public int LookbackPeriods { get; set; }
+        }
     }
 
     public class BacktestSettings

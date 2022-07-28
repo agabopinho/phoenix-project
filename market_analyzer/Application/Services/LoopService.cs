@@ -7,7 +7,6 @@ using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
@@ -81,32 +80,19 @@ namespace Application.Services
                 return;
             }
 
-            if (rates.Length < strategy.AtrLookbackPeriods + 1)
-                return;
+            //if (rates.Length < strategy.AtrLookbackPeriods + 1)
+            //    return;
 
-            var lastRate = rates[^1];
-            if (_lastRateDate == lastRate.Date)
-                return;
-            _lastRateDate = lastRate.Date;
+            //var lastRate = rates[^1];
+            //if (_lastRateDate == lastRate.Date)
+            //    return;
+            //_lastRateDate = lastRate.Date;
 
-            var stopAtr = rates.GetVolatilityStop(strategy.AtrLookbackPeriods, strategy.AtrMultiplier);
-            var lastStopAtr = stopAtr.Last();
+            //var stopAtr = rates.GetVolatilityStop(strategy.AtrLookbackPeriods, strategy.AtrMultiplier);
+            //var lastStopAtr = stopAtr.Last();
 
-            var volume = lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
+            var volume = 0m; //  lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
             var beforeVolume = current is null ? 0 : current.Volume;
-
-            if (current is not null)
-            {
-                var v = Math.Abs(beforeVolume) * strategy.IncrementVolume;
-
-                v -= v % _operationSettings.Value.Symbol.StandardLot;
-
-                if (volume > 0)
-                    volume += v;
-                else
-                    volume -= v;
-            }
-
             var afterVolume = beforeVolume + volume;
 
             if (current is not null && afterVolume == 0)
