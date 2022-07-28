@@ -17,7 +17,7 @@ namespace Application.Services
         private readonly ILogger<ILoopService> _logger;
 
         private readonly TimeSpan _end;
-        private readonly Backtest _backtest;
+        private readonly Backtest _backtest = new();
 
         private bool _summaryPrinted = false;
         private DateTime _lastRateDate;
@@ -34,7 +34,6 @@ namespace Application.Services
             _logger = logger;
 
             _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
-            _backtest = new(cycleProvider);
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -51,8 +50,7 @@ namespace Application.Services
             var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
             var strategy = _operationSettings.Value.Strategy;
             var current = _backtest.OpenPosition();
-            var tick = await GetTickAsync(cancellationToken);
-            var bookPrice = new BookPrice(Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
+            var bookPrice = await GetBookPriceAsync(cancellationToken);
             var balance = _backtest.Balance(bookPrice);
 
             if (strategy.Profit is not null && balance.Profit >= strategy.Profit)
@@ -114,6 +112,12 @@ namespace Application.Services
             Print(bookPrice, transaction);
         }
 
+        private async Task<BookPrice> GetBookPriceAsync(CancellationToken cancellationToken)
+        {
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
+            return new BookPrice(tick.Trade.Time.ToDateTime(), Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
+        }
+
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
             => await _ratesProvider.GetRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
@@ -121,9 +125,6 @@ namespace Application.Services
                 _operationSettings.Value.Timeframe,
                 _operationSettings.Value.Window,
                 cancellationToken);
-
-        private async Task<GetSymbolTickReply> GetTickAsync(CancellationToken cancellationToken)
-            => await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
 
         private void Print(BookPrice bookPrice, Transaction transaction)
         {

@@ -19,8 +19,11 @@ namespace Application.Services
         private readonly IOrderCreator _orderCreator;
         private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
-        private readonly TimeSpan _end;
 
+        private readonly TimeSpan _end;
+        private readonly Backtest _backtest = new();
+
+        private bool _summaryPrinted = false;
         private DateTime _lastRateDate;
 
         public LoopService(
@@ -37,6 +40,7 @@ namespace Application.Services
             _orderCreator = orderCreator;
             _operationSettings = operationSettings;
             _logger = logger;
+
             _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
         }
 
@@ -67,7 +71,15 @@ namespace Application.Services
                 isEndOfDay = true;
 
             if (current is null && isEndOfDay)
+            {
+                if (!_operationSettings.Value.ProductionMode && !_summaryPrinted)
+                {
+                    _summaryPrinted = true;
+                    _logger.LogInformation("{@summary}", _backtest.Summary);
+                }
+
                 return;
+            }
 
             if (rates.Length < strategy.AtrLookbackPeriods + 1)
                 return;
@@ -81,10 +93,7 @@ namespace Application.Services
             var lastStopAtr = stopAtr.Last();
 
             var volume = lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
-            var beforeVolume = current is null ? 0 :
-                current.Type == PositionType.Buy ?
-                    Convert.ToDecimal(current.Volume) :
-                    Convert.ToDecimal(current.Volume) * -1;
+            var beforeVolume = current is null ? 0 : current.Volume;
 
             if (current is not null)
             {
@@ -108,6 +117,16 @@ namespace Application.Services
 
             if (volume == 0)
                 return;
+
+            if (!_operationSettings.Value.ProductionMode)
+            {
+                var bookPrice = await GetBookPriceAsync(cancellationToken);
+                var transaction = _backtest.Execute(bookPrice, volume);
+
+                Print(bookPrice, transaction);
+
+                return;
+            }
 
             if (volume > 0)
             {
@@ -179,25 +198,70 @@ namespace Application.Services
             _logger.LogInformation("Sell Reply {@response}", response);
         }
 
-        private async Task<Grpc.Terminal.Position?> GetPositionAsync(CancellationToken cancellationToken)
+        private async Task<Position?> GetPositionAsync(CancellationToken cancellationToken)
         {
+            if (!_operationSettings.Value.ProductionMode)
+            {
+                var simPosition = _backtest.OpenPosition();
+
+                if (simPosition is null)
+                    return null;
+
+                var bookPrice = await GetBookPriceAsync(cancellationToken);
+                var balance = _backtest.Balance(bookPrice);
+
+                return new Position(balance.OpenVolume, balance.Profit);
+            }
+
             var positions = await _orderManagementWrapper.GetPositionsAsync(
                 group: _operationSettings.Value.Symbol.Name!,
                 cancellationToken: cancellationToken);
 
-            return positions.Positions.FirstOrDefault();
+            var position = positions.Positions.FirstOrDefault();
+
+            if (position is null)
+                return null;
+
+            var volume = position.Type == PositionType.Buy ?
+                Convert.ToDecimal(position.Volume) :
+                Convert.ToDecimal(position.Volume) * -1;
+
+            return new Position(volume, Convert.ToDecimal(position.Profit));
+        }
+
+        private async Task<BookPrice> GetBookPriceAsync(CancellationToken cancellationToken)
+        {
+            var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
+            return new BookPrice(tick.Trade.Time.ToDateTime(), Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
-        {
-            var result = await _ratesProvider.GetRatesAsync(
+            => await _ratesProvider.GetRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
                 _operationSettings.Value.Date,
                 _operationSettings.Value.Timeframe,
                 _operationSettings.Value.Window,
                 cancellationToken);
 
-            return result.OrderBy(it => it.Time).ToArray();
+        private void Print(BookPrice bookPrice, Transaction transaction)
+        {
+            if (!_backtest.Positions.Any())
+                return;
+
+            var result = _backtest.Balance(bookPrice);
+            var symbol = _operationSettings.Value.Symbol;
+
+            _logger.LogInformation("{@profit}", new
+            {
+                Time = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff"),
+                Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
+                transaction.Price,
+                OpenVolume = Math.Round(result.OpenVolume, symbol.VolumeDecimals),
+                OpenPrice = Math.Round(result.OpenPrice, symbol.PriceDecimals),
+                Profit = Math.Round(result.Profit, symbol.PriceDecimals),
+            });
         }
+
+        private record class Position(decimal Volume, decimal Profit);
     }
 }
