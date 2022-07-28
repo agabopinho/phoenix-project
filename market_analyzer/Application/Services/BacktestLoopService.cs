@@ -17,8 +17,10 @@ namespace Application.Services
         private readonly ILogger<ILoopService> _logger;
         private readonly TimeSpan _end;
 
-        private readonly List<Position> _positions = new();
-        private static DateTime _lastRateDate;
+        private readonly Backtest _backtest = new();
+
+        private bool _summaryPrinted = false;
+        private DateTime _lastRateDate;
 
         public BacktestLoopService(
             IRatesProvider ratesProvider,
@@ -53,10 +55,18 @@ namespace Application.Services
             var isEndOfDay = _cycleProvider.Previous.TimeOfDay >= _end;
 
             var strategy = _operationSettings.Value.Strategy;
-            var current = _positions.LastOrDefault(it => it.Volume() != 0);
+            var current = _backtest.OpenPosition();
 
             if (current is null && isEndOfDay)
+            {
+                if (!_summaryPrinted)
+                {
+                    _summaryPrinted = true;
+                    _logger.LogInformation("{@summary}", _backtest.Summary);
+                }
+
                 return;
+            }
 
             if (rates.Length < strategy.AtrLookbackPeriods + 1)
                 return;
@@ -73,7 +83,7 @@ namespace Application.Services
 
             if (current is not null)
             {
-                var v = Math.Abs(current.Volume()) * strategy.IncrementVolume;
+                var v = Math.Abs(current.BalanceVolume()) * strategy.IncrementVolume;
 
                 v -= v % _operationSettings.Value.Symbol.StandardLot;
 
@@ -83,14 +93,14 @@ namespace Application.Services
                     volume -= v;
             }
 
-            var beforeVolume = current is null ? 0 : current.Volume();
+            var beforeVolume = current is null ? 0 : current.BalanceVolume();
             var afterVolume = beforeVolume + volume;
 
             if (current is not null && afterVolume == 0)
                 volume *= 2;
 
             if (current is not null && isEndOfDay)
-                volume = current.Volume() * -1;
+                volume = current.BalanceVolume() * -1;
 
             if (volume == 0)
                 return;
@@ -98,10 +108,7 @@ namespace Application.Services
             var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
             var transaction = new Transaction(_cycleProvider.Previous, price, volume);
 
-            if (current is null)
-                _positions.Add(current = new Position());
-
-            current.Add(transaction);
+            _backtest.Add(transaction);
 
             PrintPosition(tick, transaction);
         }
@@ -119,33 +126,21 @@ namespace Application.Services
 
         private void PrintPosition(GetSymbolTickReply tick, Transaction transaction)
         {
-            if (_positions.Count == 0)
+            if (_backtest.Positions.Count() == 0)
                 return;
 
-            var posVolume = 0M;
-            var posProfit = 0M;
-            var posPrice = 0M;
-
-            foreach (var item in _positions)
-            {
-                var volume = item.Volume();
-                var price = volume > 0 ? Convert.ToDecimal(tick.Trade.Ask) : Convert.ToDecimal(tick.Trade.Bid);
-
-                posVolume += volume;
-                posProfit += item.Profit(Convert.ToDecimal(price));
-                posPrice = item.Price();
-            }
-
+            var bookPrice = new BookPrice(Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
+            var result = _backtest.Balance(bookPrice);
             var symbol = _operationSettings.Value.Symbol;
 
             _logger.LogInformation("{@profit}", new
             {
                 Time = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff"),
-                transaction.Price,
                 Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
-                PosVolume = Math.Round(posVolume, symbol.VolumeDecimals),
-                PosPrice = Math.Round(posPrice, symbol.PriceDecimals),
-                PosProfit = Math.Round(posProfit, symbol.PriceDecimals),
+                transaction.Price,
+                OpenVolume = Math.Round(result.OpenVolume, symbol.VolumeDecimals),
+                OpenPrice = Math.Round(result.OpenPrice, symbol.PriceDecimals),
+                Profit = Math.Round(result.Profit, symbol.PriceDecimals),
             });
         }
     }

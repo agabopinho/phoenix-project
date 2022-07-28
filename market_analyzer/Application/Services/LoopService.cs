@@ -64,36 +64,7 @@ namespace Application.Services
 
         private async Task CheckAsync(CustomQuote[] quotes, CancellationToken cancellationToken)
         {
-            var endOfDay = quotes.Last().Date.TimeOfDay >= _end;
-
-            if (_ranges.Count == _rangesLastCount && !endOfDay)
-                return;
-
-            var current = await GetPositionAsync(cancellationToken);
-            if (endOfDay && current is null)
-                return;
-
-            _rangesLastCount = _ranges.Count;
-
-            if (_ranges.Count == 1)
-                return;
-
-            var last = _ranges[^1];
-            var previous = _ranges[^2];
-
-            var strategy = _operationSettings.Value.Strategy;
-            var isUp = (last.Value > previous.Value);
-            var volume = isUp ? -strategy.Volume : strategy.Volume;
-
-            if (current is not null && endOfDay)
-                volume = Convert.ToDecimal(current.Volume) * -1;
-
-            if (!_operationSettings.Value.ProductionMode)
-            {
-                _logger.LogInformation("{@data}", new { quotes.Last().Close, Volume = volume });
-
-                return;
-            }
+            var volume = 0M;
 
             if (volume > 0)
             {
