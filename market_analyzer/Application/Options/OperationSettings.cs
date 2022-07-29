@@ -31,6 +31,8 @@
         public string Use { get; set; } = "Atr";
         public AtrSettings? Atr { get; set; }
         public LinearRegressionSettings? LinearRegression { get; set; }
+        public DoubleRsiSettings? DoubleRsi { get; set; }
+        public MacdSettings? Macd { get; set; }
 
         public class AtrSettings
         {
@@ -41,6 +43,19 @@
         public class LinearRegressionSettings
         {
             public int LookbackPeriods { get; set; }
+        }
+
+        public class DoubleRsiSettings
+        {
+            public int FastLookbackPeriods { get; set; }
+            public int SlowLookbackPeriods { get; set; }
+        }
+
+        public class MacdSettings
+        {
+            public int FastPeriods { get; set; }
+            public int SlowPeriods { get; set; }
+            public int SignalPeriods { get; set; }
         }
     }
 

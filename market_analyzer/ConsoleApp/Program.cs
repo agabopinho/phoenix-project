@@ -94,6 +94,12 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, AtrFollowTrend>();
     services.AddSingleton<IStrategy, LinearRegression>();
     services.AddSingleton<IStrategy, LinearRegressionFollowTrend>();
+    services.AddSingleton<IStrategy, LastBar>();
+    services.AddSingleton<IStrategy, LastBarFollowTrend>();
+    services.AddSingleton<IStrategy, DoubleRsi>();
+    services.AddSingleton<IStrategy, DoubleRsiFollowTrend>();
+    services.AddSingleton<IStrategy, Macd>();
+    services.AddSingleton<IStrategy, MacdFollowTrend>();
     services.AddSingleton<IStrategyFactory, StrategyFactory>();
 });
 
