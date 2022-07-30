@@ -30,17 +30,17 @@ namespace Application.Services.Strategies
             => _strategies.FirstOrDefault(it => it.GetType().Name.Equals(name, StringComparison.OrdinalIgnoreCase));
     }
 
-    public class Atr : IStrategy
+    public class StopAtr : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
 
-        public Atr(IOptions<OperationSettings> operationSettings)
+        public StopAtr(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.Atr!.LookbackPeriods;
+            _operationSettings.Value.Strategy.StopAtr!.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -51,15 +51,15 @@ namespace Application.Services.Strategies
 
         protected VolatilityStopResult LastStopAtr(IEnumerable<CustomQuote> quotes)
         {
-            var atr = _operationSettings.Value.Strategy.Atr!;
+            var atr = _operationSettings.Value.Strategy.StopAtr!;
             var stopAtr = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
             return stopAtr.Last();
         }
     }
 
-    public class AtrFollowTrend : Atr
+    public class StopAtrFollowTrend : StopAtr
     {
-        public AtrFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public StopAtrFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -228,6 +228,59 @@ namespace Application.Services.Strategies
         {
             var strategy = _operationSettings.Value.Strategy;
             return !MacdIsGreaterThanSignal(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+    }
+
+    public class Crazy : IStrategy
+    {
+        protected readonly IOptions<OperationSettings> _operationSettings;
+
+        public Crazy(IOptions<OperationSettings> operationSettings)
+        {
+            _operationSettings = operationSettings;
+        }
+
+        public int LookbackPeriods => 5;
+
+        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+
+            var up = true;
+            var down = true;
+            var count = 4;
+
+            CustomQuote? last = null;
+
+            foreach (var quote in quotes.Reverse())
+            {
+                count--;
+
+                if (last is null)
+                {
+                    last = quote;
+                    continue;
+                }
+
+                if (quote.Open < last.Open)
+                    up = false;
+
+                if (quote.Open > last.Open)
+                    down = false;
+
+                last = quote;
+
+                if (count == 0)
+                    break;
+            }
+
+            if (up)
+                return -strategy.Volume;
+
+            if (down)
+                return strategy.Volume;
+
+            return 0;
         }
     }
 }

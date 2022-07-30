@@ -31,8 +31,13 @@ namespace Infrastructure.GrpcServerTerminal
             long? ticket = null, long? position = null,
             CancellationToken cancellationToken = default);
 
-        Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken = default);
-        Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken = default);
+        Task<CheckOrderReply> CheckOrderAsync(
+            OrderRequest request, 
+            CancellationToken cancellationToken = default);
+
+        Task<SendOrderReply> SendOrderAsync(
+            OrderRequest request, 
+            CancellationToken cancellationToken = default);
     }
 
     public class OrderManagementWrapper : IOrderManagementWrapper

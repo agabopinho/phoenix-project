@@ -29,12 +29,12 @@
         public decimal Volume { get; set; }
         public decimal? Profit { get; set; }
         public string Use { get; set; } = "Atr";
-        public AtrSettings? Atr { get; set; }
+        public StopAtrSettings? StopAtr { get; set; }
         public LinearRegressionSettings? LinearRegression { get; set; }
         public DoubleRsiSettings? DoubleRsi { get; set; }
         public MacdSettings? Macd { get; set; }
 
-        public class AtrSettings
+        public class StopAtrSettings
         {
             public int LookbackPeriods { get; set; }
             public double Multiplier { get; set; }
