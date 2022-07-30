@@ -33,6 +33,7 @@
         public LinearRegressionSettings? LinearRegression { get; set; }
         public DoubleRsiSettings? DoubleRsi { get; set; }
         public MacdSettings? Macd { get; set; }
+        public SuperTrendSettings? SuperTrend { get; set; }
 
         public class StopAtrSettings
         {
@@ -56,6 +57,12 @@
             public int FastPeriods { get; set; }
             public int SlowPeriods { get; set; }
             public int SignalPeriods { get; set; }
+        }
+
+        public class SuperTrendSettings
+        {
+            public int LookbackPeriods { get; set; }
+            public double Multiplier { get; set; }
         }
     }
 

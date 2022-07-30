@@ -52,8 +52,8 @@ namespace Application.Services.Strategies
         protected VolatilityStopResult LastStopAtr(IEnumerable<CustomQuote> quotes)
         {
             var atr = _operationSettings.Value.Strategy.StopAtr!;
-            var stopAtr = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
-            return stopAtr.Last();
+            var stopAtrs = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
+            return stopAtrs.Last();
         }
     }
 
@@ -93,8 +93,8 @@ namespace Application.Services.Strategies
         protected SlopeResult LastSlope(IEnumerable<CustomQuote> quotes)
         {
             var linearRegression = _operationSettings.Value.Strategy.LinearRegression!;
-            var slope = quotes.GetSlope(linearRegression.LookbackPeriods);
-            return slope.Last();
+            var slopes = quotes.GetSlope(linearRegression.LookbackPeriods);
+            return slopes.Last();
         }
     }
 
@@ -171,9 +171,9 @@ namespace Application.Services.Strategies
         protected bool FastIsGreaterThanSlow(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var fastRsi = quotes.GetRsi(strategy.DoubleRsi!.FastLookbackPeriods);
-            var slowRsi = quotes.GetRsi(strategy.DoubleRsi!.SlowLookbackPeriods);
-            return fastRsi.Last().Rsi > slowRsi.Last().Rsi;
+            var fastRsis = quotes.GetRsi(strategy.DoubleRsi!.FastLookbackPeriods);
+            var slowRsis = quotes.GetRsi(strategy.DoubleRsi!.SlowLookbackPeriods);
+            return fastRsis.Last().Rsi > slowRsis.Last().Rsi;
         }
     }
 
@@ -200,7 +200,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.DoubleRsi!.SlowLookbackPeriods;
+            _operationSettings.Value.Strategy.Macd!.SlowPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -212,8 +212,8 @@ namespace Application.Services.Strategies
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Macd!;
-            var macd = quotes.GetMacd(settings.FastPeriods, settings.SlowPeriods, settings.SignalPeriods);
-            var lastMacd = macd.Last();
+            var macds = quotes.GetMacd(settings.FastPeriods, settings.SlowPeriods, settings.SignalPeriods);
+            var lastMacd = macds.Last();
             return lastMacd.Macd > lastMacd.Signal;
         }
     }
@@ -228,6 +228,47 @@ namespace Application.Services.Strategies
         {
             var strategy = _operationSettings.Value.Strategy;
             return !MacdIsGreaterThanSignal(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+    }
+
+    public class SuperTrend : IStrategy
+    {
+        protected readonly IOptions<OperationSettings> _operationSettings;
+
+        public SuperTrend(IOptions<OperationSettings> operationSettings)
+        {
+            _operationSettings = operationSettings;
+        }
+
+        public int LookbackPeriods =>
+            _operationSettings.Value.Strategy.SuperTrend!.LookbackPeriods;
+
+        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return SuperTrendHasUpperBand(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+
+        protected bool SuperTrendHasUpperBand(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var settings = strategy.SuperTrend!;
+            var superTrends = quotes.GetSuperTrend(settings.LookbackPeriods, settings.Multiplier);
+            var superTrend = superTrends.Last();
+            return superTrend.UpperBand is not null;
+        }
+    }
+
+    public class SuperTrendFollowTrend : SuperTrend
+    {
+        public SuperTrendFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        {
+        }
+
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return !SuperTrendHasUpperBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 
@@ -248,7 +289,7 @@ namespace Application.Services.Strategies
 
             var up = true;
             var down = true;
-            var count = 4;
+            var count = LookbackPeriods;
 
             CustomQuote? last = null;
 
