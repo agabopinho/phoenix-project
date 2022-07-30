@@ -34,41 +34,77 @@
         public DoubleRsiSettings? DoubleRsi { get; set; }
         public MacdSettings? Macd { get; set; }
         public SuperTrendSettings? SuperTrend { get; set; }
-        public EmaSettings? Ema { get; set; }
+        public MaSettings? Ma { get; set; }
+        public VwapSettings? Vwap { get; set; }
+        public KamaSettings? Kama { get; set; }
+        public MamaSettings? Mama { get; set; }
+        public T3Settings? T3 { get; set; }
+        public AlmaSettings? Alma { get; set; }
 
         public class StopAtrSettings
         {
-            public int LookbackPeriods { get; set; }
-            public double Multiplier { get; set; }
+            public int LookbackPeriods { get; set; } = 7;
+            public double Multiplier { get; set; } = 3;
         }
 
         public class LinearRegressionSettings
         {
-            public int LookbackPeriods { get; set; }
+            public int LookbackPeriods { get; set; } = 10;
         }
 
         public class DoubleRsiSettings
         {
-            public int FastLookbackPeriods { get; set; }
-            public int SlowLookbackPeriods { get; set; }
+            public int FastLookbackPeriods { get; set; } = 14;
+            public int SlowLookbackPeriods { get; set; } = 70;
         }
 
         public class MacdSettings
         {
-            public int FastPeriods { get; set; }
-            public int SlowPeriods { get; set; }
-            public int SignalPeriods { get; set; }
+            public int FastPeriods { get; set; } = 12;
+            public int SlowPeriods { get; set; } = 26;
+            public int SignalPeriods { get; set; } = 9;
         }
 
         public class SuperTrendSettings
         {
-            public int LookbackPeriods { get; set; }
-            public double Multiplier { get; set; }
+            public int LookbackPeriods { get; set; } = 10;
+            public double Multiplier { get; set; } = 3;
         }
 
-        public class EmaSettings
+        public class MaSettings
         {
-            public int LookbackPeriods { get; set; }
+            public int LookbackPeriods { get; set; } = 8;
+        }
+
+        public class VwapSettings
+        {
+            public int LookbackPeriods { get; set; } = 8;
+        }
+
+        public class KamaSettings
+        {
+            public int ErPeriods { get; set; } = 10;
+            public int FastPeriods { get; set; } = 2;
+            public int SlowPeriods { get; set; } = 30;
+        }
+
+        public class MamaSettings
+        {
+            public double FastLimit { get; set; } = 0.5;
+            public double SlowLimit { get; set; } = 0.05;
+        }
+
+        public class T3Settings
+        {
+            public int LookbackPeriods { get; set; } = 5;
+            public double VolumeFactor { get; set; } = 0.7;
+        }
+
+        public class AlmaSettings
+        {
+            public int LookbackPeriods { get; set; } = 9;
+            public double Offset { get; set; } = 0.85;
+            public double Sigma { get; set; } = 6;
         }
     }
 

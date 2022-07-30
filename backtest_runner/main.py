@@ -13,7 +13,7 @@ appPath = path.join(
 
 jsonData = json.loads(open(appSettingsPath).read())
 
-for d in DATES:
+for d in DATES[INDEX]:
     jsonData["Operation"]["Date"] = d.strftime("%Y-%m-%d")
 
     with open(appSettingsPath, "w") as file:

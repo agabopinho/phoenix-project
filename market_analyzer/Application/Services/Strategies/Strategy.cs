@@ -45,15 +45,15 @@ namespace Application.Services.Strategies
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var lastStopAtr = LastStopAtr(quotes);
-            return lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
+            return StopAtrHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected VolatilityStopResult LastStopAtr(IEnumerable<CustomQuote> quotes)
+        protected virtual bool StopAtrHasLowerBand(IEnumerable<CustomQuote> quotes)
         {
             var atr = _operationSettings.Value.Strategy.StopAtr!;
             var stopAtrs = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
-            return stopAtrs.Last();
+            var stopAtr = stopAtrs.Last();
+            return stopAtr.LowerBand is not null;
         }
     }
 
@@ -66,8 +66,7 @@ namespace Application.Services.Strategies
         public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var lastStopAtr = LastStopAtr(quotes);
-            return lastStopAtr.UpperBand is not null ? -strategy.Volume : strategy.Volume;
+            return !StopAtrHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 
@@ -86,15 +85,15 @@ namespace Application.Services.Strategies
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var lastSlope = LastSlope(quotes);
-            return lastSlope.Slope > 0 ? -strategy.Volume : strategy.Volume;
+            return LastSlopeIsGreaterThanZero(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected SlopeResult LastSlope(IEnumerable<CustomQuote> quotes)
+        protected virtual bool LastSlopeIsGreaterThanZero(IEnumerable<CustomQuote> quotes)
         {
             var linearRegression = _operationSettings.Value.Strategy.LinearRegression!;
             var slopes = quotes.GetSlope(linearRegression.LookbackPeriods);
-            return slopes.Last();
+            var slope = slopes.Last();
+            return slope.Slope > 0;
         }
     }
 
@@ -107,8 +106,7 @@ namespace Application.Services.Strategies
         public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var lastSlope = LastSlope(quotes);
-            return lastSlope.Slope < 0 ? -strategy.Volume : strategy.Volume;
+            return !LastSlopeIsGreaterThanZero(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 
@@ -121,32 +119,31 @@ namespace Application.Services.Strategies
             _operationSettings = operationSettings;
         }
 
-        public int LookbackPeriods => 1;
+        public int LookbackPeriods => 0;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
+            return LastBarIsUp(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+
+        public virtual bool LastBarIsUp(IEnumerable<CustomQuote> quotes)
+        {
             var lastQuote = quotes.SkipLast(1).Last();
-            return lastQuote.Close > lastQuote.Open ? -strategy.Volume : strategy.Volume;
+            return lastQuote.Close > lastQuote.Open;
         }
     }
 
-    public class LastBarFollowTrend : IStrategy
+    public class LastBarFollowTrend : LastBar
     {
-        protected readonly IOptions<OperationSettings> _operationSettings;
-
-        public LastBarFollowTrend(IOptions<OperationSettings> operationSettings)
+        public LastBarFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
-            _operationSettings = operationSettings;
         }
 
-        public int LookbackPeriods => 1;
-
-        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var lastQuote = quotes.SkipLast(1).Last();
-            return lastQuote.Close < lastQuote.Open ? -strategy.Volume : strategy.Volume;
+            return !LastBarIsUp(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 
@@ -165,15 +162,17 @@ namespace Application.Services.Strategies
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            return FastIsGreaterThanSlow(quotes) ? -strategy.Volume : strategy.Volume;
+            return FastRsiIsGreaterThanSlowRsi(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool FastIsGreaterThanSlow(IEnumerable<CustomQuote> quotes)
+        protected bool FastRsiIsGreaterThanSlowRsi(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var fastRsis = quotes.GetRsi(strategy.DoubleRsi!.FastLookbackPeriods);
             var slowRsis = quotes.GetRsi(strategy.DoubleRsi!.SlowLookbackPeriods);
-            return fastRsis.Last().Rsi > slowRsis.Last().Rsi;
+            var fastRsi = fastRsis.Last();
+            var slowRsi = slowRsis.Last();
+            return fastRsi.Rsi > slowRsi.Rsi;
         }
     }
 
@@ -186,7 +185,7 @@ namespace Application.Services.Strategies
         public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            return !FastIsGreaterThanSlow(quotes) ? -strategy.Volume : strategy.Volume;
+            return !FastRsiIsGreaterThanSlowRsi(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 
@@ -246,16 +245,16 @@ namespace Application.Services.Strategies
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            return SuperTrendHasUpperBand(quotes) ? -strategy.Volume : strategy.Volume;
+            return SuperTrendHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool SuperTrendHasUpperBand(IEnumerable<CustomQuote> quotes)
+        protected bool SuperTrendHasLowerBand(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.SuperTrend!;
             var superTrends = quotes.GetSuperTrend(settings.LookbackPeriods, settings.Multiplier);
             var superTrend = superTrends.Last();
-            return superTrend.UpperBand is not null;
+            return superTrend.LowerBand is not null;
         }
     }
 
@@ -268,48 +267,250 @@ namespace Application.Services.Strategies
         public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            return !SuperTrendHasUpperBand(quotes) ? -strategy.Volume : strategy.Volume;
+            return !SuperTrendHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 
-    public class Ema : IStrategy
+    public class Vwap : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
 
-        public Ema(IOptions<OperationSettings> operationSettings)
+        public Vwap(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.Ema!.LookbackPeriods;
+            _operationSettings.Value.Strategy.Vwap!.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            return LastCloseIsGreaterThanEma(quotes) ? -strategy.Volume : strategy.Volume;
+            return CloseIsGreaterThanVwap(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool LastCloseIsGreaterThanEma(IEnumerable<CustomQuote> quotes)
+        protected bool CloseIsGreaterThanVwap(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ema!;
-            var emas = quotes.GetEma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return ema.Ema < Convert.ToDouble(quotes.Last().Close);
+            var settings = strategy.Vwap!;
+            var fromQuote = quotes.SkipLast(settings.LookbackPeriods).Last();
+            var vwaps = quotes.GetVwap(fromQuote.Date);
+            var vwap = vwaps.Last();
+            return Convert.ToDouble(quotes.Last().Close) > vwap.Vwap;
         }
     }
 
-    public class EmaTrendFollow : Ema
+    public class VwapFollowTrend : Vwap
     {
-        public EmaTrendFollow(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public VwapFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
         public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            return !LastCloseIsGreaterThanEma(quotes) ? -strategy.Volume : strategy.Volume;
+            return !CloseIsGreaterThanVwap(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+    }
+
+    public class Kama : IStrategy
+    {
+        protected readonly IOptions<OperationSettings> _operationSettings;
+
+        public Kama(IOptions<OperationSettings> operationSettings)
+        {
+            _operationSettings = operationSettings;
+        }
+
+        public int LookbackPeriods =>
+            _operationSettings.Value.Strategy.Kama!.SlowPeriods;
+
+        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return CloseIsGreaterThanKama(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+
+        protected bool CloseIsGreaterThanKama(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var settings = strategy.Kama!;
+            var kamas = quotes.GetKama(settings.ErPeriods, settings.FastPeriods, settings.SlowPeriods);
+            var kama = kamas.Last();
+            return Convert.ToDouble(quotes.Last().Close) > kama.Kama;
+        }
+    }
+
+    public class KamaFollowTrend : Kama
+    {
+        public KamaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        {
+        }
+
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return !CloseIsGreaterThanKama(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+    }
+
+    public class HtTrendline : IStrategy
+    {
+        protected readonly IOptions<OperationSettings> _operationSettings;
+
+        public HtTrendline(IOptions<OperationSettings> operationSettings)
+        {
+            _operationSettings = operationSettings;
+        }
+
+        public int LookbackPeriods => 0;
+
+        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return SmoothPriceIsGreaterThanTrendline(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+
+        protected bool SmoothPriceIsGreaterThanTrendline(IEnumerable<CustomQuote> quotes)
+        {
+            var htTrendlines = quotes.GetHtTrendline();
+            var htTrendline = htTrendlines.Last();
+            return htTrendline.SmoothPrice > htTrendline.Trendline;
+        }
+    }
+
+    public class HtTrendlineFollowTrend : HtTrendline
+    {
+        public HtTrendlineFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        {
+        }
+
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return !SmoothPriceIsGreaterThanTrendline(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+    }
+
+    public class Mama : IStrategy
+    {
+        protected readonly IOptions<OperationSettings> _operationSettings;
+
+        public Mama(IOptions<OperationSettings> operationSettings)
+        {
+            _operationSettings = operationSettings;
+        }
+
+        public int LookbackPeriods => 0;
+
+        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return MamaIsGreaterThanFama(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+
+        protected bool MamaIsGreaterThanFama(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var settings = strategy.Mama!;
+            var mamas = quotes.GetMama(settings.FastLimit, settings.SlowLimit);
+            var mama = mamas.Last();
+            return mama.Mama > mama.Fama;
+        }
+    }
+
+    public class MamaFollowTrend : Mama
+    {
+        public MamaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        {
+        }
+
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return !MamaIsGreaterThanFama(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+    }
+
+    public class T3 : IStrategy
+    {
+        protected readonly IOptions<OperationSettings> _operationSettings;
+
+        public T3(IOptions<OperationSettings> operationSettings)
+        {
+            _operationSettings = operationSettings;
+        }
+
+        public int LookbackPeriods =>
+            _operationSettings.Value.Strategy.T3!.LookbackPeriods;
+
+        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return CloseIsGreaterThanT3(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+
+        protected bool CloseIsGreaterThanT3(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var settings = strategy.T3!;
+            var t3s = quotes.GetT3(settings.LookbackPeriods, settings.VolumeFactor);
+            var t3 = t3s.Last();
+            return Convert.ToDouble(quotes.Last().Close) > t3.T3;
+        }
+    }
+
+    public class T3FollowTrend : T3
+    {
+        public T3FollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        {
+        }
+
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return !CloseIsGreaterThanT3(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+    }
+
+    public class Alma : IStrategy
+    {
+        protected readonly IOptions<OperationSettings> _operationSettings;
+
+        public Alma(IOptions<OperationSettings> operationSettings)
+        {
+            _operationSettings = operationSettings;
+        }
+
+        public int LookbackPeriods =>
+            _operationSettings.Value.Strategy.Alma!.LookbackPeriods;
+
+        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return CloseIsGreaterThanAlma(quotes) ? -strategy.Volume : strategy.Volume;
+        }
+
+        protected bool CloseIsGreaterThanAlma(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var settings = strategy.Alma!;
+            var almas = quotes.GetAlma(settings.LookbackPeriods, settings.Offset, settings.Sigma);
+            var alma = almas.Last();
+            return Convert.ToDouble(quotes.Last().Close) > alma.Alma;
+        }
+    }
+
+    public class AlmaFollowTrend : Alma
+    {
+        public AlmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        {
+        }
+
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return !CloseIsGreaterThanAlma(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 }
