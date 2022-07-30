@@ -29,17 +29,17 @@
         public decimal Volume { get; set; }
         public decimal? Profit { get; set; }
         public string Use { get; set; } = "Atr";
-        public StopAtrSettings? StopAtr { get; set; }
-        public LinearRegressionSettings? LinearRegression { get; set; }
-        public DoubleRsiSettings? DoubleRsi { get; set; }
-        public MacdSettings? Macd { get; set; }
-        public SuperTrendSettings? SuperTrend { get; set; }
-        public MaSettings? Ma { get; set; }
-        public VwapSettings? Vwap { get; set; }
-        public KamaSettings? Kama { get; set; }
-        public MamaSettings? Mama { get; set; }
-        public T3Settings? T3 { get; set; }
-        public AlmaSettings? Alma { get; set; }
+        public StopAtrSettings StopAtr { get; set; }= new();
+        public LinearRegressionSettings LinearRegression { get; set; } = new();
+        public DoubleRsiSettings DoubleRsi { get; set; } = new();
+        public MacdSettings Macd { get; set; } = new();
+        public SuperTrendSettings SuperTrend { get; set; } = new();
+        public MaSettings Ma { get; set; } = new();
+        public VwapSettings Vwap { get; set; } = new();
+        public KamaSettings Kama { get; set; } = new();
+        public MamaSettings Mama { get; set; } = new();
+        public T3Settings T3 { get; set; } = new();
+        public AlmaSettings Alma { get; set; } = new();
 
         public class StopAtrSettings
         {

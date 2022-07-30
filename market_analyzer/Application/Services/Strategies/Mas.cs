@@ -15,7 +15,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.Ma!.LookbackPeriods;
+            _operationSettings.Value.Strategy.Ma.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -48,7 +48,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetSma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Sma;
@@ -64,7 +64,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetSma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Sma;
@@ -80,7 +80,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetEma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Ema;
@@ -96,7 +96,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetEma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Ema;
@@ -112,7 +112,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetWma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Wma;
@@ -128,7 +128,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetWma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Wma;
@@ -144,7 +144,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetVwma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Vwma;
@@ -160,7 +160,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetVwma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Vwma;
@@ -176,7 +176,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetDema(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Dema;
@@ -192,7 +192,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetDema(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Dema;
@@ -208,7 +208,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetEpma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Epma;
@@ -224,7 +224,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetEpma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Epma;
@@ -240,7 +240,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetHma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Hma;
@@ -256,7 +256,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetHma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Hma;
@@ -272,7 +272,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetSmma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Smma;
@@ -288,7 +288,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetSmma(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Smma;
@@ -304,7 +304,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetTema(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Tema;
@@ -320,7 +320,7 @@ namespace Application.Services.Strategies
         protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma!;
+            var settings = strategy.Ma;
             var emas = quotes.GetTema(settings.LookbackPeriods);
             var ema = emas.Last();
             return Convert.ToDouble(quotes.Last().Close) > ema.Tema;

@@ -5,31 +5,6 @@ using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
-    public interface IStrategy
-    {
-        int LookbackPeriods { get; }
-
-        decimal SignalVolume(IEnumerable<CustomQuote> quotes);
-    }
-
-    public interface IStrategyFactory
-    {
-        IStrategy? Get(string name);
-    }
-
-    public class StrategyFactory : IStrategyFactory
-    {
-        private readonly IEnumerable<IStrategy> _strategies;
-
-        public StrategyFactory(IEnumerable<IStrategy> strategies)
-        {
-            _strategies = strategies;
-        }
-
-        public IStrategy? Get(string name)
-            => _strategies.FirstOrDefault(it => it.GetType().Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-    }
-
     public class StopAtr : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
@@ -40,7 +15,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.StopAtr!.LookbackPeriods;
+            _operationSettings.Value.Strategy.StopAtr.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -50,7 +25,7 @@ namespace Application.Services.Strategies
 
         protected virtual bool StopAtrHasLowerBand(IEnumerable<CustomQuote> quotes)
         {
-            var atr = _operationSettings.Value.Strategy.StopAtr!;
+            var atr = _operationSettings.Value.Strategy.StopAtr;
             var stopAtrs = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
             var stopAtr = stopAtrs.Last();
             return stopAtr.LowerBand is not null;
@@ -80,7 +55,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.LinearRegression!.LookbackPeriods;
+            _operationSettings.Value.Strategy.LinearRegression.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -90,7 +65,7 @@ namespace Application.Services.Strategies
 
         protected virtual bool LastSlopeIsGreaterThanZero(IEnumerable<CustomQuote> quotes)
         {
-            var linearRegression = _operationSettings.Value.Strategy.LinearRegression!;
+            var linearRegression = _operationSettings.Value.Strategy.LinearRegression;
             var slopes = quotes.GetSlope(linearRegression.LookbackPeriods);
             var slope = slopes.Last();
             return slope.Slope > 0;
@@ -157,7 +132,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.DoubleRsi!.SlowLookbackPeriods;
+            _operationSettings.Value.Strategy.DoubleRsi.SlowLookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -168,8 +143,8 @@ namespace Application.Services.Strategies
         protected bool FastRsiIsGreaterThanSlowRsi(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var fastRsis = quotes.GetRsi(strategy.DoubleRsi!.FastLookbackPeriods);
-            var slowRsis = quotes.GetRsi(strategy.DoubleRsi!.SlowLookbackPeriods);
+            var fastRsis = quotes.GetRsi(strategy.DoubleRsi.FastLookbackPeriods);
+            var slowRsis = quotes.GetRsi(strategy.DoubleRsi.SlowLookbackPeriods);
             var fastRsi = fastRsis.Last();
             var slowRsi = slowRsis.Last();
             return fastRsi.Rsi > slowRsi.Rsi;
@@ -199,7 +174,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.Macd!.SlowPeriods;
+            _operationSettings.Value.Strategy.Macd.SlowPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -210,7 +185,7 @@ namespace Application.Services.Strategies
         protected bool MacdIsGreaterThanSignal(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Macd!;
+            var settings = strategy.Macd;
             var macds = quotes.GetMacd(settings.FastPeriods, settings.SlowPeriods, settings.SignalPeriods);
             var lastMacd = macds.Last();
             return lastMacd.Macd > lastMacd.Signal;
@@ -240,7 +215,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.SuperTrend!.LookbackPeriods;
+            _operationSettings.Value.Strategy.SuperTrend.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -251,7 +226,7 @@ namespace Application.Services.Strategies
         protected bool SuperTrendHasLowerBand(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.SuperTrend!;
+            var settings = strategy.SuperTrend;
             var superTrends = quotes.GetSuperTrend(settings.LookbackPeriods, settings.Multiplier);
             var superTrend = superTrends.Last();
             return superTrend.LowerBand is not null;
@@ -281,7 +256,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.Vwap!.LookbackPeriods;
+            _operationSettings.Value.Strategy.Vwap.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -292,7 +267,7 @@ namespace Application.Services.Strategies
         protected bool CloseIsGreaterThanVwap(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Vwap!;
+            var settings = strategy.Vwap;
             var fromQuote = quotes.SkipLast(settings.LookbackPeriods).Last();
             var vwaps = quotes.GetVwap(fromQuote.Date);
             var vwap = vwaps.Last();
@@ -323,7 +298,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.Kama!.SlowPeriods;
+            _operationSettings.Value.Strategy.Kama.SlowPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -334,7 +309,7 @@ namespace Application.Services.Strategies
         protected bool CloseIsGreaterThanKama(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Kama!;
+            var settings = strategy.Kama;
             var kamas = quotes.GetKama(settings.ErPeriods, settings.FastPeriods, settings.SlowPeriods);
             var kama = kamas.Last();
             return Convert.ToDouble(quotes.Last().Close) > kama.Kama;
@@ -412,7 +387,7 @@ namespace Application.Services.Strategies
         protected bool MamaIsGreaterThanFama(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Mama!;
+            var settings = strategy.Mama;
             var mamas = quotes.GetMama(settings.FastLimit, settings.SlowLimit);
             var mama = mamas.Last();
             return mama.Mama > mama.Fama;
@@ -442,7 +417,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.T3!.LookbackPeriods;
+            _operationSettings.Value.Strategy.T3.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -453,7 +428,7 @@ namespace Application.Services.Strategies
         protected bool CloseIsGreaterThanT3(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.T3!;
+            var settings = strategy.T3;
             var t3s = quotes.GetT3(settings.LookbackPeriods, settings.VolumeFactor);
             var t3 = t3s.Last();
             return Convert.ToDouble(quotes.Last().Close) > t3.T3;
@@ -483,7 +458,7 @@ namespace Application.Services.Strategies
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.Alma!.LookbackPeriods;
+            _operationSettings.Value.Strategy.Alma.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -494,7 +469,7 @@ namespace Application.Services.Strategies
         protected bool CloseIsGreaterThanAlma(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Alma!;
+            var settings = strategy.Alma;
             var almas = quotes.GetAlma(settings.LookbackPeriods, settings.Offset, settings.Sigma);
             var alma = almas.Last();
             return Convert.ToDouble(quotes.Last().Close) > alma.Alma;

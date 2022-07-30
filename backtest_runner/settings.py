@@ -1,7 +1,7 @@
 from datetime import date
 
+INDEX = 2
 DATES = []
-INDEX = 0
 
 # 0
 DATES.append([ 
