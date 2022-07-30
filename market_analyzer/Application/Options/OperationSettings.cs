@@ -34,6 +34,7 @@
         public DoubleRsiSettings? DoubleRsi { get; set; }
         public MacdSettings? Macd { get; set; }
         public SuperTrendSettings? SuperTrend { get; set; }
+        public EmaSettings? Ema { get; set; }
 
         public class StopAtrSettings
         {
@@ -63,6 +64,11 @@
         {
             public int LookbackPeriods { get; set; }
             public double Multiplier { get; set; }
+        }
+
+        public class EmaSettings
+        {
+            public int LookbackPeriods { get; set; }
         }
     }
 

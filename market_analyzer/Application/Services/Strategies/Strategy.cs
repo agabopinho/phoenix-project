@@ -272,56 +272,44 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Crazy : IStrategy
+    public class Ema : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
 
-        public Crazy(IOptions<OperationSettings> operationSettings)
+        public Ema(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
 
-        public int LookbackPeriods => 5;
+        public int LookbackPeriods =>
+            _operationSettings.Value.Strategy.Ema!.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
+            return LastCloseIsGreaterThanEma(quotes) ? -strategy.Volume : strategy.Volume;
+        }
 
-            var up = true;
-            var down = true;
-            var count = LookbackPeriods;
+        protected bool LastCloseIsGreaterThanEma(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            var settings = strategy.Ema!;
+            var emas = quotes.GetEma(settings.LookbackPeriods);
+            var ema = emas.Last();
+            return ema.Ema < Convert.ToDouble(quotes.Last().Close);
+        }
+    }
 
-            CustomQuote? last = null;
+    public class EmaTrendFollow : Ema
+    {
+        public EmaTrendFollow(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        {
+        }
 
-            foreach (var quote in quotes.Reverse())
-            {
-                count--;
-
-                if (last is null)
-                {
-                    last = quote;
-                    continue;
-                }
-
-                if (quote.Open < last.Open)
-                    up = false;
-
-                if (quote.Open > last.Open)
-                    down = false;
-
-                last = quote;
-
-                if (count == 0)
-                    break;
-            }
-
-            if (up)
-                return -strategy.Volume;
-
-            if (down)
-                return strategy.Volume;
-
-            return 0;
+        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        {
+            var strategy = _operationSettings.Value.Strategy;
+            return !LastCloseIsGreaterThanEma(quotes) ? -strategy.Volume : strategy.Volume;
         }
     }
 }

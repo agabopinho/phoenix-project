@@ -102,7 +102,8 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, MacdFollowTrend>();
     services.AddSingleton<IStrategy, SuperTrend>();
     services.AddSingleton<IStrategy, SuperTrendFollowTrend>();
-    services.AddSingleton<IStrategy, Crazy>();
+    services.AddSingleton<IStrategy, Ema>();
+    services.AddSingleton<IStrategy, EmaTrendFollow>();
     services.AddSingleton<IStrategyFactory, StrategyFactory>();
 });
 
