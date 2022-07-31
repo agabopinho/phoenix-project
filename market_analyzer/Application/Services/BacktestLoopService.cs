@@ -17,7 +17,6 @@ namespace Application.Services
         private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
 
-        private readonly TimeSpan _end;
         private readonly Backtest _backtest = new();
 
         private bool _summaryPrinted = false;
@@ -35,11 +34,10 @@ namespace Application.Services
             _strategyFactory = strategyFactory;
             _operationSettings = operationSettings;
             _logger = logger;
-
-            _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
         }
 
-        public bool IsEndOfDay => _cycleProvider.Previous.TimeOfDay >= _end;
+        public bool IsEndOfDay =>
+            _cycleProvider.Previous.TimeOfDay >= _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
@@ -81,10 +79,8 @@ namespace Application.Services
             if (quotes.Length < strategy.LookbackPeriods + 1)
                 return;
 
-            var lastRate = quotes[^1];
-            if (_lastQuoteDate == lastRate.Date)
+            if (!ChangeQuote(quotes))
                 return;
-            _lastQuoteDate = lastRate.Date;
 
             var volume = strategy.SignalVolume(quotes);
             var beforeVolume = current is null ? 0 : current.Volume();
@@ -102,6 +98,15 @@ namespace Application.Services
             var transaction = _backtest.Execute(bookPrice, volume);
 
             Print(bookPrice, transaction);
+        }
+
+        private bool ChangeQuote(CustomQuote[] quotes)
+        {
+            var lastQuote = quotes[^1];
+            if (_lastQuoteDate == lastQuote.Date)
+                return false;
+            _lastQuoteDate = lastQuote.Date;
+            return true;
         }
 
         private async Task<BookPrice> GetBookPriceAsync(CancellationToken cancellationToken)
