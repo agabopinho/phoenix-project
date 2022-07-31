@@ -32,11 +32,11 @@ namespace Infrastructure.GrpcServerTerminal
             CancellationToken cancellationToken = default);
 
         Task<CheckOrderReply> CheckOrderAsync(
-            OrderRequest request, 
+            OrderRequest request,
             CancellationToken cancellationToken = default);
 
         Task<SendOrderReply> SendOrderAsync(
-            OrderRequest request, 
+            OrderRequest request,
             CancellationToken cancellationToken = default);
     }
 

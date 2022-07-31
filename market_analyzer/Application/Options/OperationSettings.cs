@@ -41,6 +41,7 @@
         public T3Settings T3 { get; set; } = new();
         public AlmaSettings Alma { get; set; } = new();
         public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
+        public MiniBovespaSettings MiniBovespa { get; set; } = new();
 
         public class VolatilityStopSettings
         {
@@ -117,9 +118,11 @@
             public int Count { get; set; } = 5;
         }
 
-        public class MoniBovespaSettings
+        public class MiniBovespaSettings
         {
-            public double Range { get; set; }
+            public double LastMultipler { get; set; } = 0;
+            public double MaxMultipler { get; set; } = 3;
+            public double Range { get; set; } = 500;
         }
     }
 
