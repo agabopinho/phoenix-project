@@ -29,8 +29,8 @@
         public decimal Volume { get; set; }
         public decimal? Profit { get; set; }
         public string Use { get; set; } = "Atr";
-        public StopAtrSettings StopAtr { get; set; } = new();
-        public LinearRegressionSettings LinearRegression { get; set; } = new();
+        public VolatilityStopSettings VolatilityStop { get; set; } = new();
+        public SlopeSettings Slope { get; set; } = new();
         public DoubleRsiSettings DoubleRsi { get; set; } = new();
         public MacdSettings Macd { get; set; } = new();
         public SuperTrendSettings SuperTrend { get; set; } = new();
@@ -42,13 +42,13 @@
         public AlmaSettings Alma { get; set; } = new();
         public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
 
-        public class StopAtrSettings
+        public class VolatilityStopSettings
         {
             public int LookbackPeriods { get; set; } = 7;
             public double Multiplier { get; set; } = 3;
         }
 
-        public class LinearRegressionSettings
+        public class SlopeSettings
         {
             public int LookbackPeriods { get; set; } = 10;
         }

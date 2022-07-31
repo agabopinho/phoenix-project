@@ -90,10 +90,10 @@ builder.ConfigureServices((context, services) =>
         return serviceProvider.GetRequiredService<WorkerService>();
     });
 
-    services.AddSingleton<IStrategy, StopAtr>();
-    services.AddSingleton<IStrategy, StopAtrFt>();
-    services.AddSingleton<IStrategy, LinearRegression>();
-    services.AddSingleton<IStrategy, LinearRegressionFt>();
+    services.AddSingleton<IStrategy, VolatilityStop>();
+    services.AddSingleton<IStrategy, VolatilityStopFt>();
+    services.AddSingleton<IStrategy, Slope>();
+    services.AddSingleton<IStrategy, SlopeFt>();
     services.AddSingleton<IStrategy, LastBar>();
     services.AddSingleton<IStrategy, LastBarFt>();
     services.AddSingleton<IStrategy, DoubleRsi>();

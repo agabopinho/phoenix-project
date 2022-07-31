@@ -5,17 +5,17 @@ using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
-    public class StopAtr : IStrategy
+    public class VolatilityStop : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
 
-        public StopAtr(IOptions<OperationSettings> operationSettings)
+        public VolatilityStop(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.StopAtr.LookbackPeriods;
+            _operationSettings.Value.Strategy.VolatilityStop.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -25,16 +25,16 @@ namespace Application.Services.Strategies
 
         protected virtual bool StopAtrHasLowerBand(IEnumerable<CustomQuote> quotes)
         {
-            var atr = _operationSettings.Value.Strategy.StopAtr;
+            var atr = _operationSettings.Value.Strategy.VolatilityStop;
             var stopAtrs = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
             var stopAtr = stopAtrs.Last();
             return stopAtr.LowerBand is not null;
         }
     }
 
-    public class StopAtrFt : StopAtr
+    public class VolatilityStopFt : VolatilityStop
     {
-        public StopAtrFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public VolatilityStopFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -45,17 +45,17 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class LinearRegression : IStrategy
+    public class Slope : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
 
-        public LinearRegression(IOptions<OperationSettings> operationSettings)
+        public Slope(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
 
         public int LookbackPeriods =>
-            _operationSettings.Value.Strategy.LinearRegression.LookbackPeriods;
+            _operationSettings.Value.Strategy.Slope.LookbackPeriods;
 
         public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -65,16 +65,16 @@ namespace Application.Services.Strategies
 
         protected virtual bool LastSlopeIsGreaterThanZero(IEnumerable<CustomQuote> quotes)
         {
-            var linearRegression = _operationSettings.Value.Strategy.LinearRegression;
+            var linearRegression = _operationSettings.Value.Strategy.Slope;
             var slopes = quotes.GetSlope(linearRegression.LookbackPeriods);
             var slope = slopes.Last();
             return slope.Slope > 0;
         }
     }
 
-    public class LinearRegressionFt : LinearRegression
+    public class SlopeFt : Slope
     {
-        public LinearRegressionFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public SlopeFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
