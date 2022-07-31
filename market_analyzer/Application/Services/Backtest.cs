@@ -1,6 +1,6 @@
 ﻿namespace Application.Services
 {
-    public record class Transaction(DateTime Time, decimal Price, decimal Volume);
+    public record class Transaction(DateTime Time, double Price, double Volume);
 
     public class Position
     {
@@ -10,24 +10,27 @@
 
         public void Add(Transaction transaction)
         {
-            if (_transactions.Any() && BalanceVolume() == 0)
+            if (_transactions.Any() && Volume() == 0)
                 throw new InvalidOperationException("Position closed.");
 
             _transactions.Add(transaction);
         }
 
-        public decimal BalanceVolume()
+        public double Volume()
             => _transactions.Sum(it => it.Volume);
 
-        public decimal Profit(decimal closePrice)
+        public double Profit(BookPrice currentPrice)
         {
+            var volume = Volume();
+            var closePrice = volume > 0 ? currentPrice.Bid : currentPrice.Ask;
+
+            var close = closePrice * volume * -1;
             var open = _transactions.Sum(it => it.Price * it.Volume);
-            var close = closePrice * BalanceVolume() * -1;
 
             return (open + close) * -1;
         }
 
-        public decimal OpenPrice()
+        public double OpenPrice()
         {
             var sells = _transactions.Where(it => it.Volume < 0);
             var sellPrice = Math.Abs(sells.Sum(it => it.Price * it.Volume));
@@ -47,17 +50,17 @@
         }
     }
 
-    public record class Balance(decimal OpenVolume, decimal OpenPrice, decimal Profit);
+    public record class Balance(double OpenVolume, double OpenPrice, double Profit);
 
-    public record BookPrice(DateTime Time, decimal Bid, decimal Ask);
+    public record BookPrice(DateTime Time, double Bid, double Ask);
 
     public record class BacktestSummary(
-        decimal MinLot = 0,
-        decimal MaxLot = 0,
-        decimal MinVolume = 0,
-        decimal MaxVolume = 0,
-        decimal MinProfit = 0,
-        decimal MaxProfit = 0);
+        double MinLot = 0,
+        double MaxLot = 0,
+        double MinVolume = 0,
+        double MaxVolume = 0,
+        double MinProfit = 0,
+        double MaxProfit = 0);
 
     public class Backtest
     {
@@ -67,7 +70,7 @@
 
         public BacktestSummary Summary { get; private set; } = new();
 
-        public Transaction Execute(BookPrice currentPrice, decimal volume)
+        public Transaction Execute(BookPrice currentPrice, double volume)
         {
             var current = OpenPosition();
 
@@ -83,30 +86,23 @@
         }
 
         public Position? OpenPosition()
-            => _positions.FirstOrDefault(it => it.BalanceVolume() != 0);
+            => _positions.FirstOrDefault(it => it.Volume() != 0);
 
         public Balance Balance(BookPrice currentPrice)
         {
-            var openVolume = 0M;
-            var openPrice = 0M;
-            var profit = 0M;
+            var openPrice = 0d;
+            var openVolume = 0d;
+            var sumProfit = 0d;
 
             foreach (var position in _positions)
             {
-                var balanceVolume = position.BalanceVolume();
-                var closePrice = 0M;
+                openVolume += position.Volume();
+                sumProfit += position.Profit(currentPrice);
 
-                if (balanceVolume != 0)
-                {
-                    openPrice = position.OpenPrice();
-                    closePrice = balanceVolume > 0 ? currentPrice.Bid : currentPrice.Ask;
-                }
-
-                profit += position.Profit(closePrice);
-                openVolume += balanceVolume;
+                openPrice = position.OpenPrice();
             }
 
-            var balance = new Balance(openVolume, openPrice, profit);
+            var balance = new Balance(openVolume, openPrice, sumProfit);
 
             UpdateSummary(balance);
 

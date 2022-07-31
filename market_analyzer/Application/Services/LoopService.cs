@@ -61,70 +61,19 @@ namespace Application.Services
 
             var rates = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
 
-            var isEndOfDay = _cycleProvider.Now().TimeOfDay >= _end;
-            var strategy = _operationSettings.Value.Strategy;
-            var current = await GetPositionAsync(cancellationToken);
-            var balance = current is not null ? Convert.ToDecimal(current.Profit) : 0;
-
-            if (strategy.Profit is not null && balance >= strategy.Profit)
-                isEndOfDay = true;
-
-            if (current is null && isEndOfDay)
-            {
-                if (!_operationSettings.Value.ProductionMode && !_summaryPrinted)
-                {
-                    _summaryPrinted = true;
-                    _logger.LogInformation("{@summary}", _backtest.Summary);
-                }
-
-                return;
-            }
-
-            //if (rates.Length < strategy.AtrLookbackPeriods + 1)
-            //    return;
-
-            //var lastRate = rates[^1];
-            //if (_lastRateDate == lastRate.Date)
-            //    return;
-            //_lastRateDate = lastRate.Date;
-
-            //var stopAtr = rates.GetVolatilityStop(strategy.AtrLookbackPeriods, strategy.AtrMultiplier);
-            //var lastStopAtr = stopAtr.Last();
-
-            var volume = 0m; //  lastStopAtr.LowerBand is not null ? -strategy.Volume : strategy.Volume;
-            var beforeVolume = current is null ? 0 : current.Volume;
-            var afterVolume = beforeVolume + volume;
-
-            if (current is not null && afterVolume == 0)
-                volume *= 2;
-
-            if (current is not null && isEndOfDay)
-                volume = beforeVolume * -1;
-
-            if (volume == 0)
-                return;
-
-            if (!_operationSettings.Value.ProductionMode)
-            {
-                var bookPrice = await GetBookPriceAsync(cancellationToken);
-                var transaction = _backtest.Execute(bookPrice, volume);
-
-                Print(bookPrice, transaction);
-
-                return;
-            }
+            var volume = 0d;
 
             if (volume > 0)
             {
                 await BuyAsync(
-                    Convert.ToDouble(volume),
+                    volume,
                     cancellationToken);
             }
 
             if (volume < 0)
             {
                 await SellAsync(
-                     Convert.ToDouble(volume * -1),
+                     volume * -1,
                      cancellationToken);
             }
         }
@@ -209,16 +158,16 @@ namespace Application.Services
                 return null;
 
             var volume = position.Type == PositionType.Buy ?
-                Convert.ToDecimal(position.Volume) :
-                Convert.ToDecimal(position.Volume) * -1;
+                position.Volume!.Value :
+                position.Volume!.Value * -1;
 
-            return new Position(volume, Convert.ToDecimal(position.Profit));
+            return new Position(volume, position.Profit!.Value);
         }
 
         private async Task<BookPrice> GetBookPriceAsync(CancellationToken cancellationToken)
         {
             var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
-            return new BookPrice(tick.Trade.Time.ToDateTime(), Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
+            return new BookPrice(tick.Trade.Time.ToDateTime(), tick.Trade.Bid!.Value, tick.Trade.Ask!.Value);
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
@@ -248,6 +197,6 @@ namespace Application.Services
             });
         }
 
-        private record class Position(decimal Volume, decimal Profit);
+        private record class Position(double Volume, double Profit);
     }
 }

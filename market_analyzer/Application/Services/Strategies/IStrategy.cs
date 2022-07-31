@@ -6,6 +6,6 @@ namespace Application.Services.Strategies
     {
         int LookbackPeriods { get; }
 
-        decimal SignalVolume(IEnumerable<CustomQuote> quotes);
+        double SignalVolume(IEnumerable<CustomQuote> quotes);
     }
 }

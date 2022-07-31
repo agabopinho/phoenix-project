@@ -87,7 +87,7 @@ namespace Application.Services
             _lastQuoteDate = lastRate.Date;
 
             var volume = strategy.SignalVolume(quotes);
-            var beforeVolume = current is null ? 0 : current.BalanceVolume();
+            var beforeVolume = current is null ? 0 : current.Volume();
             var afterVolume = beforeVolume + volume;
 
             if (current is not null && afterVolume == 0)
@@ -107,7 +107,7 @@ namespace Application.Services
         private async Task<BookPrice> GetBookPriceAsync(CancellationToken cancellationToken)
         {
             var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
-            return new BookPrice(tick.Trade.Time.ToDateTime(), Convert.ToDecimal(tick.Trade.Bid), Convert.ToDecimal(tick.Trade.Ask));
+            return new BookPrice(tick.Trade.Time.ToDateTime(), tick.Trade.Bid!.Value, tick.Trade.Ask!.Value);
         }
 
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)

@@ -21,13 +21,13 @@
         public string? Name { get; set; }
         public int PriceDecimals { get; set; }
         public int VolumeDecimals { get; set; }
-        public decimal StandardLot { get; set; }
+        public double StandardLot { get; set; }
     }
 
     public class StrategySettings
     {
-        public decimal Volume { get; set; }
-        public decimal? Profit { get; set; }
+        public double Volume { get; set; }
+        public double? Profit { get; set; }
         public string Use { get; set; } = "Atr";
         public VolatilityStopSettings VolatilityStop { get; set; } = new();
         public SlopeSettings Slope { get; set; } = new();
@@ -115,6 +115,11 @@
             public int AtrPeriods { get; set; } = 10;
             public double MultiplerStep { get; set; } = 0.5;
             public int Count { get; set; } = 5;
+        }
+
+        public class MoniBovespaSettings
+        {
+            public double Range { get; set; }
         }
     }
 

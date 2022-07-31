@@ -17,7 +17,7 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.Ma.LookbackPeriods;
 
-        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return CloseIsGreaterThanMa(quotes) ? -strategy.Volume : strategy.Volume;
@@ -32,7 +32,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return !CloseIsGreaterThanMa(quotes) ? -strategy.Volume : strategy.Volume;

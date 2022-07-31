@@ -19,7 +19,7 @@ namespace Application.Services.Strategies
                 _operationSettings.Value.Strategy.KeltnerRainbow.SmaPeriods,
                 _operationSettings.Value.Strategy.KeltnerRainbow.AtrPeriods);
 
-        public virtual decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return GetVolumeMultipler(quotes) * strategy.Volume;
@@ -61,7 +61,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override decimal SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.KeltnerRainbow;
