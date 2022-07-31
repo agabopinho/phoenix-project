@@ -40,14 +40,11 @@ namespace Application.Services.Strategies
             {
                 p -= p % settings.Range;
 
-                var multipler = Math.Pow(2, p / settings.Range);
+                var multipler = Math.Pow(2, Math.Min(settings.MaxExponent, p / settings.Range));
 
                 if (multipler > _lastMultipler)
                 {
                     _lastMultipler = multipler;
-
-                    if (multipler > settings.MaxMultipler)
-                        return -strategy.Volume * settings.MaxMultipler;
 
                     return -strategy.Volume * multipler;
                 }

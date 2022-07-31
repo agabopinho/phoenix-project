@@ -121,7 +121,7 @@
         public class MiniBovespaSettings
         {
             public double LastMultipler { get; set; } = 0;
-            public double MaxMultipler { get; set; } = 3;
+            public double MaxExponent { get; set; } = 3;
             public double Range { get; set; } = 500;
         }
     }
