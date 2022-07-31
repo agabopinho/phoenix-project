@@ -5,11 +5,11 @@ using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
-    public abstract class Ma : IStrategy
+    public abstract class MaBase : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
 
-        public Ma(IOptions<OperationSettings> operationSettings)
+        public MaBase(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
@@ -26,9 +26,9 @@ namespace Application.Services.Strategies
         protected abstract bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes);
     }
 
-    public abstract class MaFollowTrend : Ma
+    public abstract class MaBaseFt : MaBase
     {
-        protected MaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        protected MaBaseFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -39,7 +39,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Sma : Ma
+    public class Sma : MaBase
     {
         public Sma(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -55,9 +55,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class SmaFollowTrend : MaFollowTrend
+    public class SmaFt : MaBaseFt
     {
-        public SmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public SmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -71,7 +71,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Ema : Ma
+    public class Ema : MaBase
     {
         public Ema(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -87,9 +87,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class EmaFollowTrend : MaFollowTrend
+    public class EmaFt : MaBaseFt
     {
-        public EmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public EmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -103,7 +103,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Wma : Ma
+    public class Wma : MaBase
     {
         public Wma(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -119,9 +119,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class WmaFollowTrend : MaFollowTrend
+    public class WmaFt : MaBaseFt
     {
-        public WmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public WmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -135,7 +135,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Vwma : Ma
+    public class Vwma : MaBase
     {
         public Vwma(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -151,9 +151,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class VwmaFollowTrend : MaFollowTrend
+    public class VwmaFt : MaBaseFt
     {
-        public VwmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public VwmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -167,7 +167,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Dema : Ma
+    public class Dema : MaBase
     {
         public Dema(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -183,9 +183,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class DemaFollowTrend : MaFollowTrend
+    public class DemaFt : MaBaseFt
     {
-        public DemaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public DemaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -199,7 +199,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Epma : Ma
+    public class Epma : MaBase
     {
         public Epma(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -215,9 +215,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class EpmaFollowTrend : MaFollowTrend
+    public class EpmaFt : MaBaseFt
     {
-        public EpmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public EpmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -231,7 +231,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Hma : Ma
+    public class Hma : MaBase
     {
         public Hma(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -247,9 +247,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class HmaFollowTrend : MaFollowTrend
+    public class HmaFt : MaBaseFt
     {
-        public HmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public HmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -263,7 +263,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Smma : Ma
+    public class Smma : MaBase
     {
         public Smma(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -279,9 +279,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class SmmaFollowTrend : MaFollowTrend
+    public class SmmaFt : MaBaseFt
     {
-        public SmmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public SmmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -295,7 +295,7 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class Tema : Ma
+    public class Tema : MaBase
     {
         public Tema(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
@@ -311,9 +311,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class TemaFollowTrend : MaFollowTrend
+    public class TemaFt : MaBaseFt
     {
-        public TemaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public TemaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 

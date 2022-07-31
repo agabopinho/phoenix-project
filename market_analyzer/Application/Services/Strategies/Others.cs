@@ -32,9 +32,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class StopAtrFollowTrend : StopAtr
+    public class StopAtrFt : StopAtr
     {
-        public StopAtrFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public StopAtrFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -72,9 +72,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class LinearRegressionFollowTrend : LinearRegression
+    public class LinearRegressionFt : LinearRegression
     {
-        public LinearRegressionFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public LinearRegressionFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -109,9 +109,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class LastBarFollowTrend : LastBar
+    public class LastBarFt : LastBar
     {
-        public LastBarFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public LastBarFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -151,9 +151,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class DoubleRsiFollowTrend : DoubleRsi
+    public class DoubleRsiFt : DoubleRsi
     {
-        public DoubleRsiFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public DoubleRsiFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -192,9 +192,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class MacdFollowTrend : Macd
+    public class MacdFt : Macd
     {
-        public MacdFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public MacdFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -233,9 +233,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class SuperTrendFollowTrend : SuperTrend
+    public class SuperTrendFt : SuperTrend
     {
-        public SuperTrendFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public SuperTrendFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -275,9 +275,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class VwapFollowTrend : Vwap
+    public class VwapFt : Vwap
     {
-        public VwapFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public VwapFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -316,9 +316,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class KamaFollowTrend : Kama
+    public class KamaFt : Kama
     {
-        public KamaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public KamaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -354,9 +354,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class HtTrendlineFollowTrend : HtTrendline
+    public class HtTrendlineFt : HtTrendline
     {
-        public HtTrendlineFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public HtTrendlineFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -394,9 +394,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class MamaFollowTrend : Mama
+    public class MamaFt : Mama
     {
-        public MamaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public MamaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -435,9 +435,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class T3FollowTrend : T3
+    public class T3Ft : T3
     {
-        public T3FollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public T3Ft(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
@@ -476,9 +476,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class AlmaFollowTrend : Alma
+    public class AlmaFt : Alma
     {
-        public AlmaFollowTrend(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public AlmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 

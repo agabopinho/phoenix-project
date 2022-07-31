@@ -29,7 +29,7 @@
         public decimal Volume { get; set; }
         public decimal? Profit { get; set; }
         public string Use { get; set; } = "Atr";
-        public StopAtrSettings StopAtr { get; set; }= new();
+        public StopAtrSettings StopAtr { get; set; } = new();
         public LinearRegressionSettings LinearRegression { get; set; } = new();
         public DoubleRsiSettings DoubleRsi { get; set; } = new();
         public MacdSettings Macd { get; set; } = new();
@@ -40,6 +40,7 @@
         public MamaSettings Mama { get; set; } = new();
         public T3Settings T3 { get; set; } = new();
         public AlmaSettings Alma { get; set; } = new();
+        public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
 
         public class StopAtrSettings
         {
@@ -105,6 +106,15 @@
             public int LookbackPeriods { get; set; } = 9;
             public double Offset { get; set; } = 0.85;
             public double Sigma { get; set; } = 6;
+        }
+
+        public class KeltnerRainbowSettings
+        {
+            public int SmaPeriods { get; set; } = 20;
+            public double Multipler { get; set; } = 0.2;
+            public int AtrPeriods { get; set; } = 10;
+            public double MultiplerStep { get; set; } = 0.5;
+            public int Count { get; set; } = 5;
         }
     }
 
