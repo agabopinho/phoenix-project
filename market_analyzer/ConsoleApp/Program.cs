@@ -134,6 +134,8 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, TemaFt>();
     services.AddSingleton<IStrategy, KeltnerRainbow>();
     services.AddSingleton<IStrategy, KeltnerRainbowFt>();
+    services.AddSingleton<IStrategy, Renko>();
+    services.AddSingleton<IStrategy, RenkoFt>();
     services.AddSingleton<IStrategy, MiniBovespa>();
     services.AddSingleton<IStrategyFactory, StrategyFactory>();
 });

@@ -42,6 +42,7 @@
         public AlmaSettings Alma { get; set; } = new();
         public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
         public MiniBovespaSettings MiniBovespa { get; set; } = new();
+        public RenkoSettings Renko { get; set; } = new();
 
         public class VolatilityStopSettings
         {
@@ -124,6 +125,11 @@
             public double MaxExponent { get; set; } = 3;
             public double Range { get; set; } = 500;
             public double EnterEverySeconds { get; set; } = 0;
+        }
+
+        public class RenkoSettings
+        {
+            public double BrickSize { get; set; }
         }
     }
 
