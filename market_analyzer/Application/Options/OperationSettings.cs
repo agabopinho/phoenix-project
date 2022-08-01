@@ -123,6 +123,7 @@
             public double LastMultipler { get; set; } = 0;
             public double MaxExponent { get; set; } = 3;
             public double Range { get; set; } = 500;
+            public double EnterEverySeconds { get; set; } = 0;
         }
     }
 
