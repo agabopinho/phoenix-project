@@ -77,3 +77,8 @@ DATES.append([
     date.fromisoformat('2022-07-28'),
     date.fromisoformat('2022-07-29'),
 ])
+
+#5
+DATES.append([
+    date.fromisoformat('2022-08-01'),
+])
