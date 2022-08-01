@@ -23,7 +23,7 @@ namespace Application.Services.Strategies
 
             var renkos = new[] { quotes.First() }
                 .Concat(quotes
-                    .TakeLast(100)
+                    .TakeLast(1000)
                     .ToArray())
                 .GetRenko(Convert.ToDecimal(settings.BrickSize), EndType.HighLow);
 
