@@ -39,10 +39,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !StopAtrHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Slope : IStrategy
@@ -79,10 +76,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !LastSlopeIsGreaterThanZero(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class LastBar : IStrategy
@@ -116,10 +110,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !LastBarIsUp(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class DoubleRsi : IStrategy
@@ -158,10 +149,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !FastRsiIsGreaterThanSlowRsi(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Macd : IStrategy
@@ -199,10 +187,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !MacdIsGreaterThanSignal(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class SuperTrend : IStrategy
@@ -240,10 +225,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !SuperTrendHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Vwap : IStrategy
@@ -282,10 +264,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !CloseIsGreaterThanVwap(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+              => base.SignalVolume(quotes) * -1;
     }
 
     public class Kama : IStrategy
@@ -323,10 +302,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !CloseIsGreaterThanKama(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class HtTrendline : IStrategy
@@ -361,10 +337,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !SmoothPriceIsGreaterThanTrendline(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Mama : IStrategy
@@ -401,10 +374,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !MamaIsGreaterThanFama(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class T3 : IStrategy
@@ -442,10 +412,7 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !CloseIsGreaterThanT3(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Alma : IStrategy
@@ -483,9 +450,6 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !CloseIsGreaterThanAlma(quotes) ? -strategy.Volume : strategy.Volume;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 }

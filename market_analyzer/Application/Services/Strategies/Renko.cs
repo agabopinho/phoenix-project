@@ -50,8 +50,6 @@ namespace Application.Services.Strategies
         }
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            return base.SignalVolume(quotes) * -1;
-        }
+            => base.SignalVolume(quotes) * -1;
     }
 }

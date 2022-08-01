@@ -26,19 +26,6 @@ namespace Application.Services.Strategies
         protected abstract bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes);
     }
 
-    public abstract class MaBaseFt : MaBase
-    {
-        protected MaBaseFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
-        {
-        }
-
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            return !CloseIsGreaterThanMa(quotes) ? -strategy.Volume : strategy.Volume;
-        }
-    }
-
     public class Sma : MaBase
     {
         public Sma(IOptions<OperationSettings> operationSettings) : base(operationSettings)
@@ -55,20 +42,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class SmaFt : MaBaseFt
+    public class SmaFt : Sma
     {
         public SmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetSma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Sma;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Ema : MaBase
@@ -87,20 +68,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class EmaFt : MaBaseFt
+    public class EmaFt : Ema
     {
         public EmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetEma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Ema;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Wma : MaBase
@@ -119,20 +94,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class WmaFt : MaBaseFt
+    public class WmaFt : Wma
     {
         public WmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetWma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Wma;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Vwma : MaBase
@@ -151,20 +120,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class VwmaFt : MaBaseFt
+    public class VwmaFt : Vwma
     {
         public VwmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetVwma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Vwma;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Dema : MaBase
@@ -183,20 +146,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class DemaFt : MaBaseFt
+    public class DemaFt : Dema
     {
         public DemaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetDema(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Dema;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Epma : MaBase
@@ -215,20 +172,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class EpmaFt : MaBaseFt
+    public class EpmaFt : Epma
     {
         public EpmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetEpma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Epma;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Hma : MaBase
@@ -247,20 +198,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class HmaFt : MaBaseFt
+    public class HmaFt : Hma
     {
         public HmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetHma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Hma;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Smma : MaBase
@@ -279,20 +224,14 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class SmmaFt : MaBaseFt
+    public class SmmaFt : Smma
     {
         public SmmaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetSmma(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Smma;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 
     public class Tema : MaBase
@@ -311,19 +250,13 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class TemaFt : MaBaseFt
+    public class TemaFt : Tema
     {
         public TemaFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
-        {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Ma;
-            var emas = quotes.GetTema(settings.LookbackPeriods);
-            var ema = emas.Last();
-            return Convert.ToDouble(quotes.Last().Close) > ema.Tema;
-        }
+        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+            => base.SignalVolume(quotes) * -1;
     }
 }
