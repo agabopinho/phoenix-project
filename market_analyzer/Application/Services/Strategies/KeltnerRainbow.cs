@@ -29,11 +29,11 @@ namespace Application.Services.Strategies
         {
             var settings = _operationSettings.Value.Strategy.KeltnerRainbow;
             var multipler = settings.Multipler;
-            var resultBands = new List<StarcBandsResult>(settings.Count);
+            var resultBands = new List<KeltnerResult>(settings.Count);
 
             for (var i = 0; i < settings.Count; i++)
             {
-                var bands = quotes.GetStarcBands(settings.SmaPeriods, multipler, settings.AtrPeriods);
+                var bands = quotes.GetKeltner(settings.SmaPeriods, multipler, settings.AtrPeriods);
 
                 resultBands.Add(bands.Last());
                 multipler += settings.MultiplerStep;
