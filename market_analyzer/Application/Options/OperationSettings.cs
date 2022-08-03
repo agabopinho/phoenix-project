@@ -44,6 +44,7 @@
         public MiniBovespaSettings MiniBovespa { get; set; } = new();
         public RenkoSettings Renko { get; set; } = new();
         public TrendSettings Trend { get; set; } = new();
+        public VolatilityStopRainbowSettings VolatilityStopRainbow { get; set; } = new();
 
         public class VolatilityStopSettings
         {
@@ -137,6 +138,14 @@
         {
             public string Name { get; set; } = "Ema";
             public byte MaxPower { get; set; } = 5;
+        }
+
+        public class VolatilityStopRainbowSettings
+        {
+            public int LookbackPeriods { get; set; } = 20;
+            public double Multipler { get; set; } = 0.2;
+            public double MultiplerStep { get; set; } = 0.5;
+            public int Count { get; set; } = 5;
         }
     }
 

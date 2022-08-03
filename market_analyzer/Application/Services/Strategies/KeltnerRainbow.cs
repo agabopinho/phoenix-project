@@ -63,17 +63,16 @@ namespace Application.Services.Strategies
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.KeltnerRainbow;
-            var multipler = GetVolumeMultipler(quotes) * -1;
+            var volume = base.SignalVolume(quotes) * -1;
+            var count = _operationSettings.Value.Strategy.KeltnerRainbow.Count;
 
-            if (multipler != 0)
-                if (multipler > 0)
-                    multipler = settings.Count - multipler + 1;
-                else
-                    multipler = -settings.Count - multipler - 1;
+            if (volume > 0)
+                return count + 1 - volume;
 
-            return multipler * strategy.Volume;
+            if (volume < 0)
+                return -count + -1 - volume;
+
+            return 0;
         }
     }
 }

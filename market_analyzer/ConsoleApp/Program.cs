@@ -139,6 +139,8 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, TemaFt>();
 
     // specifics
+    services.AddSingleton<IStrategy, VolatilityStopRainbow>();
+    services.AddSingleton<IStrategy, VolatilityStopRainbowFt>();
     services.AddSingleton<IStrategy, KeltnerRainbow>();
     services.AddSingleton<IStrategy, KeltnerRainbowFt>();
     services.AddSingleton<IStrategy, Renko>();
