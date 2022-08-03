@@ -40,7 +40,7 @@ namespace Application.Services.Strategies
             {
                 p -= p % settings.Range;
 
-                var multipler = Math.Pow(2, Math.Min(settings.MaxExponent, p / settings.Range));
+                var multipler = Math.Pow(2, Math.Min(settings.MaxPower, p / settings.Range));
                 var enterEverySeconds = lastQuote.Date.TimeOfDay.TotalSeconds % settings.EnterEverySeconds;
                 var totalSeconds = lastQuote.Date.TimeOfDay.TotalSeconds;
 
