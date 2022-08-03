@@ -19,11 +19,7 @@ namespace Application.Services
         private readonly IOptions<OperationSettings> _operationSettings;
         private readonly ILogger<ILoopService> _logger;
 
-        private readonly TimeSpan _end;
         private readonly Backtest _backtest = new();
-
-        private bool _summaryPrinted = false;
-        private DateTime _lastRateDate;
 
         public LoopService(
             ICycleProvider cycleProvider,
@@ -39,8 +35,6 @@ namespace Application.Services
             _orderCreator = orderCreator;
             _operationSettings = operationSettings;
             _logger = logger;
-
-            _end = _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)

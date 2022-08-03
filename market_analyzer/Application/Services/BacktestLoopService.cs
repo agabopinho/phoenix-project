@@ -82,12 +82,15 @@ namespace Application.Services
             if (!ChangeQuote(quotes))
                 return;
 
-            var volume = strategy.SignalVolume(quotes);
             var beforeVolume = current is null ? 0 : current.Volume();
-            var afterVolume = beforeVolume + volume;
 
-            if (current is not null && afterVolume == 0)
-                volume *= 2;
+            if (strategy is IStrategy.IWithPosition s)
+                if (current is not null)
+                    s.Position = new StrategyPosition(current.Price(), beforeVolume, current.Profit(bookPrice));
+                else
+                    s.Position = null;
+
+            var volume = strategy.SignalVolume(quotes);
 
             if (current is not null && endOfDay)
                 volume = beforeVolume * -1;

@@ -90,6 +90,9 @@ builder.ConfigureServices((context, services) =>
         return serviceProvider.GetRequiredService<WorkerService>();
     });
 
+    services.AddSingleton<IStrategyFactory, StrategyFactory>();
+
+    // others
     services.AddSingleton<IStrategy, VolatilityStop>();
     services.AddSingleton<IStrategy, VolatilityStopFt>();
     services.AddSingleton<IStrategy, Slope>();
@@ -114,6 +117,8 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, T3Ft>();
     services.AddSingleton<IStrategy, Alma>();
     services.AddSingleton<IStrategy, AlmaFt>();
+
+    // moving averages
     services.AddSingleton<IStrategy, Sma>();
     services.AddSingleton<IStrategy, SmaFt>();
     services.AddSingleton<IStrategy, Ema>();
@@ -132,12 +137,14 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, SmmaFt>();
     services.AddSingleton<IStrategy, Tema>();
     services.AddSingleton<IStrategy, TemaFt>();
+
+    // specifics
     services.AddSingleton<IStrategy, KeltnerRainbow>();
     services.AddSingleton<IStrategy, KeltnerRainbowFt>();
     services.AddSingleton<IStrategy, Renko>();
     services.AddSingleton<IStrategy, RenkoFt>();
     services.AddSingleton<IStrategy, MiniBovespa>();
-    services.AddSingleton<IStrategyFactory, StrategyFactory>();
+    services.AddSingleton<IStrategy, Trend>();
 });
 
 await builder.Build().RunAsync();

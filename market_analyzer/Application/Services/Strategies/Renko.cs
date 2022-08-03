@@ -21,22 +21,21 @@ namespace Application.Services.Strategies
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Renko;
 
-            var renkos = new[] { quotes.First() }
-                .Concat(quotes
-                    .TakeLast(1000)
-                    .ToArray())
-                .GetRenko(Convert.ToDecimal(settings.BrickSize), EndType.HighLow);
+            var renkos = quotes
+                .GetRenko(Convert.ToDecimal(settings.BrickSize), EndType.HighLow)
+                .ToArray();
 
-            var lastRenko = renkos.SkipLast(1).Last();
-            var previousRenko = renkos.SkipLast(2).Last();
-            var previousRenko2 = renkos.SkipLast(3).Last();
+            if (!renkos.Any())
+                return 0;
+
+            var lastRenko = renkos[^1];
 
             var volume = 0d;
 
-            if (lastRenko.Open > previousRenko.Open && previousRenko.Open < previousRenko2.Open)
+            if (lastRenko.IsUp)
                 volume = -strategy.Volume;
 
-            if (lastRenko.Open < previousRenko.Open && previousRenko.Open > previousRenko2.Open)
+            if (!lastRenko.IsUp)
                 volume = strategy.Volume;
 
             return volume;

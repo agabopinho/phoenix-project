@@ -43,6 +43,7 @@
         public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
         public MiniBovespaSettings MiniBovespa { get; set; } = new();
         public RenkoSettings Renko { get; set; } = new();
+        public TrendSettings Trend { get; set; } = new();
 
         public class VolatilityStopSettings
         {
@@ -130,6 +131,12 @@
         public class RenkoSettings
         {
             public double BrickSize { get; set; }
+        }
+
+        public class TrendSettings
+        {
+            public string Name { get; set; } = "Ema";
+            public byte MaxPower { get; set; } = 5;
         }
     }
 

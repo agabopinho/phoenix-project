@@ -51,7 +51,7 @@
                 openVolume += position.Volume();
                 sumProfit += position.Profit(currentPrice);
 
-                openPrice = position.OpenPrice();
+                openPrice = position.Price();
             }
 
             var balance = new Balance(openVolume, openPrice, sumProfit);
@@ -114,7 +114,7 @@
             return (open + close) * -1;
         }
 
-        public double OpenPrice()
+        public double Price()
         {
             var sells = _transactions.Where(it => it.Volume < 0);
             var sellPrice = Math.Abs(sells.Sum(it => it.Price * it.Volume));
