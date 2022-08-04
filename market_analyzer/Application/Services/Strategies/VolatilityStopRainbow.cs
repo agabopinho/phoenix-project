@@ -62,14 +62,14 @@ namespace Application.Services.Strategies
 
         public override double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
-            var volume = base.SignalVolume(quotes) * -1;
+            var multipler = base.SignalVolume(quotes) * -1 / _operationSettings.Value.Strategy.Volume;
             var count = _operationSettings.Value.Strategy.VolatilityStopRainbow.Count;
 
-            if (volume > 0)
-                return count + 1 - volume;
+            if (multipler > 0)
+                return (count + 1 - multipler) * _operationSettings.Value.Strategy.Volume;
 
-            if (volume < 0)
-                return -count + -1 - volume;
+            if (multipler < 0)
+                return (-count + -1 - multipler) * _operationSettings.Value.Strategy.Volume;
 
             return 0;
         }
