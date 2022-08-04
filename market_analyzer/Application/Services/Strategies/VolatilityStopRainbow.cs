@@ -41,10 +41,8 @@ namespace Application.Services.Strategies
 
             var index = 0;
 
-            for (var i = 1; i < resultBands.Count + 1; i++)
+            foreach (var band in resultBands)
             {
-                var band = resultBands[i - 1];
-
                 if (band.UpperBand.HasValue)
                     index--;
 

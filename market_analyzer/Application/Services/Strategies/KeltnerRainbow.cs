@@ -28,27 +28,29 @@ namespace Application.Services.Strategies
         protected virtual int GetVolumeMultipler(IEnumerable<CustomQuote> quotes)
         {
             var settings = _operationSettings.Value.Strategy.KeltnerRainbow;
-            var multipler = settings.Multipler;
+            
             var resultBands = new List<KeltnerResult>(settings.Count);
+            var multipler = settings.Multipler;
 
             for (var i = 0; i < settings.Count; i++)
             {
-                var bands = quotes.GetKeltner(settings.SmaPeriods, multipler, settings.AtrPeriods);
+                resultBands.Add(quotes
+                    .GetKeltner(settings.SmaPeriods, multipler, settings.AtrPeriods)
+                    .Last());
 
-                resultBands.Add(bands.Last());
                 multipler += settings.MultiplerStep;
             }
 
             var lastClose = Convert.ToDouble(quotes.Last().Close);
             var index = 0;
 
-            for (var i = 1; i < resultBands.Count + 1; i++)
+            foreach (var band in resultBands)
             {
-                if (lastClose > resultBands[i - 1].UpperBand!)
-                    index = -i;
+                if (lastClose > band.UpperBand!)
+                    index--;
 
-                if (lastClose < resultBands[i - 1].LowerBand!)
-                    index = i;
+                if (lastClose < band.LowerBand!)
+                    index++;
             }
 
             return index;

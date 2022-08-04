@@ -37,7 +37,8 @@ namespace Application.Services
         }
 
         public bool IsEndOfDay =>
-            _cycleProvider.Previous.TimeOfDay >= _operationSettings.Value.End.ToTimeSpan().Subtract(TimeSpan.FromMinutes(1));
+            _cycleProvider.Previous.TimeOfDay >= 
+            _operationSettings.Value.End.ToTimeSpan().Subtract(_operationSettings.Value.Timeframe);
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
