@@ -13,7 +13,7 @@ appPath = path.join(
 
 jsonData = json.loads(open(appSettingsPath).read())
 
-for d in DATES[INDEX]:
+for d in DATES[DATES_INDEX]:
     jsonData["Operation"]["Date"] = d.strftime("%Y-%m-%d")
 
     with open(appSettingsPath, "w") as file:
@@ -21,4 +21,4 @@ for d in DATES[INDEX]:
         file.write(json.dumps(jsonData))
 
     system("cd {} && start {}".format(rootdir, "ConsoleApp.exe"))
-    time.sleep(1.5)
+    time.sleep(2)

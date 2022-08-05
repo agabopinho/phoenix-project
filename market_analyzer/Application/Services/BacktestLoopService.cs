@@ -60,7 +60,10 @@ namespace Application.Services
 
             var endOfDay = IsEndOfDay;
 
-            if (settings.Profit is not null && balance.Profit >= settings.Profit)
+            if (settings.TakeProfit is not null && balance.Profit >= settings.TakeProfit)
+                endOfDay = true;
+
+            if (settings.StopLoss is not null && balance.Profit <= -settings.StopLoss)
                 endOfDay = true;
 
             if (current is null && endOfDay)
@@ -71,7 +74,7 @@ namespace Application.Services
                     _logger.LogInformation("{@summary}", _backtest.Summary);
                 }
 
-                if (settings.Profit is not null && balance.Profit >= settings.Profit)
+                if (settings.TakeProfit is not null && balance.Profit >= settings.TakeProfit)
                     throw new BacktestFinishException();
 
                 return;
@@ -80,7 +83,7 @@ namespace Application.Services
             if (quotes.Length < strategy.LookbackPeriods + 1)
                 return;
 
-            if (!ChangeQuote(quotes))
+            if (!ChangeQuote(quotes) && !endOfDay)
                 return;
 
             var beforeVolume = current is null ? 0 : current.Volume();

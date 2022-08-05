@@ -100,7 +100,11 @@ namespace Application.Services.Providers.Rates
 
             var toTrade = new TickData { Time = now };
             var onlyTimeComparer = new TickDataOnlyTimeComparer();
-            var trade = new TickData { Flags = 0 };
+            var trade = new TickData
+            {
+                Time = DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc),
+                Flags = 0
+            };
 
             for (int i = index; i > 0; i--)
             {

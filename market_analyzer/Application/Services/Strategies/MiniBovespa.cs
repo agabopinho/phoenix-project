@@ -1,19 +1,20 @@
 ﻿using Application.Helpers;
 using Application.Options;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
     public class MiniBovespa : IStrategy
     {
+        private readonly IServiceProvider _serviceProvider;
         private readonly IOptions<OperationSettings> _operationSettings;
 
-        private double _lastMultipler;
-
-        public MiniBovespa(IOptions<OperationSettings> operationSettings)
+        public MiniBovespa(IServiceProvider serviceProvider, IOptions<OperationSettings> operationSettings)
         {
+            _serviceProvider = serviceProvider;
             _operationSettings = operationSettings;
-            _lastMultipler = operationSettings.Value.Strategy.MiniBovespa.LastMultipler;
         }
 
         public int LookbackPeriods => 0;
@@ -21,38 +22,27 @@ namespace Application.Services.Strategies
         public double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
             var operationSettings = _operationSettings.Value;
-            var strategy = operationSettings.Strategy;
-            var settings = strategy.MiniBovespa;
-            var lastQuote = quotes.Last();
+            var miniBovespa = operationSettings.Strategy.MiniBovespa;
 
-            var firstQuoteDate = operationSettings.Date.ToDateTime(operationSettings.Start);
+            var open = Convert.ToDouble(quotes.First().Open);
+            var high = Convert.ToDouble(quotes.Max(it => it.High));
+            var low = Convert.ToDouble(quotes.Min(it => it.Low));
 
-            if (lastQuote.Date < firstQuoteDate)
-                return 0d;
+            var highP = (high - open) / open * 100;
+            var lowP = (open - low) / open * 100;
 
-            if (firstQuoteDate == lastQuote.Date)
-                return -strategy.Volume;
-
-            var first = quotes.First(it => it.Date == firstQuoteDate);
-            var p = Convert.ToDouble(lastQuote.Close) - Convert.ToDouble(first.Open);
-
-            if (p / settings.Range >= 1)
+            if (highP >= miniBovespa.StartHighP && lowP >= miniBovespa.MinLowP || lowP >= miniBovespa.StartLowP && highP >= miniBovespa.MinHighP)
             {
-                p -= p % settings.Range;
+                var strategy = StrategyFactory.Get(miniBovespa.Use)!;
+                var volume = strategy.SignalVolume(quotes);
 
-                var multipler = Math.Pow(2, Math.Min(settings.MaxPower, p / settings.Range));
-                var enterEverySeconds = lastQuote.Date.TimeOfDay.TotalSeconds % settings.EnterEverySeconds;
-                var totalSeconds = lastQuote.Date.TimeOfDay.TotalSeconds;
-
-                if (multipler > _lastMultipler || enterEverySeconds > 0 && totalSeconds % enterEverySeconds == 0)
-                {
-                    _lastMultipler = multipler;
-
-                    return -strategy.Volume * multipler;
-                }
+                return volume;
             }
 
             return 0d;
         }
+
+        private IStrategyFactory StrategyFactory
+            => _serviceProvider.GetRequiredService<IStrategyFactory>();
     }
 }

@@ -27,7 +27,8 @@
     public class StrategySettings
     {
         public double Volume { get; set; }
-        public double? Profit { get; set; }
+        public double? TakeProfit { get; set; }
+        public double? StopLoss { get; set; }
         public string Use { get; set; } = "Atr";
         public VolatilityStopSettings VolatilityStop { get; set; } = new();
         public SlopeSettings Slope { get; set; } = new();
@@ -116,17 +117,18 @@
         {
             public int SmaPeriods { get; set; } = 20;
             public double Multipler { get; set; } = 0.2;
-            public int AtrPeriods { get; set; } = 10;
+            public int AtrPeriods { get; set; } = 20;
             public double MultiplerStep { get; set; } = 0.5;
             public int Count { get; set; } = 5;
         }
 
         public class MiniBovespaSettings
         {
-            public double LastMultipler { get; set; } = 0;
-            public double MaxPower { get; set; } = 3;
-            public double Range { get; set; } = 250;
-            public double EnterEverySeconds { get; set; } = 0;
+            public double StartHighP { get; set; } = 0.5;
+            public double StartLowP { get; set; } = 0.5;
+            public double MinHighP { get; set; } = 0.25;
+            public double MinLowP { get; set; } = 0.25;
+            public string Use { get; set; } = "Ema";
         }
 
         public class RenkoSettings
