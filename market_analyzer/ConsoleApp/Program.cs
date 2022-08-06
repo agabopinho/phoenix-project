@@ -143,6 +143,8 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, VolatilityStopRainbowFt>();
     services.AddSingleton<IStrategy, KeltnerRainbow>();
     services.AddSingleton<IStrategy, KeltnerRainbowFt>();
+    services.AddSingleton<IStrategy, Keltner>();
+    services.AddSingleton<IStrategy, KeltnerFt>();
     services.AddSingleton<IStrategy, Renko>();
     services.AddSingleton<IStrategy, RenkoFt>();
     services.AddSingleton<IStrategy, MiniBovespa>();

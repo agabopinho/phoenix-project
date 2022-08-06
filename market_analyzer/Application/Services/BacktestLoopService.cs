@@ -37,7 +37,7 @@ namespace Application.Services
         }
 
         public bool IsEndOfDay =>
-            _cycleProvider.Previous.TimeOfDay >= 
+            _cycleProvider.Previous.TimeOfDay >=
             _operationSettings.Value.End.ToTimeSpan().Subtract(_operationSettings.Value.Timeframe);
 
         public async Task RunAsync(CancellationToken cancellationToken)
@@ -59,11 +59,17 @@ namespace Application.Services
             var strategy = _strategyFactory.Get(settings.Use) ?? throw new InvalidOperationException();
 
             var endOfDay = IsEndOfDay;
+            var profit = 0d;
 
-            if (settings.TakeProfit is not null && balance.Profit >= settings.TakeProfit)
+            if (settings.CloseDay)
+                profit = balance.Profit;
+            else if (current is not null)
+                profit = current.Profit(bookPrice);
+
+            if (settings.TakeProfit is not null && profit >= settings.TakeProfit)
                 endOfDay = true;
 
-            if (settings.StopLoss is not null && balance.Profit <= -settings.StopLoss)
+            if (settings.StopLoss is not null && profit <= -settings.StopLoss)
                 endOfDay = true;
 
             if (current is null && endOfDay)
@@ -74,7 +80,8 @@ namespace Application.Services
                     _logger.LogInformation("{@summary}", _backtest.Summary);
                 }
 
-                if (settings.TakeProfit is not null && balance.Profit >= settings.TakeProfit)
+                if (settings.TakeProfit is not null && balance.Profit >= settings.TakeProfit ||
+                    settings.StopLoss is not null && balance.Profit <= -settings.StopLoss)
                     throw new BacktestFinishException();
 
                 return;

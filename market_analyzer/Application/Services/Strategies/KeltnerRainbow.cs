@@ -16,7 +16,7 @@ namespace Application.Services.Strategies
 
         public int LookbackPeriods =>
             Math.Max(
-                _operationSettings.Value.Strategy.KeltnerRainbow.SmaPeriods,
+                _operationSettings.Value.Strategy.KeltnerRainbow.EmaPeriods,
                 _operationSettings.Value.Strategy.KeltnerRainbow.AtrPeriods);
 
         public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
@@ -35,7 +35,7 @@ namespace Application.Services.Strategies
             for (var i = 0; i < settings.Count; i++)
             {
                 resultBands.Add(quotes
-                    .GetKeltner(settings.SmaPeriods, multipler, settings.AtrPeriods)
+                    .GetKeltner(settings.EmaPeriods, multipler, settings.AtrPeriods)
                     .Last());
 
                 multipler += settings.MultiplerStep;

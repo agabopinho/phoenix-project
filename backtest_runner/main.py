@@ -19,6 +19,8 @@ for d in DATES[DATES_INDEX]:
     with open(appSettingsPath, "w") as file:
         file.truncate()
         file.write(json.dumps(jsonData))
+        file.flush()
+        file.close()
 
     system("cd {} && start {}".format(rootdir, "ConsoleApp.exe"))
     time.sleep(2)

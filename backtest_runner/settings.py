@@ -1,26 +1,9 @@
 from datetime import date
 
-DATES_INDEX = 4
+DATES_INDEX = 1
 DATES = []
 
 # 0
-DATES.append([ 
-    date.fromisoformat('2022-03-15'),
-    date.fromisoformat('2022-03-16'),
-    date.fromisoformat('2022-03-17'),
-    date.fromisoformat('2022-03-18'),
-    date.fromisoformat('2022-03-21'),
-    date.fromisoformat('2022-03-22'),
-    date.fromisoformat('2022-03-23'),
-    date.fromisoformat('2022-03-24'),
-    date.fromisoformat('2022-03-25'),
-    date.fromisoformat('2022-03-28'),
-    date.fromisoformat('2022-03-29'),
-    date.fromisoformat('2022-03-30'),
-    date.fromisoformat('2022-03-31'),
-])
-
-# 1
 DATES.append([ 
     date.fromisoformat('2022-06-01'),
     date.fromisoformat('2022-06-02'),
@@ -35,7 +18,7 @@ DATES.append([
     date.fromisoformat('2022-06-15'),
 ])
 
-# 2
+# 1
 DATES.append([
     date.fromisoformat('2022-06-17'),
     date.fromisoformat('2022-06-20'),
@@ -49,7 +32,7 @@ DATES.append([
     date.fromisoformat('2022-06-30'),
 ])
 
-# 3
+# 2
 DATES.append([
     date.fromisoformat('2022-07-01'),
     date.fromisoformat('2022-07-04'),
@@ -64,7 +47,7 @@ DATES.append([
     date.fromisoformat('2022-07-15'),
 ])
 
-# 4
+# 3
 DATES.append([
     date.fromisoformat('2022-07-18'),
     date.fromisoformat('2022-07-19'),
@@ -78,10 +61,11 @@ DATES.append([
     date.fromisoformat('2022-07-29'),
 ])
 
-#5
+#4
 DATES.append([
     date.fromisoformat('2022-08-01'),
     date.fromisoformat('2022-08-02'),
     date.fromisoformat('2022-08-03'),
     date.fromisoformat('2022-08-04'),
+    date.fromisoformat('2022-08-05'),
 ])

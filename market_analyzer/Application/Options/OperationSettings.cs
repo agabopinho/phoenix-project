@@ -29,6 +29,7 @@
         public double Volume { get; set; }
         public double? TakeProfit { get; set; }
         public double? StopLoss { get; set; }
+        public bool CloseDay { get; set; } = true;
         public string Use { get; set; } = "Atr";
         public VolatilityStopSettings VolatilityStop { get; set; } = new();
         public SlopeSettings Slope { get; set; } = new();
@@ -42,6 +43,7 @@
         public T3Settings T3 { get; set; } = new();
         public AlmaSettings Alma { get; set; } = new();
         public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
+        public KeltnerSettings Keltner { get; set; } = new();
         public MiniBovespaSettings MiniBovespa { get; set; } = new();
         public RenkoSettings Renko { get; set; } = new();
         public TrendSettings Trend { get; set; } = new();
@@ -115,11 +117,19 @@
 
         public class KeltnerRainbowSettings
         {
-            public int SmaPeriods { get; set; } = 20;
+            public int EmaPeriods { get; set; } = 20;
             public double Multipler { get; set; } = 0.2;
             public int AtrPeriods { get; set; } = 20;
             public double MultiplerStep { get; set; } = 0.5;
             public int Count { get; set; } = 5;
+        }
+
+        public class KeltnerSettings
+        {
+            public int LookbackPeriods { get; set; } = 9;
+            public int EmaPeriods { get; set; } = 20;
+            public double Multipler { get; set; } = 0.2;
+            public int AtrPeriods { get; set; } = 20;
         }
 
         public class MiniBovespaSettings
@@ -134,6 +144,8 @@
         public class RenkoSettings
         {
             public double BrickSize { get; set; }
+            public int FastLookbackPeriods { get; set; } = 8;
+            public int SlowLookbackPeriods { get; set; } = 18;
         }
 
         public class TrendSettings

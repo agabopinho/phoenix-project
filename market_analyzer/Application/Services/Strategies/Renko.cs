@@ -14,7 +14,10 @@ namespace Application.Services.Strategies
             _operationSettings = operationSettings;
         }
 
-        public int LookbackPeriods => 0;
+        public int LookbackPeriods =>
+            _operationSettings.Value.Strategy.Renko.SlowLookbackPeriods;
+
+        private double _lastRenkoOpen = 0;
 
         public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
         {
@@ -26,16 +29,22 @@ namespace Application.Services.Strategies
                 .ToArray();
 
             if (!renkos.Any())
-                return 0;
+                return 0d;
 
-            var lastRenko = renkos[^1];
+            var lastRenkoOpen = Convert.ToDouble(renkos.Last().Open);
+            if (_lastRenkoOpen == lastRenkoOpen)
+                return 0d;
+            _lastRenkoOpen = lastRenkoOpen;
+
+            var lastFastEma = renkos.GetEma(settings.FastLookbackPeriods).Last().Ema;
+            var lastSlowEma = renkos.GetEma(settings.SlowLookbackPeriods).Last().Ema;
 
             var volume = 0d;
 
-            if (lastRenko.IsUp)
+            if (lastFastEma > lastSlowEma)
                 volume = -strategy.Volume;
 
-            if (!lastRenko.IsUp)
+            if (lastFastEma < lastSlowEma)
                 volume = strategy.Volume;
 
             return volume;
