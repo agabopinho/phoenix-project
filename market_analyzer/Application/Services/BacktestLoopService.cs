@@ -40,6 +40,8 @@ namespace Application.Services
             _cycleProvider.Previous.TimeOfDay >=
             _operationSettings.Value.End.ToTimeSpan().Subtract(_operationSettings.Value.Timeframe);
 
+        private double _lastProfit = 0d;
+
         public async Task RunAsync(CancellationToken cancellationToken)
         {
             await _ratesProvider.CheckNewRatesAsync(
@@ -59,18 +61,16 @@ namespace Application.Services
             var strategy = _strategyFactory.Get(settings.Use) ?? throw new InvalidOperationException();
 
             var endOfDay = IsEndOfDay;
-            var profit = 0d;
-
-            if (settings.CloseDay)
-                profit = balance.Profit;
-            else if (current is not null)
-                profit = current.Profit(bookPrice);
+            var profit = balance.Profit - _lastProfit;
 
             if (settings.TakeProfit is not null && profit >= settings.TakeProfit)
                 endOfDay = true;
 
             if (settings.StopLoss is not null && profit <= -settings.StopLoss)
                 endOfDay = true;
+
+            if (endOfDay)
+                _lastProfit = balance.Profit;
 
             if (current is null && endOfDay)
             {
