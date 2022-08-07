@@ -2,7 +2,7 @@
 {
     public record class Transaction(DateTime Time, double Price, double Volume);
     
-    public record class Balance(double OpenVolume, double OpenPrice, double Profit);
+    public record class Balance(double OpenVolume, double Profit);
 
     public record BookPrice(DateTime Time, double Bid, double Ask);
 
@@ -42,7 +42,6 @@
 
         public Balance Balance(BookPrice currentPrice)
         {
-            var openPrice = 0d;
             var openVolume = 0d;
             var sumProfit = 0d;
 
@@ -50,11 +49,9 @@
             {
                 openVolume += position.Volume();
                 sumProfit += position.Profit(currentPrice);
-
-                openPrice = position.Price();
             }
 
-            var balance = new Balance(openVolume, openPrice, sumProfit);
+            var balance = new Balance(openVolume, sumProfit);
 
             UpdateSummary(balance);
 

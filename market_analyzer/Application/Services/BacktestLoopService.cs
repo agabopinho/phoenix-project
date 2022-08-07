@@ -62,27 +62,20 @@ namespace Application.Services
             var closeTheDay = HitRisk(dailyRisk, dailyProfit.Profit);
             var closeOperation = closeTheDay || HitRisk(operationRisk, positionProfit);
 
-            if (position is null && (IsEndOfDay || closeTheDay))
-            {
-                _logger.LogInformation("{@summary}", _backtest.Summary);
+            ThrowIfCloseTheDay(position, closeTheDay);
 
-                throw new BacktestFinishException();
-            }
+            var strategy = _strategyFactory.Get(settings.Use) ??
+                throw new InvalidOperationException();
 
-            var strategy = _strategyFactory.Get(settings.Use) ?? throw new InvalidOperationException();
             if (quotes.Length < strategy.LookbackPeriods + 1)
                 return;
 
-            if (!ChangeQuote(quotes) && !closeOperation)
+            if (!closeOperation && !ChangeQuote(quotes))
                 return;
 
             var beforeVolume = position is null ? 0 : position.Volume();
 
-            if (strategy is IStrategy.IWithPosition s)
-                if (position is not null)
-                    s.Position = new StrategyPosition(position.Price(), beforeVolume, position.Profit(bookPrice));
-                else
-                    s.Position = null;
+            SetStrategyPosition(strategy, position?.Price() ?? 0d, beforeVolume, positionProfit);
 
             double volume;
 
@@ -96,7 +89,7 @@ namespace Application.Services
 
             var afterVolume = beforeVolume + volume;
 
-            if (afterVolume == 0 && !closeOperation)
+            if (!closeOperation && afterVolume == 0)
                 if (volume > 0)
                     volume = beforeVolume * -1 + settings.Volume;
                 else
@@ -104,7 +97,28 @@ namespace Application.Services
 
             var transaction = _backtest.Execute(bookPrice, volume);
 
-            Print(bookPrice, transaction);
+            Print(bookPrice, transaction, position);
+        }
+
+        private void ThrowIfCloseTheDay(BacktestPosition? position, bool closeTheDay)
+        {
+            if (position is null && (IsEndOfDay || closeTheDay))
+            {
+                _logger.LogInformation("{@summary}", _backtest.Summary);
+
+                throw new BacktestFinishException();
+            }
+        }
+
+        private static void SetStrategyPosition(IStrategy strategy, double positionPrice, double positionVolume, double positionProfit)
+        {
+            if (strategy is not IStrategy.IWithPosition s)
+                return;
+
+            if (positionPrice > 0)
+                s.Position = new StrategyPosition(positionPrice, positionVolume, positionProfit);
+            else
+                s.Position = null;
         }
 
         private static bool HitRisk(StrategySettings.Risk risk, double profit)
@@ -143,7 +157,7 @@ namespace Application.Services
                 _operationSettings.Value.Window,
                 cancellationToken);
 
-        private void Print(BookPrice bookPrice, Transaction transaction)
+        private void Print(BookPrice bookPrice, Transaction transaction, BacktestPosition? position)
         {
             if (!_backtest.Positions.Any())
                 return;
@@ -154,11 +168,15 @@ namespace Application.Services
             _logger.LogInformation("{@profit}", new
             {
                 Time = transaction.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff"),
-                Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
                 transaction.Price,
-                OpenVolume = Math.Round(result.OpenVolume, symbol.VolumeDecimals),
-                OpenPrice = Math.Round(result.OpenPrice, symbol.PriceDecimals),
-                Profit = Math.Round(result.Profit, symbol.PriceDecimals),
+                Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
+                Open = new
+                {
+                    Volume = Math.Round(result.OpenVolume, symbol.VolumeDecimals),
+                    Price = Math.Round(position?.Price() ?? 0d, symbol.PriceDecimals),
+                    Profit = Math.Round(position?.Profit(bookPrice) ?? 0d, symbol.PriceDecimals),
+                },
+                DailyProfit = Math.Round(result.Profit, symbol.PriceDecimals),
             });
         }
     }

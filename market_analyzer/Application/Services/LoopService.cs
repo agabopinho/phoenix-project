@@ -186,7 +186,7 @@ namespace Application.Services
                 Volume = Math.Round(transaction.Volume, symbol.VolumeDecimals),
                 transaction.Price,
                 OpenVolume = Math.Round(result.OpenVolume, symbol.VolumeDecimals),
-                OpenPrice = Math.Round(result.OpenPrice, symbol.PriceDecimals),
+                //OpenPrice = Math.Round(result.OpenPrice, symbol.PriceDecimals),
                 Profit = Math.Round(result.Profit, symbol.PriceDecimals),
             });
         }
