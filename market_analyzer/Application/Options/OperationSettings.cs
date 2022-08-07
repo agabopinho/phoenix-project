@@ -27,8 +27,8 @@
     public class StrategySettings
     {
         public double Volume { get; set; }
-        public double? TakeProfit { get; set; }
-        public double? StopLoss { get; set; }
+        public Risk OperationRisk { get; set; } = new();
+        public Risk DailyRisk { get; set; } = new();
         public bool CloseDay { get; set; } = true;
         public string Use { get; set; } = "Atr";
         public VolatilityStopSettings VolatilityStop { get; set; } = new();
@@ -49,11 +49,13 @@
         public TrendSettings Trend { get; set; } = new();
         public VolatilityStopRainbowSettings VolatilityStopRainbow { get; set; } = new();
 
-        public class VolatilityStopSettings
-        {
-            public int LookbackPeriods { get; set; } = 7;
-            public double Multiplier { get; set; } = 3;
-        }
+        public record class Risk(
+            double? TakeProfit = null,
+            double? StopLoss = null);
+
+        public record class VolatilityStopSettings(
+            int LookbackPeriods = 7,
+            double Multiplier = 3);
 
         public class SlopeSettings
         {

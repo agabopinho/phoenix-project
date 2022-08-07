@@ -18,8 +18,6 @@ namespace Application.Services
         private readonly ILogger<ILoopService> _logger;
 
         private readonly Backtest _backtest = new();
-
-        private bool _summaryPrinted = false;
         private DateTime _lastQuoteDate;
 
         public BacktestLoopService(
@@ -40,10 +38,12 @@ namespace Application.Services
             _cycleProvider.Previous.TimeOfDay >=
             _operationSettings.Value.End.ToTimeSpan().Subtract(_operationSettings.Value.Timeframe);
 
-        private double _lastProfit = 0d;
-
         public async Task RunAsync(CancellationToken cancellationToken)
         {
+            var settings = _operationSettings.Value.Strategy;
+            var operationRisk = settings.OperationRisk;
+            var dailyRisk = settings.DailyRisk;
+
             await _ratesProvider.CheckNewRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
                 _operationSettings.Value.Date,
@@ -53,65 +53,71 @@ namespace Application.Services
 
             var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
 
+            var position = _backtest.OpenPosition();
             var bookPrice = await GetBookPriceAsync(cancellationToken);
-            var current = _backtest.OpenPosition();
-            var balance = _backtest.Balance(bookPrice);
 
-            var settings = _operationSettings.Value.Strategy;
-            var strategy = _strategyFactory.Get(settings.Use) ?? throw new InvalidOperationException();
+            var positionProfit = position is not null ? position.Profit(bookPrice) : 0d;
+            var dailyProfit = _backtest.Balance(bookPrice);
 
-            var endOfDay = IsEndOfDay;
-            var profit = balance.Profit - _lastProfit;
+            var closeTheDay = HitRisk(dailyRisk, dailyProfit.Profit);
+            var closeOperation = closeTheDay || HitRisk(operationRisk, positionProfit);
 
-            if (settings.TakeProfit is not null && profit >= settings.TakeProfit)
-                endOfDay = true;
-
-            if (settings.StopLoss is not null && profit <= -settings.StopLoss)
-                endOfDay = true;
-
-            if (endOfDay)
-                _lastProfit = balance.Profit;
-
-            if (current is null && endOfDay)
+            if (position is null && (IsEndOfDay || closeTheDay))
             {
-                if (!_summaryPrinted)
-                {
-                    _summaryPrinted = true;
-                    _logger.LogInformation("{@summary}", _backtest.Summary);
-                }
+                _logger.LogInformation("{@summary}", _backtest.Summary);
 
-                if (settings.TakeProfit is not null && balance.Profit >= settings.TakeProfit ||
-                    settings.StopLoss is not null && balance.Profit <= -settings.StopLoss)
-                    throw new BacktestFinishException();
-
-                return;
+                throw new BacktestFinishException();
             }
 
+            var strategy = _strategyFactory.Get(settings.Use) ?? throw new InvalidOperationException();
             if (quotes.Length < strategy.LookbackPeriods + 1)
                 return;
 
-            if (!ChangeQuote(quotes) && !endOfDay)
+            if (!ChangeQuote(quotes) && !closeOperation)
                 return;
 
-            var beforeVolume = current is null ? 0 : current.Volume();
+            var beforeVolume = position is null ? 0 : position.Volume();
 
             if (strategy is IStrategy.IWithPosition s)
-                if (current is not null)
-                    s.Position = new StrategyPosition(current.Price(), beforeVolume, current.Profit(bookPrice));
+                if (position is not null)
+                    s.Position = new StrategyPosition(position.Price(), beforeVolume, position.Profit(bookPrice));
                 else
                     s.Position = null;
 
-            var volume = strategy.SignalVolume(quotes);
+            double volume;
 
-            if (current is not null && endOfDay)
+            if (position is not null && closeOperation)
                 volume = beforeVolume * -1;
+            else
+                volume = strategy.SignalVolume(quotes);
 
             if (volume == 0)
                 return;
 
+            var afterVolume = beforeVolume + volume;
+
+            if (afterVolume == 0 && !closeOperation)
+                if (volume > 0)
+                    volume = beforeVolume * -1 + settings.Volume;
+                else
+                    volume = beforeVolume * -1 + -settings.Volume;
+
             var transaction = _backtest.Execute(bookPrice, volume);
 
             Print(bookPrice, transaction);
+        }
+
+        private static bool HitRisk(StrategySettings.Risk risk, double profit)
+        {
+            var closeOperation = false;
+
+            if (risk.TakeProfit is not null && profit >= risk.TakeProfit)
+                closeOperation = true;
+
+            if (risk.StopLoss is not null && profit <= -risk.StopLoss)
+                closeOperation = true;
+
+            return closeOperation;
         }
 
         private bool ChangeQuote(CustomQuote[] quotes)
