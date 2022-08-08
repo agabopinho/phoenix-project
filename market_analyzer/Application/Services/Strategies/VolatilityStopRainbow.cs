@@ -43,10 +43,9 @@ namespace Application.Services.Strategies
 
             foreach (var band in resultBands)
             {
-                if (band.UpperBand.HasValue)
+                if (band.LowerBand is not null)
                     index--;
-
-                if (band.LowerBand.HasValue)
+                else
                     index++;
             }
 
