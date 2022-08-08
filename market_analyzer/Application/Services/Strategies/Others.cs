@@ -20,13 +20,13 @@ namespace Application.Services.Strategies
         public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            return StopAtrHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
+            return VolatilityStopHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected virtual bool StopAtrHasLowerBand(IEnumerable<IQuote> quotes)
+        protected virtual bool VolatilityStopHasLowerBand(IEnumerable<IQuote> quotes)
         {
-            var atr = _operationSettings.Value.Strategy.VolatilityStop;
-            var stopAtrs = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
+            var settings = _operationSettings.Value.Strategy.VolatilityStop;
+            var stopAtrs = quotes.GetVolatilityStop(settings.LookbackPeriods, settings.Multiplier);
             var stopAtr = stopAtrs.Last();
             return stopAtr.LowerBand is not null;
         }

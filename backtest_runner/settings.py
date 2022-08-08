@@ -1,6 +1,6 @@
 from datetime import date
 
-DATES_INDEX = 1
+DATES_INDEX = 0
 DATES = []
 
 # 0
