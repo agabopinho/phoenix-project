@@ -1,5 +1,4 @@
-﻿using Application.Helpers;
-using Application.Options;
+﻿using Application.Options;
 using Microsoft.Extensions.Options;
 using Skender.Stock.Indicators;
 

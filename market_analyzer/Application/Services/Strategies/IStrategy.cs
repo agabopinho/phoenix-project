@@ -1,5 +1,4 @@
-﻿using Application.Helpers;
-using Skender.Stock.Indicators;
+﻿using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {

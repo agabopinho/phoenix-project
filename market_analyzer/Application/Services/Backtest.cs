@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace Application.Services
+﻿namespace Application.Services
 {
     public record class Transaction(DateTime Time, double Price, double Volume);
 

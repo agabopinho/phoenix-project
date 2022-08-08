@@ -1,15 +1,21 @@
-﻿namespace Application.Services.Strategies
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace Application.Services.Strategies
 {
     public class StrategyFactory : IStrategyFactory
     {
-        private readonly IEnumerable<IStrategy> _strategies;
+        private readonly IServiceProvider _serviceProvider;
 
-        public StrategyFactory(IEnumerable<IStrategy> strategies)
+        public StrategyFactory(IServiceProvider serviceProvider)
         {
-            _strategies = strategies;
+            _serviceProvider = serviceProvider;
         }
 
         public IStrategy? Get(string name)
-            => _strategies.FirstOrDefault(it => it.GetType().Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            => GetStrategies()
+            .FirstOrDefault(it => it.GetType().Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+        private IEnumerable<IStrategy> GetStrategies()
+            => _serviceProvider.GetRequiredService<IEnumerable<IStrategy>>();
     }
 }

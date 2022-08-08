@@ -1,33 +1,32 @@
-﻿using Application.Helpers;
-using Application.Options;
+﻿using Application.Options;
 using Microsoft.Extensions.Options;
 using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
-    public class Keltner : IStrategy
+    public class KeltnerAndEmaSignal : IStrategy
     {
         protected readonly IOptions<OperationSettings> _operationSettings;
 
-        public Keltner(IOptions<OperationSettings> operationSettings)
+        public KeltnerAndEmaSignal(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
 
         public int LookbackPeriods =>
             Math.Max(
-                _operationSettings.Value.Strategy.Keltner.LookbackPeriods,
+                _operationSettings.Value.Strategy.KeltnerAndEmaSignal.EmaLookbackPeriods,
                 Math.Max(
-                    _operationSettings.Value.Strategy.Keltner.EmaPeriods,
-                    _operationSettings.Value.Strategy.Keltner.AtrPeriods));
+                    _operationSettings.Value.Strategy.KeltnerAndEmaSignal.EmaPeriods,
+                    _operationSettings.Value.Strategy.KeltnerAndEmaSignal.AtrPeriods));
 
         public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
-            var keltnerSettings = strategy.Keltner;
+            var keltnerSettings = strategy.KeltnerAndEmaSignal;
 
             var keltners = quotes.GetKeltner(keltnerSettings.EmaPeriods, keltnerSettings.Multipler, keltnerSettings.AtrPeriods);
-            var emas = quotes.GetEma(keltnerSettings.LookbackPeriods);
+            var emas = quotes.GetEma(keltnerSettings.EmaLookbackPeriods);
 
             var lastKeltner = keltners.Last();
             var lastEma = emas.Last().Ema;
@@ -43,9 +42,9 @@ namespace Application.Services.Strategies
         }
     }
 
-    public class KeltnerFt : Keltner
+    public class KeltnerAndEmaSignalFt : KeltnerAndEmaSignal
     {
-        public KeltnerFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
+        public KeltnerAndEmaSignalFt(IOptions<OperationSettings> operationSettings) : base(operationSettings)
         {
         }
 

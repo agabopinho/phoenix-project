@@ -1,6 +1,4 @@
-﻿using Application.Helpers;
-using Application.Options;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Application.Options;
 using Microsoft.Extensions.Options;
 using Skender.Stock.Indicators;
 
@@ -8,22 +6,19 @@ namespace Application.Services.Strategies
 {
     public class Renko : IStrategy
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IStrategyFactory _strategyFactory;
         private readonly IOptions<OperationSettings> _operationSettings;
-        
+
         private double _lastRenkoOpen = 0;
 
-        public Renko(IServiceProvider serviceProvider, IOptions<OperationSettings> operationSettings)
+        public Renko(IStrategyFactory strategyFactory, IOptions<OperationSettings> operationSettings)
         {
-            _serviceProvider = serviceProvider;
+            _strategyFactory = strategyFactory;
             _operationSettings = operationSettings;
         }
 
         public int LookbackPeriods =>
-           StrategyFactory.Get(_operationSettings.Value.Strategy.Renko.Use)!.LookbackPeriods;
-
-        private IStrategyFactory StrategyFactory
-           => _serviceProvider.GetRequiredService<IStrategyFactory>();
+           _strategyFactory.Get(_operationSettings.Value.Strategy.Renko.Use)!.LookbackPeriods;
 
         public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
@@ -42,7 +37,7 @@ namespace Application.Services.Strategies
                 return 0d;
             _lastRenkoOpen = lastRenkoOpen;
 
-            return StrategyFactory
+            return _strategyFactory
                 .Get(settings.Use)!
                 .SignalVolume(renkos);
         }

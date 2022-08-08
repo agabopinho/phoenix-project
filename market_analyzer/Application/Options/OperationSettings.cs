@@ -41,11 +41,11 @@
         public MamaSettings Mama { get; set; } = new();
         public T3Settings T3 { get; set; } = new();
         public AlmaSettings Alma { get; set; } = new();
-        public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
-        public KeltnerSettings Keltner { get; set; } = new();
+        public KeltnerAndEmaSignalSettings KeltnerAndEmaSignal { get; set; } = new();
         public MiniBovespaSettings MiniBovespa { get; set; } = new();
         public RenkoSettings Renko { get; set; } = new();
         public TrendSettings Trend { get; set; } = new();
+        public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
         public VolatilityStopRainbowSettings VolatilityStopRainbow { get; set; } = new();
 
         public record class Risk(
@@ -96,15 +96,8 @@
             double Offset = 0.85,
             double Sigma = 6);
 
-        public record class KeltnerRainbowSettings(
-            int EmaPeriods = 20,
-            double Multipler = 1,
-            int AtrPeriods = 10,
-            double MultiplerStep = 1,
-            int Count = 5);
-
-        public record class KeltnerSettings(
-            int LookbackPeriods = 9,
+        public record class KeltnerAndEmaSignalSettings(
+            int EmaLookbackPeriods = 9,
             int EmaPeriods = 20,
             double Multipler = 0.2,
             int AtrPeriods = 10);
@@ -124,7 +117,16 @@
             string Use = "Ema",
             int MaxPower = 5);
 
+        public record class KeltnerRainbowSettings(
+           string Use = "Ema",
+           int EmaPeriods = 20,
+           double Multipler = 1,
+           int AtrPeriods = 10,
+           double MultiplerStep = 1,
+           int Count = 5);
+
         public record class VolatilityStopRainbowSettings(
+            string Use = "Ema",
             int LookbackPeriods = 20,
             double Multipler = 0.2,
             double MultiplerStep = 0.5,

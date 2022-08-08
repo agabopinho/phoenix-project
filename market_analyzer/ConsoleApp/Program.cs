@@ -4,6 +4,7 @@ using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
 using Application.Services.Providers.Rates.BacktestRates;
 using Application.Services.Strategies;
+using Application.Services.Strategies.Raibows;
 using Application.Workers;
 using ConsoleApp.Converters;
 using Infrastructure.GrpcServerTerminal;
@@ -139,15 +140,17 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, TemaFt>();
 
     // specifics
+    services.AddSingleton<IStrategy, KeltnerAndEmaSignal>();
+    services.AddSingleton<IStrategy, KeltnerAndEmaSignalFt>();
+    services.AddSingleton<IStrategy, Renko>();
+    services.AddSingleton<IStrategy, MiniBovespa>();
+    services.AddSingleton<IStrategy, Trend>();
+
+    // raibows 
     services.AddSingleton<IStrategy, VolatilityStopRainbow>();
     services.AddSingleton<IStrategy, VolatilityStopRainbowFt>();
     services.AddSingleton<IStrategy, KeltnerRainbow>();
     services.AddSingleton<IStrategy, KeltnerRainbowFt>();
-    services.AddSingleton<IStrategy, Keltner>();
-    services.AddSingleton<IStrategy, KeltnerFt>();
-    services.AddSingleton<IStrategy, Renko>();
-    services.AddSingleton<IStrategy, MiniBovespa>();
-    services.AddSingleton<IStrategy, Trend>();
 });
 
 await builder.Build().RunAsync();
