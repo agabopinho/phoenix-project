@@ -2,6 +2,7 @@
 using Application.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
@@ -21,15 +22,15 @@ namespace Application.Services.Strategies
         public StrategyPosition? Position { get; set; }
 
         public int LookbackPeriods =>
-            StrategyFactory.Get(_operationSettings.Value.Strategy.Trend.Name)!.LookbackPeriods;
+            StrategyFactory.Get(_operationSettings.Value.Strategy.Trend.Use)!.LookbackPeriods;
 
         private IStrategyFactory StrategyFactory
             => _serviceProvider.GetRequiredService<IStrategyFactory>();
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var settings = _operationSettings.Value.Strategy.Trend;
-            var strategy = StrategyFactory.Get(settings.Name)!;
+            var strategy = StrategyFactory.Get(settings.Use)!;
             var volume = strategy.SignalVolume(quotes);
 
             if (Position is null)

@@ -1,4 +1,5 @@
 ﻿using Application.Helpers;
+using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
@@ -6,7 +7,7 @@ namespace Application.Services.Strategies
     {
         int LookbackPeriods { get; }
 
-        double SignalVolume(IEnumerable<CustomQuote> quotes);
+        double SignalVolume(IEnumerable<IQuote> quotes);
 
         public interface IWithPosition : IStrategy
         {

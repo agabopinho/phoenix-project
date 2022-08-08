@@ -6,6 +6,7 @@ using Application.Services.Strategies;
 using Grpc.Terminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Skender.Stock.Indicators;
 
 namespace Application.Services
 {
@@ -60,7 +61,7 @@ namespace Application.Services
             var dailyProfit = _backtest.Balance(bookPrice);
 
             var closeTheDay = HitRisk(dailyRisk, dailyProfit.Profit);
-            var closeOperation = closeTheDay || HitRisk(operationRisk, positionProfit);
+            var closeOperation = closeTheDay || IsEndOfDay || HitRisk(operationRisk, positionProfit);
 
             ThrowIfCloseTheDay(position, closeTheDay);
 
@@ -87,17 +88,9 @@ namespace Application.Services
             if (volume == 0)
                 return;
 
-            var afterVolume = beforeVolume + volume;
-
-            if (!closeOperation && afterVolume == 0)
-                if (volume > 0)
-                    volume = beforeVolume * -1 + settings.Volume;
-                else
-                    volume = beforeVolume * -1 + -settings.Volume;
-
             var transaction = _backtest.Execute(bookPrice, volume);
 
-            Print(bookPrice, transaction, position);
+            Print(bookPrice, transaction);
         }
 
         private void ThrowIfCloseTheDay(BacktestPosition? position, bool closeTheDay)
@@ -134,7 +127,7 @@ namespace Application.Services
             return closeOperation;
         }
 
-        private bool ChangeQuote(CustomQuote[] quotes)
+        private bool ChangeQuote(IQuote[] quotes)
         {
             var lastQuote = quotes[^1];
             if (_lastQuoteDate == lastQuote.Date)
@@ -157,11 +150,12 @@ namespace Application.Services
                 _operationSettings.Value.Window,
                 cancellationToken);
 
-        private void Print(BookPrice bookPrice, Transaction transaction, BacktestPosition? position)
+        private void Print(BookPrice bookPrice, Transaction transaction)
         {
             if (!_backtest.Positions.Any())
                 return;
 
+            var position = _backtest.OpenPosition();
             var result = _backtest.Balance(bookPrice);
             var symbol = _operationSettings.Value.Symbol;
 

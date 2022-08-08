@@ -19,7 +19,7 @@ namespace Application.Services.Strategies
 
         public int LookbackPeriods => 0;
 
-        public double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var operationSettings = _operationSettings.Value;
             var miniBovespa = operationSettings.Strategy.MiniBovespa;

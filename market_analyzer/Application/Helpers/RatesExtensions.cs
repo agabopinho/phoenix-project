@@ -20,7 +20,7 @@ namespace Application.Helpers
                 })
                 .OrderBy(it => it.Date);
 
-        public static IEnumerable<CustomQuote> ToQuotes(this IEnumerable<Rate> rates)
+        public static IEnumerable<IQuote> ToQuotes(this IEnumerable<Rate> rates)
             => rates
                 .Where(it => it.Open.HasValue && !double.IsNaN(it.Open.Value))
                 .Select(it => new CustomQuote

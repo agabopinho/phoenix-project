@@ -17,13 +17,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.VolatilityStop.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return StopAtrHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected virtual bool StopAtrHasLowerBand(IEnumerable<CustomQuote> quotes)
+        protected virtual bool StopAtrHasLowerBand(IEnumerable<IQuote> quotes)
         {
             var atr = _operationSettings.Value.Strategy.VolatilityStop;
             var stopAtrs = quotes.GetVolatilityStop(atr.LookbackPeriods, atr.Multiplier);
@@ -38,7 +38,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -54,13 +54,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.Slope.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return LastSlopeIsGreaterThanZero(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected virtual bool LastSlopeIsGreaterThanZero(IEnumerable<CustomQuote> quotes)
+        protected virtual bool LastSlopeIsGreaterThanZero(IEnumerable<IQuote> quotes)
         {
             var linearRegression = _operationSettings.Value.Strategy.Slope;
             var slopes = quotes.GetSlope(linearRegression.LookbackPeriods);
@@ -75,7 +75,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -90,13 +90,13 @@ namespace Application.Services.Strategies
 
         public int LookbackPeriods => 0;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return LastBarIsUp(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        public virtual bool LastBarIsUp(IEnumerable<CustomQuote> quotes)
+        public virtual bool LastBarIsUp(IEnumerable<IQuote> quotes)
         {
             var lastQuote = quotes.SkipLast(1).Last();
             return lastQuote.Close > lastQuote.Open;
@@ -109,7 +109,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -125,13 +125,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.DoubleRsi.SlowLookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return FastRsiIsGreaterThanSlowRsi(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool FastRsiIsGreaterThanSlowRsi(IEnumerable<CustomQuote> quotes)
+        protected bool FastRsiIsGreaterThanSlowRsi(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var fastRsis = quotes.GetRsi(strategy.DoubleRsi.FastLookbackPeriods);
@@ -148,7 +148,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -164,13 +164,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.Macd.SlowPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return MacdIsGreaterThanSignal(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool MacdIsGreaterThanSignal(IEnumerable<CustomQuote> quotes)
+        protected bool MacdIsGreaterThanSignal(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Macd;
@@ -186,7 +186,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -202,13 +202,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.SuperTrend.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return SuperTrendHasLowerBand(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool SuperTrendHasLowerBand(IEnumerable<CustomQuote> quotes)
+        protected bool SuperTrendHasLowerBand(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.SuperTrend;
@@ -224,7 +224,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -240,13 +240,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.Vwap.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return CloseIsGreaterThanVwap(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool CloseIsGreaterThanVwap(IEnumerable<CustomQuote> quotes)
+        protected bool CloseIsGreaterThanVwap(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Vwap;
@@ -263,7 +263,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
               => base.SignalVolume(quotes) * -1;
     }
 
@@ -279,13 +279,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.Kama.SlowPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return CloseIsGreaterThanKama(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool CloseIsGreaterThanKama(IEnumerable<CustomQuote> quotes)
+        protected bool CloseIsGreaterThanKama(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Kama;
@@ -301,7 +301,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -316,13 +316,13 @@ namespace Application.Services.Strategies
 
         public int LookbackPeriods => 0;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return SmoothPriceIsGreaterThanTrendline(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool SmoothPriceIsGreaterThanTrendline(IEnumerable<CustomQuote> quotes)
+        protected bool SmoothPriceIsGreaterThanTrendline(IEnumerable<IQuote> quotes)
         {
             var htTrendlines = quotes.GetHtTrendline();
             var htTrendline = htTrendlines.Last();
@@ -336,7 +336,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -351,13 +351,13 @@ namespace Application.Services.Strategies
 
         public int LookbackPeriods => 0;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return MamaIsGreaterThanFama(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool MamaIsGreaterThanFama(IEnumerable<CustomQuote> quotes)
+        protected bool MamaIsGreaterThanFama(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Mama;
@@ -373,7 +373,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -389,13 +389,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.T3.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return CloseIsGreaterThanT3(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool CloseIsGreaterThanT3(IEnumerable<CustomQuote> quotes)
+        protected bool CloseIsGreaterThanT3(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.T3;
@@ -411,7 +411,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -427,13 +427,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.Alma.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return CloseIsGreaterThanAlma(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected bool CloseIsGreaterThanAlma(IEnumerable<CustomQuote> quotes)
+        protected bool CloseIsGreaterThanAlma(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Alma;
@@ -449,7 +449,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 }

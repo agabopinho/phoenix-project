@@ -19,16 +19,16 @@ namespace Application.Services.Strategies
                 _operationSettings.Value.Strategy.KeltnerRainbow.EmaPeriods,
                 _operationSettings.Value.Strategy.KeltnerRainbow.AtrPeriods);
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return GetVolumeMultipler(quotes) * strategy.Volume;
         }
 
-        protected virtual int GetVolumeMultipler(IEnumerable<CustomQuote> quotes)
+        protected virtual int GetVolumeMultipler(IEnumerable<IQuote> quotes)
         {
             var settings = _operationSettings.Value.Strategy.KeltnerRainbow;
-            
+
             var resultBands = new List<KeltnerResult>(settings.Count);
             var multipler = settings.Multipler;
 
@@ -63,9 +63,8 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
         {
-            return base.SignalVolume(quotes) * -1;
             var multipler = base.SignalVolume(quotes) * -1 / _operationSettings.Value.Strategy.Volume;
             var count = _operationSettings.Value.Strategy.KeltnerRainbow.Count;
 

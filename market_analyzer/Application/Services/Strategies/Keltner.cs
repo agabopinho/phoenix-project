@@ -21,7 +21,7 @@ namespace Application.Services.Strategies
                     _operationSettings.Value.Strategy.Keltner.EmaPeriods,
                     _operationSettings.Value.Strategy.Keltner.AtrPeriods));
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var keltnerSettings = strategy.Keltner;
@@ -49,7 +49,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 }

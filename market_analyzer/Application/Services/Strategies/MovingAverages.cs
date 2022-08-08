@@ -17,13 +17,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.Ma.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return CloseIsGreaterThanMa(quotes) ? -strategy.Volume : strategy.Volume;
         }
 
-        protected abstract bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes);
+        protected abstract bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes);
     }
 
     public class Sma : MaBase
@@ -32,7 +32,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -48,7 +48,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -58,7 +58,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -74,7 +74,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -84,7 +84,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -100,7 +100,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -110,7 +110,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -126,7 +126,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -136,7 +136,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -152,7 +152,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -162,7 +162,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -178,7 +178,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -188,7 +188,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -204,7 +204,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -214,7 +214,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -230,7 +230,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 
@@ -240,7 +240,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        protected override bool CloseIsGreaterThanMa(IEnumerable<CustomQuote> quotes)
+        protected override bool CloseIsGreaterThanMa(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Ma;
@@ -256,7 +256,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
             => base.SignalVolume(quotes) * -1;
     }
 }

@@ -29,8 +29,7 @@
         public double Volume { get; set; }
         public Risk OperationRisk { get; set; } = new();
         public Risk DailyRisk { get; set; } = new();
-        public bool CloseDay { get; set; } = true;
-        public string Use { get; set; } = "Atr";
+        public string Use { get; set; } = "VolatilityStop";
         public VolatilityStopSettings VolatilityStop { get; set; } = new();
         public SlopeSettings Slope { get; set; } = new();
         public DoubleRsiSettings DoubleRsi { get; set; } = new();
@@ -57,112 +56,79 @@
             int LookbackPeriods = 7,
             double Multiplier = 3);
 
-        public class SlopeSettings
-        {
-            public int LookbackPeriods { get; set; } = 10;
-        }
+        public record class SlopeSettings(
+            int LookbackPeriods = 10);
 
-        public class DoubleRsiSettings
-        {
-            public int FastLookbackPeriods { get; set; } = 14;
-            public int SlowLookbackPeriods { get; set; } = 70;
-        }
+        public record class DoubleRsiSettings(
+            int FastLookbackPeriods = 14,
+            int SlowLookbackPeriods = 70);
 
-        public class MacdSettings
-        {
-            public int FastPeriods { get; set; } = 12;
-            public int SlowPeriods { get; set; } = 26;
-            public int SignalPeriods { get; set; } = 9;
-        }
+        public record class MacdSettings(
+            int FastPeriods = 12,
+            int SlowPeriods = 26,
+            int SignalPeriods = 9);
 
-        public class SuperTrendSettings
-        {
-            public int LookbackPeriods { get; set; } = 10;
-            public double Multiplier { get; set; } = 3;
-        }
+        public record class SuperTrendSettings(
+            int LookbackPeriods = 10,
+            double Multiplier = 3);
 
-        public class MaSettings
-        {
-            public int LookbackPeriods { get; set; } = 8;
-        }
+        public record class MaSettings(
+             int LookbackPeriods = 8);
 
-        public class VwapSettings
-        {
-            public int LookbackPeriods { get; set; } = 8;
-        }
+        public record class VwapSettings(
+            int LookbackPeriods = 8);
 
-        public class KamaSettings
-        {
-            public int ErPeriods { get; set; } = 10;
-            public int FastPeriods { get; set; } = 2;
-            public int SlowPeriods { get; set; } = 30;
-        }
+        public record class KamaSettings(
+            int ErPeriods = 10,
+            int FastPeriods = 2,
+            int SlowPeriods = 30);
 
-        public class MamaSettings
-        {
-            public double FastLimit { get; set; } = 0.5;
-            public double SlowLimit { get; set; } = 0.05;
-        }
+        public record class MamaSettings(
+            double FastLimit = 0.5,
+            double SlowLimit = 0.05);
 
-        public class T3Settings
-        {
-            public int LookbackPeriods { get; set; } = 5;
-            public double VolumeFactor { get; set; } = 0.7;
-        }
+        public record class T3Settings(
+            int LookbackPeriods = 5,
+            double VolumeFactor = 0.7);
 
-        public class AlmaSettings
-        {
-            public int LookbackPeriods { get; set; } = 9;
-            public double Offset { get; set; } = 0.85;
-            public double Sigma { get; set; } = 6;
-        }
+        public record class AlmaSettings(
+            int LookbackPeriods = 9,
+            double Offset = 0.85,
+            double Sigma = 6);
 
-        public class KeltnerRainbowSettings
-        {
-            public int EmaPeriods { get; set; } = 20;
-            public double Multipler { get; set; } = 0.2;
-            public int AtrPeriods { get; set; } = 20;
-            public double MultiplerStep { get; set; } = 0.5;
-            public int Count { get; set; } = 5;
-        }
+        public record class KeltnerRainbowSettings(
+            int EmaPeriods = 20,
+            double Multipler = 1,
+            int AtrPeriods = 10,
+            double MultiplerStep = 1,
+            int Count = 5);
 
-        public class KeltnerSettings
-        {
-            public int LookbackPeriods { get; set; } = 9;
-            public int EmaPeriods { get; set; } = 20;
-            public double Multipler { get; set; } = 0.2;
-            public int AtrPeriods { get; set; } = 20;
-        }
+        public record class KeltnerSettings(
+            int LookbackPeriods = 9,
+            int EmaPeriods = 20,
+            double Multipler = 0.2,
+            int AtrPeriods = 10);
 
-        public class MiniBovespaSettings
-        {
-            public double StartHighP { get; set; } = 0.5;
-            public double StartLowP { get; set; } = 0.5;
-            public double MinHighP { get; set; } = 0.25;
-            public double MinLowP { get; set; } = 0.25;
-            public string Use { get; set; } = "Ema";
-        }
+        public record class MiniBovespaSettings(
+            string Use = "Ema",
+            double StartHighP = 0.5,
+            double StartLowP = 0.5,
+            double MinHighP = 0.25,
+            double MinLowP = 0.25);
 
-        public class RenkoSettings
-        {
-            public double BrickSize { get; set; }
-            public int FastLookbackPeriods { get; set; } = 8;
-            public int SlowLookbackPeriods { get; set; } = 18;
-        }
+        public record class RenkoSettings(
+            string Use = "Ema",
+            double BrickSize = 10);
 
-        public class TrendSettings
-        {
-            public string Name { get; set; } = "Ema";
-            public byte MaxPower { get; set; } = 5;
-        }
+        public record class TrendSettings(
+            string Use = "Ema",
+            int MaxPower = 5);
 
-        public class VolatilityStopRainbowSettings
-        {
-            public int LookbackPeriods { get; set; } = 20;
-            public double Multipler { get; set; } = 0.2;
-            public double MultiplerStep { get; set; } = 0.5;
-            public int Count { get; set; } = 5;
-        }
+        public record class VolatilityStopRainbowSettings(
+            int LookbackPeriods = 20,
+            double Multipler = 0.2,
+            double MultiplerStep = 0.5,
+            int Count = 5);
     }
 
     public class BacktestSettings

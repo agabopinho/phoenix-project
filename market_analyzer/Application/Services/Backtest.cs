@@ -1,18 +1,26 @@
-﻿namespace Application.Services
+﻿using System.Linq;
+
+namespace Application.Services
 {
     public record class Transaction(DateTime Time, double Price, double Volume);
-    
+
     public record class Balance(double OpenVolume, double Profit);
 
-    public record BookPrice(DateTime Time, double Bid, double Ask);
+    public record BookPrice(DateTime Time, double Bid, double Ask)
+    {
+        public static BookPrice Empty => new(DateTime.MinValue, 0, 0);
+    }
 
     public record class BacktestSummary(
        double MinLot = 0,
        double MaxLot = 0,
+       double TotalLots = 0,
        double MinVolume = 0,
        double MaxVolume = 0,
        double MinProfit = 0,
-       double MaxProfit = 0);
+       double MaxProfit = 0)
+    {
+    }
 
     public class Backtest
     {
@@ -80,6 +88,13 @@
 
             if (maxLot > Summary.MaxLot)
                 Summary = Summary with { MaxLot = maxLot };
+
+            var transactions = _positions.SelectMany(it => it.Transactions);
+
+            Summary = Summary with
+            {
+                TotalLots = transactions.Sum(it => it.Volume > 0 ? it.Volume : it.Volume * -1)
+            };
         }
     }
 
@@ -87,32 +102,61 @@
     {
         private readonly List<Transaction> _transactions = new();
 
-        public IEnumerable<Transaction> Transactions => _transactions;
+        private bool _computed = false;
+        private double _volume;
+        private double _profit;
+        private double _price;
+
+        public IReadOnlyCollection<Transaction> Transactions => _transactions;
+
+        public bool Closed => _transactions.Any() && Volume() == 0;
 
         public void Add(Transaction transaction)
         {
-            if (_transactions.Any() && Volume() == 0)
+            if (Closed)
                 throw new InvalidOperationException("Position closed.");
 
             _transactions.Add(transaction);
+
+            if (Closed)
+            {
+                Volume();
+                Price();
+                Profit(BookPrice.Empty);
+
+                _computed = true;
+            }
         }
 
         public double Volume()
-            => _transactions.Sum(it => it.Volume);
+        {
+            if (_computed)
+                return _volume;
+
+            _volume = _transactions.Sum(it => it.Volume);
+            return _volume;
+        }
 
         public double Profit(BookPrice currentPrice)
         {
+            if (_computed)
+                return _profit;
+
             var volume = Volume();
             var closePrice = volume > 0 ? currentPrice.Bid : currentPrice.Ask;
 
             var close = closePrice * volume * -1;
             var open = _transactions.Sum(it => it.Price * it.Volume);
 
-            return (open + close) * -1;
+            _profit = (open + close) * -1;
+            return _profit;
         }
 
         public double Price()
         {
+            if (_computed)
+                return _price;
+
             var sells = _transactions.Where(it => it.Volume < 0);
             var sellPrice = Math.Abs(sells.Sum(it => it.Price * it.Volume));
             var sellVolume = Math.Abs(sells.Sum(it => it.Volume));
@@ -122,12 +166,13 @@
             var buyVolume = buys.Sum(it => it.Volume);
 
             if (sellPrice > 0 && buyPrice > 0)
-                return (sellPrice / sellVolume + buyPrice / buyVolume) / 2;
+                _price = (sellPrice / sellVolume + buyPrice / buyVolume) / 2;
+            else if (sellPrice > 0)
+                _price = sellPrice / sellVolume;
+            else
+                _price = buyPrice / buyVolume;
 
-            if (sellPrice > 0)
-                return sellPrice / sellVolume;
-
-            return buyPrice / buyVolume;
+            return _price;
         }
     }
 }

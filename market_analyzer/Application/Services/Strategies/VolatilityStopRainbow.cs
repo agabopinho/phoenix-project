@@ -17,13 +17,13 @@ namespace Application.Services.Strategies
         public int LookbackPeriods =>
             _operationSettings.Value.Strategy.VolatilityStopRainbow.LookbackPeriods;
 
-        public virtual double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var strategy = _operationSettings.Value.Strategy;
             return GetVolumeMultipler(quotes) * strategy.Volume;
         }
 
-        protected virtual int GetVolumeMultipler(IEnumerable<CustomQuote> quotes)
+        protected virtual int GetVolumeMultipler(IEnumerable<IQuote> quotes)
         {
             var settings = _operationSettings.Value.Strategy.VolatilityStopRainbow;
 
@@ -60,7 +60,7 @@ namespace Application.Services.Strategies
         {
         }
 
-        public override double SignalVolume(IEnumerable<CustomQuote> quotes)
+        public override double SignalVolume(IEnumerable<IQuote> quotes)
         {
             var multipler = base.SignalVolume(quotes) * -1 / _operationSettings.Value.Strategy.Volume;
             var count = _operationSettings.Value.Strategy.VolatilityStopRainbow.Count;
