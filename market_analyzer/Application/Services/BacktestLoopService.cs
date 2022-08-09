@@ -3,7 +3,6 @@ using Application.Options;
 using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
 using Application.Services.Strategies;
-using Grpc.Terminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Skender.Stock.Indicators;
@@ -48,7 +47,7 @@ namespace Application.Services
                 _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
-            var quotes = (await GetRatesAsync(cancellationToken)).ToQuotes().ToArray();
+            var quotes = await GetQuotesAsync(cancellationToken);
 
             var position = _backtest.OpenPosition();
             var bookPrice = await GetBookPriceAsync(cancellationToken);
@@ -64,7 +63,7 @@ namespace Application.Services
             var strategy = _strategyFactory.Get(settings.Use) ??
                 throw new InvalidOperationException();
 
-            if (quotes.Length < strategy.LookbackPeriods + 1)
+            if (quotes.Count() < strategy.LookbackPeriods + 1)
                 return;
 
             if (!closeOperation && !HasChanged(quotes))
@@ -141,13 +140,17 @@ namespace Application.Services
             return new BookPrice(tick.Trade.Time.ToDateTime(), tick.Trade.Bid!.Value, tick.Trade.Ask!.Value);
         }
 
-        private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
-            => await _ratesProvider.GetRatesAsync(
+        private async Task<IEnumerable<IQuote>> GetQuotesAsync(CancellationToken cancellationToken)
+        {
+            var rates = await _ratesProvider.GetRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
                 _operationSettings.Value.Date,
                 _operationSettings.Value.Timeframe,
                 _operationSettings.Value.Window,
                 cancellationToken);
+
+            return rates.ToQuotes().ToArray();
+        }
 
         private void Print(BookPrice bookPrice, Transaction transaction)
         {

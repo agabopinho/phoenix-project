@@ -2,6 +2,8 @@
 {
     public interface ICycleProvider
     {
+        TimeZoneInfo TimeZone { get; }
+
         DateTime Now();
     }
 }
