@@ -249,9 +249,8 @@ namespace Application.Services.Strategies
         {
             var strategy = _operationSettings.Value.Strategy;
             var settings = strategy.Vwap;
-            var fromQuote = quotes.SkipLast(settings.LookbackPeriods).Last();
-            var vwaps = quotes.GetVwap(fromQuote.Date);
-            var vwap = vwaps.Last();
+            var fromQuote = quotes.SkipLast(settings.LookbackPeriods).LastOrDefault();
+            var vwap = quotes.GetVwap(fromQuote?.Date ?? quotes.First().Date).Last();
             return Convert.ToDouble(quotes.Last().Close) > vwap.Vwap;
         }
     }

@@ -22,8 +22,7 @@ namespace Application.Services.Strategies
 
         public virtual double SignalVolume(IEnumerable<IQuote> quotes)
         {
-            var strategy = _operationSettings.Value.Strategy;
-            var settings = strategy.Renko;
+            var settings = _operationSettings.Value.Strategy.Renko;
 
             var renkos = quotes
                 .GetRenko(Convert.ToDecimal(settings.BrickSize), EndType.HighLow)

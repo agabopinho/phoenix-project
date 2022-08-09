@@ -21,7 +21,6 @@
         public string? Name { get; set; }
         public int PriceDecimals { get; set; }
         public int VolumeDecimals { get; set; }
-        public double StandardLot { get; set; }
     }
 
     public class StrategySettings
@@ -44,6 +43,7 @@
         public KeltnerAndEmaSignalSettings KeltnerAndEmaSignal { get; set; } = new();
         public MiniBovespaSettings MiniBovespa { get; set; } = new();
         public RenkoSettings Renko { get; set; } = new();
+        public RenkoAtrSettings RenkoAtr { get; set; } = new();
         public TrendSettings Trend { get; set; } = new();
         public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
         public VolatilityStopRainbowSettings VolatilityStopRainbow { get; set; } = new();
@@ -112,6 +112,10 @@
         public record class RenkoSettings(
             string Use = "Ema",
             double BrickSize = 10);
+
+        public record class RenkoAtrSettings(
+            string Use = "Ema",
+            int AtrPeriods = 10);
 
         public record class TrendSettings(
             string Use = "Ema",
