@@ -111,23 +111,25 @@
 
         public record class RenkoSettings(
             string Use = "Ema",
-            double BrickSize = 10);
+            double BrickSize = 10,
+            bool VerifyChanged = true);
 
         public record class RenkoAtrSettings(
             string Use = "Ema",
-            int AtrPeriods = 10);
+            int AtrPeriods = 10,
+            bool VerifyChanged = true);
 
         public record class TrendSettings(
             string Use = "Ema",
             int MaxPower = 5);
 
         public record class KeltnerRainbowSettings(
-           string Use = "Ema",
-           int EmaPeriods = 20,
-           double Multipler = 1,
-           int AtrPeriods = 10,
-           double MultiplerStep = 1,
-           int Count = 5);
+            string Use = "Ema",
+            int EmaPeriods = 20,
+            double Multipler = 1,
+            int AtrPeriods = 10,
+            double MultiplerStep = 1,
+            int Count = 5);
 
         public record class VolatilityStopRainbowSettings(
             string Use = "Ema",

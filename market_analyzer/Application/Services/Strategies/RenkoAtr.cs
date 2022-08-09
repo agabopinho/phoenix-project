@@ -31,20 +31,32 @@ namespace Application.Services.Strategies
                 .GetRenkoAtr(settings.AtrPeriods, EndType.HighLow)
                 .ToArray();
 
-            if (!renkos.Any())
-                return 0d;
-
-            var lastRenkoHigh = Convert.ToDouble(renkos.Last().High);
-            var lastRenkoLow = Convert.ToDouble(renkos.Last().Low);
-            if (_lastRenkoHigh == lastRenkoHigh || 
-                _lastRenkoLow == lastRenkoLow)
-                return 0d;
-            _lastRenkoHigh = lastRenkoHigh;
-            _lastRenkoLow = lastRenkoLow;
+            if (HasChanged(quotes))
+                return 0;
 
             return _strategyFactory
                 .Get(settings.Use)!
                 .SignalVolume(renkos);
+        }
+
+        private bool HasChanged(IEnumerable<IQuote> quotes)
+        {
+            if (!quotes.Any())
+                return false;
+
+            if (!_operationSettings.Value.Strategy.RenkoAtr.VerifyChanged)
+                return true;
+
+            var lastRenkoHigh = Convert.ToDouble(quotes.Last().High);
+            var lastRenkoLow = Convert.ToDouble(quotes.Last().Low);
+            if (_lastRenkoHigh == lastRenkoHigh ||
+                _lastRenkoLow == lastRenkoLow)
+                return false;
+
+            _lastRenkoHigh = lastRenkoHigh;
+            _lastRenkoLow = lastRenkoLow;
+
+            return true;
         }
     }
 }

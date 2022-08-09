@@ -35,10 +35,6 @@ namespace Application.Services
             _logger = logger;
         }
 
-        public bool IsEndOfDay =>
-            _cycleProvider.Previous.TimeOfDay >=
-            _operationSettings.Value.End.ToTimeSpan().Subtract(_operationSettings.Value.Timeframe * 2);
-
         public async Task RunAsync(CancellationToken cancellationToken)
         {
             var settings = _operationSettings.Value.Strategy;
@@ -61,7 +57,7 @@ namespace Application.Services
             var dailyProfit = _backtest.Balance(bookPrice);
 
             var closeTheDay = HitRisk(dailyRisk, dailyProfit.Profit);
-            var closeOperation = closeTheDay || IsEndOfDay || HitRisk(operationRisk, positionProfit);
+            var closeOperation = closeTheDay || _cycleProvider.EndOfDay || HitRisk(operationRisk, positionProfit);
 
             ThrowIfCloseTheDay(position, closeTheDay);
 
@@ -71,7 +67,7 @@ namespace Application.Services
             if (quotes.Length < strategy.LookbackPeriods + 1)
                 return;
 
-            if (!closeOperation && !ChangeQuote(quotes))
+            if (!closeOperation && !HasChanged(quotes))
                 return;
 
             var beforeVolume = position is null ? 0 : position.Volume();
@@ -95,7 +91,7 @@ namespace Application.Services
 
         private void ThrowIfCloseTheDay(BacktestPosition? position, bool closeTheDay)
         {
-            if (position is null && (IsEndOfDay || closeTheDay))
+            if (position is null && (_cycleProvider.EndOfDay || closeTheDay))
             {
                 _logger.LogInformation("{@summary}", _backtest.Summary);
 
@@ -127,12 +123,15 @@ namespace Application.Services
             return closeOperation;
         }
 
-        private bool ChangeQuote(IQuote[] quotes)
+        private bool HasChanged(IEnumerable<IQuote> quotes)
         {
-            var lastQuote = quotes[^1];
+            var lastQuote = quotes.Last();
+
             if (_lastQuoteDate == lastQuote.Date)
                 return false;
+
             _lastQuoteDate = lastQuote.Date;
+
             return true;
         }
 

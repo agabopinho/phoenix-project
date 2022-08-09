@@ -28,17 +28,29 @@ namespace Application.Services.Strategies
                 .GetRenko(Convert.ToDecimal(settings.BrickSize), EndType.HighLow)
                 .ToArray();
 
-            if (!renkos.Any())
+            if (!HasChanged(renkos))
                 return 0d;
-
-            var lastRenkoOpen = Convert.ToDouble(renkos.Last().Open);
-            if (_lastRenkoOpen == lastRenkoOpen)
-                return 0d;
-            _lastRenkoOpen = lastRenkoOpen;
 
             return _strategyFactory
                 .Get(settings.Use)!
                 .SignalVolume(renkos);
+        }
+
+        private bool HasChanged(IEnumerable<IQuote> quotes)
+        {
+            if (!quotes.Any())
+                return false;
+
+            if (!_operationSettings.Value.Strategy.Renko.VerifyChanged)
+                return true;
+
+            var lastRenkoOpen = Convert.ToDouble(quotes.Last().Open);
+            if (_lastRenkoOpen == lastRenkoOpen)
+                return false;
+
+            _lastRenkoOpen = lastRenkoOpen;
+
+            return true;
         }
     }
 }

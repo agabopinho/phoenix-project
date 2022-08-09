@@ -21,19 +21,17 @@ namespace Application.Services.Providers.Cycle
         public DateTime Start { get; }
         public DateTime End { get; }
         public TimeSpan Step { get; }
-        public DateTime Previous { get; private set; }
+        public DateTime Current { get; private set; }
         public DateTime NextDate { get; private set; }
         public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.TimeZoneId!);
+        public bool EndOfDay => Current >= End.Subtract(_operationSettings.Value.Timeframe);
 
         public DateTime Now()
         {
-            Previous = NextDate;
+            Current = NextDate;
             NextDate = NextDate.Add(Step);
 
-            if (Previous > End)
-                throw new BacktestFinishException();
-
-            return Previous;
+            return Current;
         }
     }
 }
