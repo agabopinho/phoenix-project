@@ -11,13 +11,13 @@ namespace Application.Services.Providers.Rates
     public class BacktestRatesProvider : IRatesProvider
     {
         private readonly IBacktestRatesRepository _backtestRatesRepository;
-        private readonly ICycleProvider _cycleProvider;
+        private readonly BacktestCycleProvider _cycleProvider;
         private readonly ILogger<BacktestRatesProvider> _logger;
         private readonly Stopwatch _stopwatch;
 
         public BacktestRatesProvider(
             IBacktestRatesRepository backtestRatesRepository,
-            ICycleProvider cycleProvider,
+            BacktestCycleProvider cycleProvider,
             ILogger<BacktestRatesProvider> logger)
         {
             _backtestRatesRepository = backtestRatesRepository;
@@ -55,14 +55,13 @@ namespace Application.Services.Providers.Rates
             string symbol,
             DateOnly date,
             TimeSpan timeframe,
-            TimeSpan window,
             CancellationToken cancellationToken)
         {
             _stopwatch.Restart();
 
             var now = CurrentTime;
 
-            var fromDate = Rates.Any() ? Rates.Keys.Last() : now.Subtract(window);
+            var fromDate = Rates.Any() ? Rates.Keys.Last() : date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var toDate = now;
 
             var windowData = GetWindow(fromDate, toDate);

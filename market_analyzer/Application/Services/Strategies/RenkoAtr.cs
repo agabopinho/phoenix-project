@@ -44,7 +44,7 @@ namespace Application.Services.Strategies
             if (!quotes.Any())
                 return false;
 
-            if (!_operationSettings.Value.Strategy.RenkoAtr.VerifyChanged)
+            if (!_operationSettings.Value.Strategy.RenkoAtr.FireOnlyAtCandleOpening)
                 return true;
 
             var lastRenkoHigh = Convert.ToDouble(quotes.Last().High);

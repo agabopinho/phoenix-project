@@ -9,8 +9,7 @@ namespace Application.Services.Providers.Rates
             int chunkSize, CancellationToken cancellationToken);
 
         Task<IEnumerable<Rate>> GetRatesAsync(
-            string symbol, DateOnly date, TimeSpan timeframe,
-            TimeSpan window, CancellationToken cancellationToken);
+            string symbol, DateOnly date, TimeSpan timeframe, CancellationToken cancellationToken);
 
         Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken);
     }

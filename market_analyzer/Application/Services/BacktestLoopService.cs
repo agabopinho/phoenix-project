@@ -19,6 +19,7 @@ namespace Application.Services
 
         private readonly Backtest _backtest = new();
         private DateTime _lastQuoteDate;
+        private DateTime _nextTriggedTime;
 
         public BacktestLoopService(
             IRatesProvider ratesProvider,
@@ -36,14 +37,16 @@ namespace Application.Services
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
+            _cycleProvider.TakeStep();
+
             var settings = _operationSettings.Value.Strategy;
             var operationRisk = settings.OperationRisk;
             var dailyRisk = settings.DailyRisk;
 
             await _ratesProvider.CheckNewRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
-                _operationSettings.Value.Date,
-                _operationSettings.Value.Timeframe,
+                _operationSettings.Value.Strategy.Date,
+                _operationSettings.Value.Strategy.Timeframe,
                 _operationSettings.Value.StreamingData.ChunkSize,
                 cancellationToken);
 
@@ -55,18 +58,22 @@ namespace Application.Services
             var positionProfit = position is not null ? position.Profit(bookPrice) : 0d;
             var dailyProfit = _backtest.Balance(bookPrice);
 
-            var closeTheDay = HitRisk(dailyRisk, dailyProfit.Profit);
-            var closeOperation = closeTheDay || _cycleProvider.EndOfDay || HitRisk(operationRisk, positionProfit);
+            var hitDailyRisk = HitRisk(dailyRisk, dailyProfit.Profit);
+            var closeOperation = hitDailyRisk || _cycleProvider.EndOfDay || HitRisk(operationRisk, positionProfit);
 
-            ThrowIfCloseTheDay(position, closeTheDay);
+            if (position is null && (_cycleProvider.EndOfDay || hitDailyRisk))
+                ThrowBacktestFinishException();
 
             var strategy = _strategyFactory.Get(settings.Use) ??
                 throw new InvalidOperationException();
 
-            if (quotes.Count() < strategy.LookbackPeriods + 1)
+            if (!closeOperation && quotes.Count() < strategy.LookbackPeriods + 1)
                 return;
 
             if (!closeOperation && !HasChanged(quotes))
+                return;
+
+            if (!closeOperation && !TriggedPeriodicTimer())
                 return;
 
             var beforeVolume = position is null ? 0 : position.Volume();
@@ -88,14 +95,11 @@ namespace Application.Services
             Print(bookPrice, transaction);
         }
 
-        private void ThrowIfCloseTheDay(BacktestPosition? position, bool closeTheDay)
+        private void ThrowBacktestFinishException()
         {
-            if (position is null && (_cycleProvider.EndOfDay || closeTheDay))
-            {
-                _logger.LogInformation("{@summary}", _backtest.Summary);
+            _logger.LogInformation("{@summary}", _backtest.Summary);
 
-                throw new BacktestFinishException();
-            }
+            throw new BacktestFinishException();
         }
 
         private static void SetStrategyPosition(IStrategy strategy, double positionPrice, double positionVolume, double positionProfit)
@@ -124,6 +128,9 @@ namespace Application.Services
 
         private bool HasChanged(IEnumerable<IQuote> quotes)
         {
+            if (!_operationSettings.Value.Strategy.FireOnlyAtCandleOpening)
+                return true;
+
             var lastQuote = quotes.Last();
 
             if (_lastQuoteDate == lastQuote.Date)
@@ -134,19 +141,37 @@ namespace Application.Services
             return true;
         }
 
+        private bool TriggedPeriodicTimer()
+        {
+            var periodictTimer = _operationSettings.Value.Strategy.PeriodicTimer;
+
+            if (periodictTimer is null)
+                return true;
+
+            if (_nextTriggedTime == DateTime.MinValue)
+                _nextTriggedTime = _cycleProvider.Start;
+
+            if (_cycleProvider.Now() < _nextTriggedTime)
+                return false;
+
+            while (_nextTriggedTime < _cycleProvider.Now())
+                _nextTriggedTime += periodictTimer.Value;
+
+            return true;
+        }
+
         private async Task<BookPrice> GetBookPriceAsync(CancellationToken cancellationToken)
         {
             var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
-            return new BookPrice(tick.Trade.Time.ToDateTime(), tick.Trade.Bid!.Value, tick.Trade.Ask!.Value);
+            return new BookPrice(_cycleProvider.Now(), tick.Trade.Bid!.Value, tick.Trade.Ask!.Value);
         }
 
         private async Task<IEnumerable<IQuote>> GetQuotesAsync(CancellationToken cancellationToken)
         {
             var rates = await _ratesProvider.GetRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
-                _operationSettings.Value.Date,
-                _operationSettings.Value.Timeframe,
-                _operationSettings.Value.Window,
+                _operationSettings.Value.Strategy.Date,
+                _operationSettings.Value.Strategy.Timeframe,
                 cancellationToken);
 
             return rates.ToQuotes().ToArray();

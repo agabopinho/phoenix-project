@@ -1,5 +1,4 @@
 ﻿using Application.Services;
-using Application.Services.Providers.Cycle;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;

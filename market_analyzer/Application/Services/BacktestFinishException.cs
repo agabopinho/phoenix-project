@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace Application.Services.Providers.Cycle
+namespace Application.Services
 {
     public class BacktestFinishException : Exception
     {

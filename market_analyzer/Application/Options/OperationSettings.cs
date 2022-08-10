@@ -2,12 +2,6 @@
 {
     public class OperationSettings
     {
-        public DateOnly Date { get; set; }
-        public TimeOnly Start { get; set; }
-        public TimeOnly End { get; set; }
-        public TimeSpan Timeframe { get; set; }
-        public TimeSpan Window { get; set; }
-        public string? TimeZoneId { get; set; }
         public SymbolSettings Symbol { get; set; } = new();
         public StrategySettings Strategy { get; set; } = new();
         public BacktestSettings Backtest { get; set; } = new();
@@ -25,6 +19,13 @@
 
     public class StrategySettings
     {
+        public DateOnly Date { get; set; }
+        public TimeOnly Start { get; set; }
+        public TimeOnly End { get; set; }
+        public TimeSpan Timeframe { get; set; }
+        public string? TimeZoneId { get; set; }
+        public bool FireOnlyAtCandleOpening { get; set; }
+        public TimeSpan? PeriodicTimer { get; set; }
         public double Volume { get; set; }
         public Risk OperationRisk { get; set; } = new();
         public Risk DailyRisk { get; set; } = new();
@@ -112,12 +113,12 @@
         public record class RenkoSettings(
             string Use = "Ema",
             double BrickSize = 10,
-            bool VerifyChanged = true);
+            bool FireOnlyAtCandleOpening = true);
 
         public record class RenkoAtrSettings(
             string Use = "Ema",
             int AtrPeriods = 10,
-            bool VerifyChanged = true);
+            bool FireOnlyAtCandleOpening = true);
 
         public record class TrendSettings(
             string Use = "Ema",

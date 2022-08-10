@@ -41,8 +41,8 @@ namespace Application.Services
         {
             await _ratesProvider.CheckNewRatesAsync(
                  _operationSettings.Value.Symbol.Name!,
-                 _operationSettings.Value.Date,
-                 _operationSettings.Value.Timeframe,
+                 _operationSettings.Value.Strategy.Date,
+                 _operationSettings.Value.Strategy.Timeframe,
                  _operationSettings.Value.StreamingData.ChunkSize,
                  cancellationToken);
 
@@ -167,9 +167,8 @@ namespace Application.Services
         private async Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)
             => await _ratesProvider.GetRatesAsync(
                 _operationSettings.Value.Symbol.Name!,
-                _operationSettings.Value.Date,
-                _operationSettings.Value.Timeframe,
-                _operationSettings.Value.Window,
+                _operationSettings.Value.Strategy.Date,
+                _operationSettings.Value.Strategy.Timeframe,
                 cancellationToken);
 
         private void Print(BookPrice bookPrice, Transaction transaction)

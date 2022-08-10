@@ -55,7 +55,6 @@ namespace Application.Services.Providers.Rates
             string symbol,
             DateOnly date,
             TimeSpan timeframe,
-            TimeSpan window,
             CancellationToken cancellationToken)
             => Task.FromResult<IEnumerable<Rate>>(Rates.Values);
 

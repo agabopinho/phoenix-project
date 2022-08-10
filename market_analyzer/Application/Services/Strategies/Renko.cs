@@ -41,7 +41,7 @@ namespace Application.Services.Strategies
             if (!quotes.Any())
                 return false;
 
-            if (!_operationSettings.Value.Strategy.Renko.VerifyChanged)
+            if (!_operationSettings.Value.Strategy.Renko.FireOnlyAtCandleOpening)
                 return true;
 
             var lastRenkoOpen = Convert.ToDouble(quotes.Last().Open);
