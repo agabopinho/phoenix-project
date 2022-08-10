@@ -67,13 +67,7 @@ namespace Application.Services
             var strategy = _strategyFactory.Get(settings.Use) ??
                 throw new InvalidOperationException();
 
-            if (!closeOperation && quotes.Count() < strategy.LookbackPeriods + 1)
-                return;
-
-            if (!closeOperation && !HasChanged(quotes))
-                return;
-
-            if (!closeOperation && !TriggedPeriodicTimer())
+            if (!(closeOperation || Continue(quotes, strategy)))
                 return;
 
             var beforeVolume = position is null ? 0 : position.Volume();
@@ -100,6 +94,20 @@ namespace Application.Services
             _logger.LogInformation("{@summary}", _backtest.Summary);
 
             throw new BacktestFinishException();
+        }
+
+        private bool Continue(IEnumerable<IQuote> quotes, IStrategy strategy)
+        {
+            if (quotes.Count() < strategy.LookbackPeriods + 1)
+                return false;
+
+            if (!HasChanged(quotes))
+                return false;
+
+            if (!TriggedPeriodicTimer())
+                return false;
+
+            return true;
         }
 
         private static void SetStrategyPosition(IStrategy strategy, double positionPrice, double positionVolume, double positionProfit)
@@ -163,7 +171,11 @@ namespace Application.Services
         private async Task<BookPrice> GetBookPriceAsync(CancellationToken cancellationToken)
         {
             var tick = await _ratesProvider.GetSymbolTickAsync(_operationSettings.Value.Symbol.Name!, cancellationToken);
-            return new BookPrice(_cycleProvider.Now(), tick.Trade.Bid!.Value, tick.Trade.Ask!.Value);
+
+            return new BookPrice(
+                Time: _cycleProvider.Now(),
+                Bid: tick.Trade.Bid!.Value,
+                Ask: tick.Trade.Ask!.Value);
         }
 
         private async Task<IEnumerable<IQuote>> GetQuotesAsync(CancellationToken cancellationToken)
