@@ -146,6 +146,7 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, RenkoAtr>();
     services.AddSingleton<IStrategy, MiniBovespa>();
     services.AddSingleton<IStrategy, Trend>();
+    services.AddSingleton<IStrategy, FollowVolatilityStop>();
 
     // raibows 
     services.AddSingleton<IStrategy, VolatilityStopRainbow>();

@@ -1,4 +1,5 @@
-﻿using Application.Options;
+﻿using Application.Helpers;
+using Application.Options;
 using Microsoft.Extensions.Options;
 using Skender.Stock.Indicators;
 
@@ -29,10 +30,12 @@ namespace Application.Services.Strategies
 
             var renkos = quotes
                 .GetRenkoAtr(settings.AtrPeriods, EndType.HighLow)
-                .ToArray();
+                .ToList<IQuote>();
 
-            if (HasChanged(quotes))
+            if (!HasChanged(quotes))
                 return 0;
+
+            AddLast(quotes, renkos);
 
             return _strategyFactory
                 .Get(settings.Use)!
@@ -57,6 +60,20 @@ namespace Application.Services.Strategies
             _lastRenkoLow = lastRenkoLow;
 
             return true;
+        }
+
+        private static void AddLast(IEnumerable<IQuote> quotes, List<IQuote> renkos)
+        {
+            var last = quotes.Last();
+
+            renkos.Add(new CustomQuote
+            {
+                Date = last.Date,
+                High = last.Close,
+                Low = last.Close,
+                Open = last.Close,
+                Close = last.Close,
+            });
         }
     }
 }

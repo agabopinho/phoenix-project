@@ -55,7 +55,7 @@ namespace Application.Services
             var position = _backtest.OpenPosition();
             var bookPrice = await GetBookPriceAsync(cancellationToken);
 
-            var positionProfit = position is not null ? position.Profit(bookPrice) : 0d;
+            var positionProfit = position is not null ? position.Profit(bookPrice) : 0;
             var dailyProfit = _backtest.Balance(bookPrice);
 
             var hitDailyRisk = HitRisk(dailyRisk, dailyProfit.Profit);
@@ -72,7 +72,7 @@ namespace Application.Services
 
             var beforeVolume = position is null ? 0 : position.Volume();
 
-            SetStrategyPosition(strategy, position?.Price() ?? 0d, beforeVolume, positionProfit);
+            SetStrategyPosition(position?.Price() ?? 0d, beforeVolume, positionProfit);
 
             double volume;
 
@@ -110,15 +110,18 @@ namespace Application.Services
             return true;
         }
 
-        private static void SetStrategyPosition(IStrategy strategy, double positionPrice, double positionVolume, double positionProfit)
+        private void SetStrategyPosition(double positionPrice, double positionVolume, double positionProfit)
         {
-            if (strategy is not IStrategy.IWithPosition s)
-                return;
+            var strategies = _strategyFactory.GetAll();
+            var position = new StrategyPosition(positionPrice, positionVolume, positionProfit);
 
-            if (positionPrice > 0)
-                s.Position = new StrategyPosition(positionPrice, positionVolume, positionProfit);
-            else
-                s.Position = null;
+            foreach (var strategy in strategies)
+            {
+                if (strategy is not IStrategy.IWithPosition s)
+                    continue;
+
+                s.Position = position;
+            }
         }
 
         private static bool HitRisk(StrategySettings.Risk risk, double profit)
@@ -162,7 +165,7 @@ namespace Application.Services
             if (_cycleProvider.Now() < _nextTriggedTime)
                 return false;
 
-            while (_nextTriggedTime < _cycleProvider.Now())
+            while (_nextTriggedTime <= _cycleProvider.Now())
                 _nextTriggedTime += periodictTimer.Value;
 
             return true;

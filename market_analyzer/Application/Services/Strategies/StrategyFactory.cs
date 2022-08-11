@@ -11,9 +11,11 @@ namespace Application.Services.Strategies
             _serviceProvider = serviceProvider;
         }
 
+        public IEnumerable<IStrategy> GetAll()
+            => GetStrategies();
+
         public IStrategy? Get(string name)
-            => GetStrategies()
-            .FirstOrDefault(it => it.GetType().Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            => GetStrategies().FirstOrDefault(it => it.GetType().Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
         private IEnumerable<IStrategy> GetStrategies()
             => _serviceProvider.GetRequiredService<IEnumerable<IStrategy>>();
