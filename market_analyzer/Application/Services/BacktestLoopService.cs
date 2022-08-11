@@ -197,9 +197,9 @@ namespace Application.Services
             if (!_backtest.Positions.Any())
                 return;
 
+            var symbol = _operationSettings.Value.Symbol;
             var position = _backtest.OpenPosition();
             var result = _backtest.Balance(bookPrice);
-            var symbol = _operationSettings.Value.Symbol;
 
             _logger.LogInformation("{@profit}", new
             {
