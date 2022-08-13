@@ -32,6 +32,7 @@
         public string Use { get; set; } = "VolatilityStop";
         public VolatilityStopSettings VolatilityStop { get; set; } = new();
         public FollowVolatilityStopSettings FollowVolatilityStop { get; set; } = new();
+        public FollowEmaSettings FollowEma { get; set; } = new();
         public SlopeSettings Slope { get; set; } = new();
         public DoubleRsiSettings DoubleRsi { get; set; } = new();
         public MacdSettings Macd { get; set; } = new();
@@ -61,6 +62,10 @@
         public record class FollowVolatilityStopSettings(
             int LookbackPeriods = 3,
             double Multiplier = 1);
+
+        public record class FollowEmaSettings(
+            int FastLookbackPeriods = 5,
+            double MinMoviment = 30);
 
         public record class SlopeSettings(
             int LookbackPeriods = 10);

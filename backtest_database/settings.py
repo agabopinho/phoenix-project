@@ -6,9 +6,9 @@ CONN_STR = 'DRIVER={ODBC Driver 17 for SQL Server};Server=localhost;Database=bac
 # SYMBOL = 'GGBR4'
 # SYMBOL = 'VALE3'
 # SYMBOL = 'B3SA3'
-# SYMBOL = 'WIN$'
-SYMBOL = 'WDO$'
+SYMBOL = 'WIN$'
+# SYMBOL = 'WDO$'
 
-FROM_DATE = date(2022, 8, 10)
-TO_DATE = date(2022, 8, 10)
+FROM_DATE = date(2022, 8, 11)
+TO_DATE = date(2022, 8, 11)
 
