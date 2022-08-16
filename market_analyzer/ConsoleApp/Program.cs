@@ -148,6 +148,9 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IStrategy, Trend>();
     services.AddSingleton<IStrategy, FollowVolatilityStop>();
     services.AddSingleton<IStrategy, FollowEma>();
+    services.AddSingleton<IStrategy, DoubleEma>();
+    services.AddSingleton<IStrategy, Stoch>();
+    services.AddSingleton<IStrategy, Chandelier>();
 
     // raibows 
     services.AddSingleton<IStrategy, VolatilityStopRainbow>();

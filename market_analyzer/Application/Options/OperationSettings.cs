@@ -1,4 +1,6 @@
-﻿namespace Application.Options
+﻿using Skender.Stock.Indicators;
+
+namespace Application.Options
 {
     public class OperationSettings
     {
@@ -50,6 +52,8 @@
         public TrendSettings Trend { get; set; } = new();
         public KeltnerRainbowSettings KeltnerRainbow { get; set; } = new();
         public VolatilityStopRainbowSettings VolatilityStopRainbow { get; set; } = new();
+        public DoubleEmaSettings DoubleEma { get; set; } = new();
+        public StochSettings Stoch { get; set; } = new();
 
         public record class Risk(
             double? TakeProfit = null,
@@ -148,6 +152,20 @@
             double Multipler = 0.2,
             double MultiplerStep = 0.5,
             int Count = 5);
+
+        public record class DoubleEmaSettings(
+            int FastLookbackPeriods = 3,
+            int SlowLookbackPeriods = 8);
+
+        public record class StochSettings(
+            int LookbackPeriods = 14,
+            int SignalPeriods = 3,
+            int SmoothPeriods = 3,
+            double KFactor = 3,
+            double DFactor = 2,
+            MaType MaType = MaType.SMA,
+            double Overbought = 80,
+            double Oversold = 20);
     }
 
     public class BacktestSettings
