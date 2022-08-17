@@ -1,4 +1,5 @@
-﻿using Application.Options;
+﻿using Application.Helpers;
+using Application.Options;
 using Microsoft.Extensions.Options;
 using Skender.Stock.Indicators;
 
@@ -13,7 +14,7 @@ namespace Application.Services.Strategies
             _operationSettings = operationSettings;
         }
 
-        public int LookbackPeriods => 22;
+        public int LookbackPeriods => 1;
 
         public StrategyPosition? Position { get; set; }
 
@@ -21,35 +22,41 @@ namespace Application.Services.Strategies
         {
             var strategy = _operationSettings.Value.Strategy;
 
-            var lastClose = Convert.ToDouble(quotes.Last().Close);
+            var quoteRanges = quotes
+                .GetRange(20)
+                .ToArray();
 
-            var stopAtr = quotes.GetVolatilityStop(4, 1).ToArray();
+            var s = 12;
+            var m = 1d;
 
-            if (Position?.Volume > 0 && lastClose < stopAtr[^1].LowerBand)
-                return Position.Volume * -1;
+            if (quoteRanges.Length < s)
+                return 0;
 
-            if (Position?.Volume < 0 && lastClose > stopAtr[^1].UpperBand)
-                return Position.Volume * -1;
+            var ema = quoteRanges
+                .GetVolatilityStop(s, m)
+                .SkipLast(1)
+                .Last();
 
-            var indicators = quotes.GetMacd(6, 12).ToArray();
-
-            var l0 = indicators[^2];
-            var l1 = indicators[^3];
-
-            if (l0.Macd > l0.Signal && l1.Macd < l1.Signal)
+            if (ema.UpperBand is not null)
             {
                 if (Position?.Volume < 0)
-                    return 0;
+                    return Position.Volume * -1;
 
-                return (Position?.Volume ?? 0) * -1 + -strategy.Volume;
-            }
-
-            if (l0.Macd < l0.Signal && l1.Macd > l1.Signal)
-            {
                 if (Position?.Volume > 0)
                     return 0;
 
-                return (Position?.Volume ?? 0) * -1 + strategy.Volume;
+                return strategy.Volume;
+            }
+
+            if (ema.LowerBand is not null)
+            {
+                if (Position?.Volume > 0)
+                    return Position.Volume * -1;
+
+                if (Position?.Volume < 0)
+                    return 0;
+
+                return -strategy.Volume;
             }
 
             return 0;
