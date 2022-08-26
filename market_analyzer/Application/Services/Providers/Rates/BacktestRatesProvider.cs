@@ -168,6 +168,9 @@ namespace Application.Services.Providers.Rates
 
             foreach (var trade in ticks)
             {
+                if (trade.Bid > trade.Ask)
+                    continue;
+
                 trade.Time = DateTime.SpecifyKind(trade.Time, DateTimeKind.Utc);
 
                 var partitionKey = PartitionKey(trade.Time);

@@ -1,6 +1,6 @@
 from datetime import date
 
-DATES_INDEX = 4
+DATES_INDEX = 3
 DATES = []
 
 # 0
@@ -71,4 +71,18 @@ DATES.append([
     date.fromisoformat('2022-08-08'),
     date.fromisoformat('2022-08-09'),
     date.fromisoformat('2022-08-10'),
+    date.fromisoformat('2022-08-11'),
+    date.fromisoformat('2022-08-12'),
+])
+
+#5
+DATES.append([
+    date.fromisoformat('2022-08-15'),
+    date.fromisoformat('2022-08-16'),
+    date.fromisoformat('2022-08-17'),
+    date.fromisoformat('2022-08-18'),
+    date.fromisoformat('2022-08-19'),
+    date.fromisoformat('2022-08-22'),
+    date.fromisoformat('2022-08-23'),
+    date.fromisoformat('2022-08-24'),
 ])

@@ -4,7 +4,6 @@ using Application.Services.Providers.Cycle;
 using Application.Services.Providers.Rates;
 using Application.Services.Providers.Rates.BacktestRates;
 using Application.Services.Strategies;
-using Application.Services.Strategies.Raibows;
 using Application.Workers;
 using ConsoleApp.Converters;
 using Infrastructure.GrpcServerTerminal;
@@ -93,70 +92,10 @@ builder.ConfigureServices((context, services) =>
 
     services.AddSingleton<IStrategyFactory, StrategyFactory>();
 
-    // others
-    services.AddSingleton<IStrategy, VolatilityStop>();
-    services.AddSingleton<IStrategy, VolatilityStopFt>();
-    services.AddSingleton<IStrategy, Slope>();
-    services.AddSingleton<IStrategy, SlopeFt>();
-    services.AddSingleton<IStrategy, LastBar>();
-    services.AddSingleton<IStrategy, LastBarFt>();
-    services.AddSingleton<IStrategy, DoubleRsi>();
-    services.AddSingleton<IStrategy, DoubleRsiFt>();
-    services.AddSingleton<IStrategy, Macd>();
-    services.AddSingleton<IStrategy, MacdFt>();
-    services.AddSingleton<IStrategy, SuperTrend>();
-    services.AddSingleton<IStrategy, SuperTrendFt>();
-    services.AddSingleton<IStrategy, Vwap>();
-    services.AddSingleton<IStrategy, VwapFt>();
-    services.AddSingleton<IStrategy, Kama>();
-    services.AddSingleton<IStrategy, KamaFt>();
-    services.AddSingleton<IStrategy, HtTrendline>();
-    services.AddSingleton<IStrategy, HtTrendlineFt>();
-    services.AddSingleton<IStrategy, Mama>();
-    services.AddSingleton<IStrategy, MamaFt>();
-    services.AddSingleton<IStrategy, T3>();
-    services.AddSingleton<IStrategy, T3Ft>();
-    services.AddSingleton<IStrategy, Alma>();
-    services.AddSingleton<IStrategy, AlmaFt>();
-
-    // moving averages
-    services.AddSingleton<IStrategy, Sma>();
-    services.AddSingleton<IStrategy, SmaFt>();
-    services.AddSingleton<IStrategy, Ema>();
-    services.AddSingleton<IStrategy, EmaFt>();
-    services.AddSingleton<IStrategy, Wma>();
-    services.AddSingleton<IStrategy, WmaFt>();
-    services.AddSingleton<IStrategy, Vwma>();
-    services.AddSingleton<IStrategy, VwmaFt>();
-    services.AddSingleton<IStrategy, Dema>();
-    services.AddSingleton<IStrategy, DemaFt>();
-    services.AddSingleton<IStrategy, Epma>();
-    services.AddSingleton<IStrategy, EpmaFt>();
-    services.AddSingleton<IStrategy, Hma>();
-    services.AddSingleton<IStrategy, HmaFt>();
-    services.AddSingleton<IStrategy, Smma>();
-    services.AddSingleton<IStrategy, SmmaFt>();
-    services.AddSingleton<IStrategy, Tema>();
-    services.AddSingleton<IStrategy, TemaFt>();
-
     // specifics
-    services.AddSingleton<IStrategy, KeltnerAndEmaSignal>();
-    services.AddSingleton<IStrategy, KeltnerAndEmaSignalFt>();
     services.AddSingleton<IStrategy, Renko>();
     services.AddSingleton<IStrategy, RenkoAtr>();
-    services.AddSingleton<IStrategy, MiniBovespa>();
-    services.AddSingleton<IStrategy, Trend>();
-    services.AddSingleton<IStrategy, FollowVolatilityStop>();
-    services.AddSingleton<IStrategy, FollowEma>();
-    services.AddSingleton<IStrategy, DoubleEma>();
-    services.AddSingleton<IStrategy, Stoch>();
-    services.AddSingleton<IStrategy, Chandelier>();
-
-    // raibows 
-    services.AddSingleton<IStrategy, VolatilityStopRainbow>();
-    services.AddSingleton<IStrategy, VolatilityStopRainbowFt>();
-    services.AddSingleton<IStrategy, KeltnerRainbow>();
-    services.AddSingleton<IStrategy, KeltnerRainbowFt>();
+    services.AddSingleton<IStrategy, Hope>();
 });
 
 await builder.Build().RunAsync();

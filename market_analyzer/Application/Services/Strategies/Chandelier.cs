@@ -6,13 +6,11 @@ using Skender.Stock.Indicators;
 
 namespace Application.Services.Strategies
 {
-    public class Chandelier : IStrategy.IWithPosition
+    public class Hope : IStrategy.IWithPosition
     {
         private readonly IOptions<OperationSettings> _operationSettings;
 
-        private decimal _lastOpen = 0;
-
-        public Chandelier(IOptions<OperationSettings> operationSettings)
+        public Hope(IOptions<OperationSettings> operationSettings)
         {
             _operationSettings = operationSettings;
         }
@@ -23,41 +21,56 @@ namespace Application.Services.Strategies
 
         public double SignalVolume(IEnumerable<IQuote> quotes)
         {
+            var q = quotes.ToArray();
+
             var strategy = _operationSettings.Value.Strategy;
 
-            var quoteRanges = quotes
-                .GetRange(15)
-                .ToArray();
+            var l1 = Convert.ToInt32(strategy.Hope["L1"]);
+            var l2 = Convert.ToInt32(strategy.Hope["L2"]);
 
-            if (quoteRanges.Length < 15)
+            if (!(q.Length >= Math.Max(l1, l2)))
                 return 0;
-            if (_lastOpen == quoteRanges[^1].Open)
-                return 0;
-            _lastOpen = quoteRanges[^1].Open;
 
-            var fast = quoteRanges.GetRsi(5).Last().Rsi;
-            var slow = quoteRanges.GetRsi(15).Last().Rsi;
+            var volume = (Position?.Volume ?? 0);
+            var profit = (Position?.Profit ?? 0);
 
-            var l1IsUp = fast > slow;
+            var l1Value = q[^l1].Close;
 
-            var upVolume = strategy.Volume;
-            var downVolume = -strategy.Volume;
+            var high = q[^l2..^l1].Max(it => it.High);
+            var low = q[^l2..^l1].Min(it => it.Low);
 
-            if ((Position?.Volume ?? 0) == 0)
-                if (l1IsUp)
-                    return upVolume;
-                else
-                    return downVolume;
+            var distanceFromHigh = Math.Abs(l1Value - high);
+            var distanceFromLow = Math.Abs(l1Value - low);
 
-            if (Position!.Volume > 0)
-                if (!l1IsUp)
-                    return Position.Volume * -1;
+            if (distanceFromLow > distanceFromHigh)
+                return Buy(volume);
 
-            if (Position!.Volume < 0)
-                if (l1IsUp)
-                    return Position.Volume * -1;
+            if (distanceFromHigh > distanceFromLow)
+                return Sell(volume);
 
             return 0;
+        }
+
+        private static double Buy(double volume)
+        {
+            if (volume < 0)
+                return volume * -1;
+
+            if (volume > 0)
+                return 0;
+
+            return 1;
+        }
+
+        private static double Sell(double volume)
+        {
+            if (volume > 0)
+                return volume * -1;
+
+            if (volume < 0)
+                return 0;
+
+            return -1;
         }
     }
 }
