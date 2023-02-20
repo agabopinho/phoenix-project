@@ -8,10 +8,8 @@ namespace Application.Services.Providers.Rates.BacktestRates
     {
         private readonly string _connStr;
 
-        public BacktestRatesRepository(IConfiguration configuration)
-        {
-            _connStr = configuration.GetConnectionString("BacktestSqlServer");
-        }
+        public BacktestRatesRepository(IConfiguration configuration) =>
+            _connStr = configuration.GetConnectionString("BacktestSqlServer") ?? throw new InvalidOperationException();
 
         public async Task<IEnumerable<TickData>> GetTicksAsync(string symbol, DateOnly date, CancellationToken cancellationToken)
         {
