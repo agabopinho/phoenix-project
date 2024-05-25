@@ -12,11 +12,11 @@ namespace Application.Helpers
                 .Select(it => new TickerData
                 {
                     Date = it.Time.ToDateTime(),
-                    Open = Convert.ToDecimal(it.Open),
-                    High = Convert.ToDecimal(it.High),
-                    Low = Convert.ToDecimal(it.Low),
-                    Close = Convert.ToDecimal(it.Close),
-                    Volume = Convert.ToDecimal(it.Volume),
+                    Open = it.Open ?? 0,
+                    High = it.High ?? 0,
+                    Low = it.Low ?? 0,
+                    Close = it.Close ?? 0,
+                    Volume = it.Volume ?? 0,
                 })
                 .OrderBy(it => it.Date);
 
