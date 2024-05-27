@@ -127,13 +127,7 @@ class MarketData(services.MarketDataServicer):
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
-        resample = Mt5Helper.ResultToDataFrame(data).resample(
-            rule=request.timeframe.ToTimedelta(), label="left"
-        )
-
-        rates = resample["last"].ohlc()
-        rates["tick_volume"] = resample["last"].count()
-        rates["real_volume"] = resample["volume"].sum()
+        rates = Mt5Helper.OHLC(data, request.timeframe.ToTimedelta())
 
         for chunk in ChunkHelper.Chunks(rates, request.chunckSize):
             chunkData = []

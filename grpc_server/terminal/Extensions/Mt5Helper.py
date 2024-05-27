@@ -26,6 +26,15 @@ class Mt5Helper:
         return dataframe
 
     @staticmethod
+    def OHLC(data, rule):
+        df = Mt5Helper.ResultToDataFrame(data)
+        resample = df.resample(rule=rule, label="left")
+        rates = resample["last"].ohlc()
+        rates["tick_volume"] = resample["last"].count()
+        rates["real_volume"] = resample["volume"].sum()
+        return rates
+
+    @staticmethod
     def ErrorToResponseStatus():
         error = mt5.last_error()
 

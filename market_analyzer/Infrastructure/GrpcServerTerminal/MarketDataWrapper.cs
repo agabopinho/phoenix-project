@@ -50,12 +50,12 @@ public class MarketDataWrapper : IMarketDataWrapper
     }
 
     public AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesRange(
-       string symbol,
-       DateTime utcFromDate,
-       DateTime utcToDate,
-       Timeframe timeframe,
-       int chunkSize,
-       CancellationToken cancellationToken)
+        string symbol,
+        DateTime utcFromDate,
+        DateTime utcToDate,
+        Timeframe timeframe,
+        int chunkSize,
+        CancellationToken cancellationToken)
     {
         var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
@@ -72,12 +72,12 @@ public class MarketDataWrapper : IMarketDataWrapper
     }
 
     public AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesFromTicksRange(
-       string symbol,
-       DateTime utcFromDate,
-       DateTime utcToDate,
-       TimeSpan timeframe,
-       int chunkSize,
-       CancellationToken cancellationToken)
+        string symbol,
+        DateTime utcFromDate,
+        DateTime utcToDate,
+        TimeSpan timeframe,
+        int chunkSize,
+        CancellationToken cancellationToken)
     {
         var client = _grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
