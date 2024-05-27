@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import sys
-from typing import AsyncIterable, Iterable
 
 import grpc
 import MetaTrader5 as mt5

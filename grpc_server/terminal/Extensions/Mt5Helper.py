@@ -29,7 +29,7 @@ class Mt5Helper:
     def ErrorToResponseStatus():
         error = mt5.last_error()
 
-        logger.info("Error: %s", error)
+        logger.debug("error: %s", error)
 
         return contractsProtos.ResponseStatus(
             responseCode=int(error[0]),

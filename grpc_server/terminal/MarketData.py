@@ -59,7 +59,7 @@ class MarketData(services.MarketDataServicer):
     def StreamTicksRange(self, request, _):
         data = self.__copyTicksRange(request)
 
-        responseStatus = responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = Mt5Helper.ErrorToResponseStatus()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamTicksRangeReply(responseStatus=responseStatus)
 
@@ -88,7 +88,7 @@ class MarketData(services.MarketDataServicer):
     def StreamRatesRange(self, request, _):
         data = self.__copyRatesRange(request)
 
-        responseStatus = responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = Mt5Helper.ErrorToResponseStatus()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
@@ -123,7 +123,7 @@ class MarketData(services.MarketDataServicer):
             )
         )
 
-        responseStatus = responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = Mt5Helper.ErrorToResponseStatus()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 

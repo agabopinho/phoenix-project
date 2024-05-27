@@ -18,18 +18,4 @@ public static class RatesExtensions
                 Volume = it.Volume ?? 0,
             })
             .OrderBy(it => it.Date);
-
-    public static IEnumerable<CustomQuote> ToQuotes(this IEnumerable<Rate> rates)
-        => rates
-            .Where(it => it.Open.HasValue && !double.IsNaN(it.Open.Value))
-            .Select(it => new CustomQuote
-            {
-                Date = it.Time.ToDateTime(),
-                Open = Convert.ToDecimal(it.Open),
-                High = Convert.ToDecimal(it.High),
-                Low = Convert.ToDecimal(it.Low),
-                Close = Convert.ToDecimal(it.Close),
-                Volume = Convert.ToDecimal(it.Volume),
-            })
-            .OrderBy(it => it.Date);
 }

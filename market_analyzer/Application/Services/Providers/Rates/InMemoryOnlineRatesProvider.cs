@@ -35,11 +35,7 @@ public class InMemoryOnlineRatesProvider(
     {
         CheckInitialized();
 
-        var lastRate = Rates.Values.LastOrDefault();
-
-        var fromDate = lastRate is null ?
-            Date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) :
-            lastRate.Time.ToDateTime();
+        var fromDate = GetUpdateFromDate();
 
         using var call = _symbolDataWrapper.StreamRatesFromTicksRange(
             Symbol!,
@@ -61,6 +57,19 @@ public class InMemoryOnlineRatesProvider(
                 Rates[rate.Time.ToDateTime()] = rate;
             }
         }
+    }
+
+    private DateTime GetUpdateFromDate()
+    {
+        var lastRate = Rates.Values.LastOrDefault();
+
+        if (lastRate is not null)
+        {
+            return lastRate.Time.ToDateTime();
+        }
+
+        return Date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
     }
 
     public Task<IEnumerable<Rate>> GetRatesAsync(CancellationToken cancellationToken)

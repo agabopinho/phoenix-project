@@ -52,7 +52,6 @@ public class LoopService : ILoopService
             return;
         }
 
-        var quotes = await GetQuotes(cancellationToken);
         var tickerDatas = await GetTickerDatas(cancellationToken);
 
         var isEndOfDay = IsEndOfDay();
@@ -64,32 +63,7 @@ public class LoopService : ILoopService
             return;
         }
 
-        var volume = 0m;
-        var beforeVolume = current is null ? 0 : current.Volume;
-        var afterVolume = beforeVolume + volume;
-
-        if (current is not null && afterVolume == 0)
-            volume *= 2;
-
-        if (current is not null && isEndOfDay)
-            volume = beforeVolume * -1;
-
-        if (volume == 0)
-            return;
-
-        if (volume > 0)
-        {
-            await BuyAsync(
-                Convert.ToDouble(volume),
-                cancellationToken);
-        }
-
-        if (volume < 0)
-        {
-            await SellAsync(
-                 Convert.ToDouble(volume * -1),
-                 cancellationToken);
-        }
+        _logger.LogInformation("{@data}", tickerDatas.LastOrDefault());
     }
 
     private bool IsEndOfDay()
@@ -172,12 +146,6 @@ public class LoopService : ILoopService
         }
 
         return new Position(position);
-    }
-
-    private async Task<IEnumerable<CustomQuote>> GetQuotes(CancellationToken cancellationToken)
-    {
-        var rates = await _ratesProvider.GetRatesAsync(cancellationToken);
-        return rates.ToQuotes().ToArray();
     }
 
     private async Task<IEnumerable<TickerData>> GetTickerDatas(CancellationToken cancellationToken)
