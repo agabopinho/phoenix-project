@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option csharp_namespace = "Grpc.Terminal";
 
-import "contract.proto";
+import "Contracts.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";

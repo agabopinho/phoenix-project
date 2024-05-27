@@ -1,6 +1,6 @@
 ﻿namespace Infrastructure.GrpcServerTerminal;
 
-public class MarketDataWrapperOptions
+public class OrderManagementSystemWrapperOptions
 {
     public string? Endpoint { get; set; }
 }

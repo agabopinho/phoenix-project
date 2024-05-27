@@ -1,38 +1,49 @@
 """The Python implementation of the GRPC helloworld.Greeter server."""
 
+import asyncio
 import logging
 import sys
-from concurrent import futures
+from typing import AsyncIterable, Iterable
 
 import grpc
 import MetaTrader5 as mt5
 
-import marketdata_pb2_grpc as marketDataService
-import ordermanagement_pb2_grpc as orderManagementService
-from terminal.marketdata import MarketData
-from terminal.ordermanagement import OrderManagement
-
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
-    level=logging.DEBUG,
-    datefmt="%H:%M:%S",
-    stream=sys.stderr,
-)
-logging.getLogger("chardet.charsetprober").disabled = True
-logger = logging.getLogger("app")
+import MarketData_pb2_grpc as services
+import OrderManagementSystem_pb2_grpc as OrderManagementSystemService
+from terminal.MarketData import MarketData
+from terminal.OrderManagementSystem import OrderManagementSystem
 
 
-def serve():
-    mt5.initialize()
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=50))
-    marketDataService.add_MarketDataServicer_to_server(MarketData(), server)
-    orderManagementService.add_OrderManagementServicer_to_server(
-        OrderManagement(), server)
-    server.add_insecure_port("[::]:5051")
-    server.start()
-    server.wait_for_termination()
+async def serve():
+    logger = logging.getLogger("app")
+
+    address = "[::]:5051"
+    server = grpc.aio.server()
+
+    services.add_MarketDataServicer_to_server(MarketData(), server)
+    OrderManagementSystemService.add_OrderManagementSystemServicer_to_server(
+        OrderManagementSystem(), server
+    )
+
+    server.add_insecure_port(address)
+
+    await server.start()
+
+    logger.info("listening on %s", address)
+
+    await server.wait_for_termination()
 
 
 if __name__ == "__main__":
-    logger.info("listening...")
-    serve()
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
+        level=logging.INFO,
+        datefmt="%H:%M:%S",
+        stream=sys.stderr,
+    )
+    logging.getLogger("chardet.charsetprober").disabled = True
+
+    mt5.initialize()
+
+    logging.basicConfig(level=logging.INFO)
+    asyncio.get_event_loop().run_until_complete(serve())

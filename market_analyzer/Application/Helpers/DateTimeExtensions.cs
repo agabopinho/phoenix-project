@@ -1,8 +1,7 @@
-﻿namespace Application.Helpers
+﻿namespace Application.Helpers;
+
+public static class DateTimeExtensions
 {
-    public static class DateTimeExtensions
-    {
-        public static double ToUnixEpochTimestamp(this DateTime dateTime)
-            => (dateTime - DateTime.UnixEpoch).TotalSeconds;
-    }
+    public static double ToUnixEpochTimestamp(this DateTime dateTime)
+        => (dateTime - DateTime.UnixEpoch).TotalSeconds;
 }

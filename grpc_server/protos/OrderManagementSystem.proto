@@ -2,13 +2,13 @@ syntax = "proto3";
 
 option csharp_namespace = "Grpc.Terminal";
 
-import "contract.proto";
+import "Contracts.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
 package terminal;
 
-service OrderManagement {
+service OrderManagementSystem {
   rpc GetPositions (GetPositionsRequest) returns (GetPositionsReply) {}
   rpc GetOrders (GetOrdersRequest) returns (GetOrdersReply) {}
   rpc GetHistoryOrders (GetHistoryOrdersRequest) returns (GetHistoryOrdersReply) {}

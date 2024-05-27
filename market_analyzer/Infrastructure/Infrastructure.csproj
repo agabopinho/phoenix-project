@@ -13,14 +13,14 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <Protobuf Include="..\..\grpc_server\protos\contract.proto" GrpcServices="Client">
-      <Link>Protos\contract.proto</Link>
+    <Protobuf Include="..\..\grpc_server\protos\Contracts.proto" GrpcServices="Client">
+      <Link>Protos\Contracts.proto</Link>
     </Protobuf>
-    <Protobuf Include="..\..\grpc_server\protos\marketdata.proto" GrpcServices="Client">
-      <Link>Protos\marketdata.proto</Link>
+    <Protobuf Include="..\..\grpc_server\protos\MarketData.proto" GrpcServices="Client">
+      <Link>Protos\MarketData.proto</Link>
     </Protobuf>
-    <Protobuf Include="..\..\grpc_server\protos\ordermanagement.proto" GrpcServices="Client">
-      <Link>Protos\ordermanagement.proto</Link>
+    <Protobuf Include="..\..\grpc_server\protos\OrderManagementSystem.proto" GrpcServices="Client">
+      <Link>Protos\OrderManagementSystem.proto</Link>
     </Protobuf>
   </ItemGroup>
 </Project>

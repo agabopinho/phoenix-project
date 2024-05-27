@@ -4,27 +4,28 @@ using Microsoft.Extensions.Options;
 
 namespace Infrastructure.GrpcServerTerminal;
 
-public static class MarketDataWrapperExtensions
+public static class OrderManagementSystemWrapperExtensions
 {
-    public static void AddMarketDataWrapper(this IServiceCollection services, Action<MarketDataWrapperOptions> configure)
+    public static void AddOrderManagementWrapper(this IServiceCollection services, Action<OrderManagementSystemWrapperOptions> configure)
     {
-        services.AddOptions<MarketDataWrapperOptions>()
+        services.AddOptions<OrderManagementSystemWrapperOptions>()
             .Configure(configure)
             .Validate(options =>
                 !string.IsNullOrWhiteSpace(options.Endpoint) &&
                 Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _));
 
         services
-            .AddGrpcClient<MarketData.MarketDataClient>(
-                MarketDataWrapper.ClientName,
+            .AddGrpcClient<OrderManagementSystem.OrderManagementSystemClient>(
+                OrderManagementSystemWrapper.ClientName,
                 (serviceProvider, configure) =>
                 {
-                    var options = serviceProvider.GetRequiredService<IOptions<MarketDataWrapperOptions>>();
+                    var options = serviceProvider.GetRequiredService<IOptions<OrderManagementSystemWrapperOptions>>();
                     configure.Address = new Uri(options.Value.Endpoint!);
                 })
             .ConfigureChannel((serviceProvider, configure) =>
                 configure.MaxReceiveMessageSize = int.MaxValue);
 
-        services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
+        services.AddSingleton<IOrderCreator, OrderCreator>();
+        services.AddSingleton<IOrderManagementSystemWrapper, OrderManagementSystemWrapper>();
     }
 }

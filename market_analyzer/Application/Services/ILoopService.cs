@@ -1,7 +1,6 @@
-﻿namespace Application.Services
+﻿namespace Application.Services;
+
+public interface ILoopService
 {
-    public interface ILoopService
-    {
-        Task RunAsync(CancellationToken cancellationToken);
-    }
+    Task RunAsync(CancellationToken cancellationToken);
 }
