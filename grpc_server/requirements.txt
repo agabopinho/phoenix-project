@@ -1,0 +1,5 @@
+grpcio==1.64.0
+MetaTrader5==5.0.4288
+pandas==2.0.3
+protobuf==5.27.0
+pytz==2024.1
