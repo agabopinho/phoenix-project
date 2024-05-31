@@ -197,3 +197,5 @@ cython_debug/
 **_pb2_grpc.py
 **/result.txt
 **.xlsx
+grpc_server/notebooks/*.png
+grpc_server/notebooks/*.png
