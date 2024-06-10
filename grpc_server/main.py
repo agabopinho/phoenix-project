@@ -3,12 +3,12 @@
 import asyncio
 import logging
 import sys
-
 import grpc
-import MetaTrader5 as mt5
 
 import MarketData_pb2_grpc as services
 import OrderManagementSystem_pb2_grpc as OrderManagementSystemService
+
+from terminal.Extensions.MT5 import MT5
 from terminal.MarketData import MarketData
 from terminal.OrderManagementSystem import OrderManagementSystem
 
@@ -36,13 +36,13 @@ async def serve():
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
-        level=logging.INFO,
+        level=logging.DEBUG,
         datefmt="%H:%M:%S",
         stream=sys.stderr,
     )
     logging.getLogger("chardet.charsetprober").disabled = True
 
-    mt5.initialize()
+    MT5.initialize()
 
     logging.basicConfig(level=logging.INFO)
     asyncio.get_event_loop().run_until_complete(serve())

@@ -1,6 +1,6 @@
 ﻿namespace Application.Range;
 
-public class Brick
+public record class Brick
 {
     public DateTime Date { get; set; }
     public BrickType Type { get; set; } = BrickType.Last;

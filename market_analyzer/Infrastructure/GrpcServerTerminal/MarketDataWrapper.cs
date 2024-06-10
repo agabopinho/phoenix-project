@@ -65,7 +65,7 @@ public class MarketDataWrapper : IMarketDataWrapper
             FromDate = Timestamp.FromDateTime(utcFromDate),
             ToDate = Timestamp.FromDateTime(utcToDate),
             Timeframe = timeframe,
-            ChunckSize = chunkSize
+            ChunkSize = chunkSize
         };
 
         return client.StreamRatesRange(request, cancellationToken: cancellationToken);
@@ -87,7 +87,7 @@ public class MarketDataWrapper : IMarketDataWrapper
             FromDate = Timestamp.FromDateTime(utcFromDate),
             ToDate = Timestamp.FromDateTime(utcToDate),
             Timeframe = Duration.FromTimeSpan(timeframe),
-            ChunckSize = chunkSize
+            ChunkSize = chunkSize
         };
 
         return client.StreamRatesFromTicksRange(request, cancellationToken: cancellationToken);
@@ -109,7 +109,7 @@ public class MarketDataWrapper : IMarketDataWrapper
             FromDate = Timestamp.FromDateTime(utcFromDate),
             ToDate = Timestamp.FromDateTime(utcToDate),
             Type = type,
-            ChunckSize = chunkSize
+            ChunkSize = chunkSize
         };
 
         return client.StreamTicksRange(request, cancellationToken: cancellationToken);

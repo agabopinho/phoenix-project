@@ -30,7 +30,7 @@ message StreamTicksRangeRequest {
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
   CopyTicks type = 4;
-  int32 chunckSize = 5;
+  int32 chunkSize = 5;
 }
 
 message StreamTicksRangeReply {
@@ -43,7 +43,7 @@ message StreamRatesRangeRequest {
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
   Timeframe timeframe = 4;
-  int32 chunckSize = 5;
+  int32 chunkSize = 5;
 }
 
 message StreamRatesRangeReply {
@@ -56,7 +56,7 @@ message StreamRatesFromTicksRangeRequest {
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
   google.protobuf.Duration timeframe = 4;
-  int32 chunckSize = 5;
+  int32 chunkSize = 5;
 }
 
 message Trade {

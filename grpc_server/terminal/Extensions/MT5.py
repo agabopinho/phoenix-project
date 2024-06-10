@@ -14,9 +14,8 @@ class MT5:
     def initialize():
         if not mt5.initialize():
             error = mt5.last_error()
-            message = "initialize failed, error code = %s".format(error)
-            logger.error(message)
-            raise message
+            logger.error("initialize failed, error code = %s", error)
+            raise f"initialize failed, error code = {error}"
 
     @staticmethod
     def create_ticks_dataframe(ticks):
@@ -31,7 +30,7 @@ class MT5:
     def create_ohlc_from_ticks(ticks, rule):
         if isinstance(ticks, pd.DataFrame):
             trades = ticks
-        else: 
+        else:
             trades = MT5.create_ticks_dataframe(ticks)
         resample = trades.resample(rule=rule, label="left")
         rates = resample["last"].ohlc()
@@ -43,12 +42,11 @@ class MT5:
     @staticmethod
     def response_status():
         error = mt5.last_error()
-        message = "response status, error code = %s".format(error)
 
         if error[0] == mt5.RES_S_OK:
-            logger.debug(message)
+            logger.debug("response status, error code = %s", error)
         else:
-            logger.error(message)
+            logger.error("response status, error code = %s", error)
 
         return contractsProtos.ResponseStatus(
             responseCode=int(error[0]),

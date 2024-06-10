@@ -8,12 +8,12 @@ import MarketData_pb2_grpc as services
 import MetaTrader5 as mt5
 import pytz
 
-from terminal.Extensions.ChunkHelper import ChunkHelper
 from terminal.Extensions.MT5 import MT5
 
 logger = logging.getLogger("app")
 
 _MILLIS_PER_SECOND = 1000
+_NANOS_PER_MILLIS = 1000000
 
 
 class MarketData(services.MarketDataServicer):
@@ -34,9 +34,11 @@ class MarketData(services.MarketDataServicer):
         )
 
     def GetSymbolTick(self, request, _):
-        result = mt5.symbol_info_tick(request.symbol)
+        MT5.initialize()
 
+        result = mt5.symbol_info_tick(request.symbol)
         responseStatus = MT5.response_status()
+
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetSymbolTickReply(responseStatus=responseStatus)
 
@@ -57,63 +59,78 @@ class MarketData(services.MarketDataServicer):
         )
 
     def StreamTicksRange(self, request, _):
-        data = self.__copyTicksRange(request)
+        MT5.initialize()
 
+        data = self.__copyTicksRange(request)
         responseStatus = MT5.response_status()
+
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamTicksRangeReply(responseStatus=responseStatus)
 
-        for chunk in ChunkHelper.Chunks(data, request.chunckSize):
-            chunkData = []
-            for trade in chunk:
-                time = timestampProtos.Timestamp()
-                time.FromMilliseconds(int(trade["time_msc"]))
-                chunkData.append(
-                    protos.Trade(
-                        time=time,
-                        bid=wrappersProtos.DoubleValue(value=trade["bid"]),
-                        ask=wrappersProtos.DoubleValue(value=trade["ask"]),
-                        last=wrappersProtos.DoubleValue(value=trade["last"]),
-                        volume=wrappersProtos.DoubleValue(value=trade["volume"]),
-                        flags=int(trade["flags"]),
-                        volumeReal=wrappersProtos.DoubleValue(
-                            value=trade["volume_real"]
-                        ),
-                    )
-                )
+        logger.debug("StreamTicksRange: %s", len(data))
+
+        trades = [
+            protos.Trade(
+                time=timestampProtos.Timestamp(
+                    seconds=int(trade["time_msc"] / _MILLIS_PER_SECOND),
+                    nanos=int(
+                        (trade["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
+                    ),
+                ),
+                bid=wrappersProtos.DoubleValue(value=trade["bid"]),
+                ask=wrappersProtos.DoubleValue(value=trade["ask"]),
+                last=wrappersProtos.DoubleValue(value=trade["last"]),
+                volume=wrappersProtos.DoubleValue(value=trade["volume"]),
+                flags=int(trade["flags"]),
+                volumeReal=wrappersProtos.DoubleValue(value=trade["volume_real"]),
+            )
+            for trade in data
+        ]
+        del data
+        tradesCount = len(trades)
+
+        for i in range(0, tradesCount, request.chunkSize):
+            chunk = trades[i : i + request.chunkSize]
+            logger.debug("reply %s trades", len(chunk))
             yield protos.StreamTicksRangeReply(
-                trades=chunkData, responseStatus=responseStatus
+                trades=chunk, responseStatus=responseStatus
             )
 
     def StreamRatesRange(self, request, _):
-        data = self.__copyRatesRange(request)
+        MT5.initialize()
 
+        data = self.__copyRatesRange(request)
         responseStatus = MT5.response_status()
+
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
-        for chunk in ChunkHelper.Chunks(data, request.chunckSize):
-            chunkData = []
-            for rate in chunk:
+        for i in range(0, len(data), request.chunkSize):
+            rates = []
+            for rate in data[i : i + request.chunkSize]:
                 time = timestampProtos.Timestamp()
                 time.FromSeconds(int(rate["time"]))
-                chunkData.append(
+                rates.append(
                     protos.Rate(
                         time=time,
                         open=wrappersProtos.DoubleValue(value=rate["open"]),
                         high=wrappersProtos.DoubleValue(value=rate["high"]),
                         low=wrappersProtos.DoubleValue(value=rate["low"]),
                         close=wrappersProtos.DoubleValue(value=rate["close"]),
-                        tickVolume=wrappersProtos.DoubleValue(value=rate["tick_volume"]),
+                        tickVolume=wrappersProtos.DoubleValue(
+                            value=rate["tick_volume"]
+                        ),
                         spread=wrappersProtos.DoubleValue(value=rate["spread"]),
                         volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
                     )
                 )
             yield protos.StreamRatesRangeReply(
-                rates=chunkData, responseStatus=responseStatus
+                rates=rates, responseStatus=responseStatus
             )
 
     def StreamRatesFromTicksRange(self, request, _):
+        MT5.initialize()
+
         data = self.__copyTicksRange(
             protos.StreamTicksRangeRequest(
                 symbol=request.symbol,
@@ -122,30 +139,32 @@ class MarketData(services.MarketDataServicer):
                 type=int(mt5.COPY_TICKS_TRADE),
             )
         )
-
         responseStatus = MT5.response_status()
+
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
-        rates = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
+        dataOHLC = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
 
-        for chunk in ChunkHelper.Chunks(rates, request.chunckSize):
-            chunkData = []
-            for index, rate in chunk.iterrows():
+        for i in range(0, len(dataOHLC), request.chunkSize):
+            rates = []
+            for index, rate in dataOHLC[i : i + request.chunkSize].iterrows():
                 time = timestampProtos.Timestamp()
                 time.FromMilliseconds(int(index.timestamp() * _MILLIS_PER_SECOND))
-                chunkData.append(
+                rates.append(
                     protos.Rate(
                         time=time,
                         open=wrappersProtos.DoubleValue(value=rate["open"]),
                         high=wrappersProtos.DoubleValue(value=rate["high"]),
                         low=wrappersProtos.DoubleValue(value=rate["low"]),
                         close=wrappersProtos.DoubleValue(value=rate["close"]),
-                        tickVolume=wrappersProtos.DoubleValue(value=rate["tick_volume"]),
+                        tickVolume=wrappersProtos.DoubleValue(
+                            value=rate["tick_volume"]
+                        ),
                         spread=wrappersProtos.DoubleValue(value=0),
                         volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
                     )
                 )
             yield protos.StreamRatesRangeReply(
-                rates=chunkData, responseStatus=responseStatus
+                rates=rates, responseStatus=responseStatus
             )

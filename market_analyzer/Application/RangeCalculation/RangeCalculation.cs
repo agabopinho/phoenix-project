@@ -5,19 +5,22 @@ public class RangeCalculation
     private readonly List<Brick> _bricks = new(1000);
     private double _brickSize;
 
-    public RangeCalculation(double brickSize, List<DateTime> times, List<double> prices, List<double> volume)
+    public RangeCalculation(double brickSize, List<DateTime>? times = null, List<double>? prices = null, List<double>? volume = null)
     {
         _brickSize = brickSize;
 
-        for (var i = 0; i < prices.Count; i++)
+        if (times is not null && prices is not null && volume is not null)
         {
-            CheckNewPrice(times[i], prices[i], volume[i]);
+            for (var i = 0; i < times.Count; i++)
+            {
+                CheckNewPrice(times[i], prices[i], volume[i]);
+            }
         }
     }
 
     public IReadOnlyCollection<Brick> Bricks => _bricks;
 
-    private void CheckNewPrice(DateTime time, double price, double volume, double? brickSize = null)
+    public void CheckNewPrice(DateTime time, double price, double volume, double? brickSize = null)
     {
         if (brickSize != null)
         {

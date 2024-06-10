@@ -10,9 +10,15 @@ public interface IOrderCreator
     /// </summary>
     /// <returns></returns>
     OrderRequest BuyAtMarket(
-        string symbol, double price, double volume,
-        int deviation, double? stopLoss = null, double? takeProfit = null,
-        long? position = null, long? magic = null, string? comment = null,
+        string symbol, 
+        double price, 
+        double volume,
+        int deviation, 
+        double? stopLoss = null, 
+        double? takeProfit = null,
+        long? position = null, 
+        long? magic = null, 
+        string? comment = null,
         OrderFilling typeFilling = OrderFilling.Return);
 
     /// <summary>
@@ -20,9 +26,15 @@ public interface IOrderCreator
     /// </summary>
     /// <returns></returns>
     OrderRequest SellAtMarket(
-        string symbol, double price, double volume,
-        int deviation, double? stopLoss = null, double? takeProfit = null,
-        long? position = null, long? magic = null, string? comment = null,
+        string symbol, 
+        double price,
+        double volume,
+        int deviation, 
+        double? stopLoss = null, 
+        double? takeProfit = null,
+        long? position = null, 
+        long? magic = null, 
+        string? comment = null,
         OrderFilling typeFilling = OrderFilling.Return);
 }
 

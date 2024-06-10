@@ -1,7 +1,6 @@
 ﻿using Application.Options;
 using Application.Services;
 using Application.Services.Providers.Date;
-using Application.Services.Providers.Rates;
 using Application.Workers;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Configuration;
@@ -34,9 +33,6 @@ builder.ConfigureServices((context, services) =>
 
     services.AddSingleton<OnlineDateProvider>();
     services.AddSingleton<IDateProvider, OnlineDateProvider>();
-
-    services.AddSingleton<InMemoryOnlineRatesProvider>();
-    services.AddSingleton<IRatesProvider, InMemoryOnlineRatesProvider>();
 
     services.AddSingleton<LoopService>();
     services.AddSingleton<ILoopService, LoopService>();

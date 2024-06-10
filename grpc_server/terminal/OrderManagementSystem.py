@@ -122,6 +122,8 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         return orderRequest
 
     def GetPositions(self, request, _):
+        MT5.initialize()
+        
         result = []
 
         if request.HasField("symbol"):
@@ -178,6 +180,8 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def GetOrders(self, request, _):
+        MT5.initialize()
+        
         result = []
 
         if request.HasField("symbol"):
@@ -198,6 +202,8 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def GetHistoryOrders(self, request, _):
+        MT5.initialize()
+        
         result = []
 
         if request.HasField("group"):
@@ -220,6 +226,8 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def GetHistoryDeals(self, request, _):
+        MT5.initialize()
+        
         result = []
 
         if request.HasField("group"):
@@ -270,8 +278,9 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         return protos.GetHistoryDealsReply(deals=deals, responseStatus=responseStatus)
 
     def CheckOrder(self, request, _):
+        MT5.initialize()
+        
         orderRequest = self.__orderRequest(request)
-
         result = mt5.order_check(orderRequest)
 
         responseStatus = MT5.response_status()
@@ -291,12 +300,11 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def SendOrder(self, request, _):
+        MT5.initialize()
+        
         orderRequest = self.__orderRequest(request)
-
         logger.info("SendOrder Request: %s", orderRequest)
-
         result = mt5.order_send(orderRequest)
-
         logger.info("SendOrder Result: %s", result)
 
         responseStatus = MT5.response_status()

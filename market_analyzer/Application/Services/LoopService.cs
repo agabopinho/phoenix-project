@@ -1,166 +1,174 @@
-﻿using Application.Helpers;
-using Application.Options;
+﻿using Application.Options;
+using Application.Range;
 using Application.Services.Providers.Date;
-using Application.Services.Providers.Rates;
+using Grpc.Core;
+using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OoplesFinance.StockIndicators.Models;
+using System.Net.Http.Headers;
 
 namespace Application.Services;
 
-public class LoopService : ILoopService
+public class LoopService(
+    IMarketDataWrapper marketDataWrapper,
+    IOrderManagementSystemWrapper orderManagementSystemWrapper,
+    IOrderCreator orderCreator,
+    IDateProvider dateProvider,
+    IOptionsMonitor<OperationSettings> operationSettings,
+    ILogger<ILoopService> logger) : ILoopService
 {
-    private readonly IDateProvider _dateProvider;
-    private readonly IRatesProvider _ratesProvider;
-    private readonly IOrderManagementSystemWrapper _orderManagementSystemWrapper;
-    private readonly IOrderCreator _orderCreator;
-    private readonly IOptions<OperationSettings> _operationSettings;
-    private readonly ILogger<ILoopService> _logger;
+    private const int AHEAD_SECONDS = 30;
 
-    public LoopService(
-        IDateProvider dateProvider,
-        IRatesProvider ratesProvider,
-        IOrderManagementSystemWrapper orderManagementSystemWrapper,
-        IOrderCreator orderCreator,
-        IOptions<OperationSettings> operationSettings,
-        ILogger<ILoopService> logger)
+    private readonly IMarketDataWrapper _marketDataWrapper = marketDataWrapper;
+    private readonly IOrderManagementSystemWrapper _orderManagementSystemWrapper = orderManagementSystemWrapper;
+    private readonly IOrderCreator _orderCreator = orderCreator;
+    private readonly IDateProvider _dateProvider = dateProvider;
+    private readonly IOptionsMonitor<OperationSettings> _operationSettings = operationSettings;
+    private readonly ILogger<ILoopService> _logger = logger;
+    private readonly RangeCalculation _rangeCalculation = new(operationSettings.CurrentValue.BrickSize!.Value);
+    private readonly List<GrpcError> _responseStatus = [];
+
+    private DateTime _time;
+    private Trade? _lastTrade;
+    private int _previousBricksCount;
+    private int _newBricks;
+
+    private void PreExecution()
     {
-        _dateProvider = dateProvider;
-        _ratesProvider = ratesProvider;
-        _orderManagementSystemWrapper = orderManagementSystemWrapper;
-        _orderCreator = orderCreator;
-        _operationSettings = operationSettings;
-        _logger = logger;
-
-        _ratesProvider.Initialize(
-            _operationSettings.Value.Symbol.Name!,
-            _operationSettings.Value.Date,
-            _operationSettings.Value.Timeframe,
-            _operationSettings.Value.StreamingData.ChunkSize);
+        _time = _dateProvider.LocalDateSpecifiedUtcKind();
+        _responseStatus.Clear();
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        await _ratesProvider.UpdateRatesAsync(cancellationToken);
+        PreExecution();
 
-        if (!await CanProceedAsync(cancellationToken))
+        await CheckNewPrice(cancellationToken);
+
+        if (_newBricks > 0)
         {
-            _logger.LogInformation("Can't proceed!");
-
-            return;
+            _logger.LogInformation("NewBricks: {newBricks}", _newBricks);
         }
-
-        var tickerDatas = await GetTickerDatas(cancellationToken);
-
-        var isEndOfDay = IsEndOfDay();
 
         var current = await GetPositionAsync(cancellationToken);
 
-        if (current is null && isEndOfDay)
+        if (current is null)
         {
             return;
         }
-
-        _logger.LogInformation("{@data}", tickerDatas.LastOrDefault());
     }
 
-    private bool IsEndOfDay()
+    private async Task CheckNewPrice(CancellationToken cancellationToken)
     {
-        return _dateProvider.LocalDateSpecifiedUtcKind().TimeOfDay >= _operationSettings.Value.End.ToTimeSpan();
+        _previousBricksCount = _rangeCalculation.Bricks.Count;
+
+        var fromDate = _lastTrade?.Time.ToDateTime() ?? (_time - _time.TimeOfDay);
+        var toDate = _time.AddSeconds(AHEAD_SECONDS);
+
+        if (_previousBricksCount == 0)
+        {
+            _logger.LogInformation("Loading data from: {fromDate}", fromDate);
+        }
+
+        var ticksReply = _marketDataWrapper.StreamTicksRange(
+            _operationSettings.CurrentValue.Symbol!,
+            fromDate,
+            toDate,
+            CopyTicks.Trade,
+            _operationSettings.CurrentValue.StreamingData.ChunkSize, cancellationToken);
+
+        var lastTrade = default(Trade);
+
+        await foreach (var ticksRangeReply in ticksReply.ResponseStream.ReadAllAsync(cancellationToken))
+        {
+            CheckResponseStatus(ResponseType.GetTicks, ticksRangeReply.ResponseStatus);
+
+            if (ticksRangeReply.Trades is null)
+            {
+                continue;
+            }
+
+            foreach (var trade in ticksRangeReply.Trades)
+            {
+                if (!IsNewTrade(trade))
+                {
+                    continue;
+                }
+
+                lastTrade = trade;
+
+                _rangeCalculation.CheckNewPrice(trade.Time.ToDateTime(), trade.Last!.Value, trade.Volume!.Value);
+            }
+        }
+
+        if (lastTrade is not null)
+        {
+            _lastTrade = lastTrade;
+        }
+
+        _newBricks = _rangeCalculation.Bricks.Count - _previousBricksCount;
     }
 
-    private async Task<bool> CanProceedAsync(CancellationToken cancellationToken)
+    private bool IsNewTrade(Trade trade)
     {
-        if (!_operationSettings.Value.ProductionMode)
+        if (_lastTrade is null)
         {
             return true;
         }
 
-        var pendingOrders = await _orderManagementSystemWrapper.GetOrdersAsync(
-            group: _operationSettings.Value.Symbol.Name,
-            cancellationToken: cancellationToken);
-
-        if (pendingOrders.ResponseStatus.ResponseCode != Res.SOk)
+        if (trade.Time.ToDateTime() < _lastTrade.Time.ToDateTime())
         {
-            _logger.LogError("Grpc server error {@data}", new
-            {
-                pendingOrders.ResponseStatus.ResponseCode,
-                pendingOrders.ResponseStatus.ResponseMessage
-            });
-
             return false;
         }
 
-        return !pendingOrders.Orders.Any();
+        if (trade.Time.ToDateTime() == _lastTrade.Time.ToDateTime() &&
+            trade.Last == _lastTrade.Last &&
+            trade.Flags == _lastTrade.Flags &&
+            trade.Volume == _lastTrade.Volume)
+        {
+            return false;
+        }
+
+        return true;
     }
 
-    private async Task BuyAsync(double volume, CancellationToken cancellationToken)
+    private async Task<IEnumerable<Order>> GetOrdersAsync(CancellationToken cancellationToken)
     {
-        var tick = await _ratesProvider.GetSymbolTickAsync(cancellationToken);
+        var orders = await _orderManagementSystemWrapper.GetOrdersAsync(
+            group: _operationSettings.CurrentValue.Symbol,
+            cancellationToken: cancellationToken);
 
-        var request = _orderCreator.BuyAtMarket(
-            symbol: _operationSettings.Value.Symbol.Name!,
-            price: tick.Trade.Bid!.Value,
-            volume: volume,
-            deviation: _operationSettings.Value.Order.Deviation,
-            magic: _operationSettings.Value.Order.Magic);
+        CheckResponseStatus(ResponseType.GetOrder, orders.ResponseStatus);
 
-        _logger.LogInformation("Buy Request {@request}", request);
-
-        var response = await _orderManagementSystemWrapper.SendOrderAsync(request, cancellationToken);
-
-        _logger.LogInformation("Buy Reply {@response}", response);
-    }
-
-    private async Task SellAsync(double volume, CancellationToken cancellationToken)
-    {
-        var tick = await _ratesProvider.GetSymbolTickAsync(cancellationToken);
-
-        var request = _orderCreator.SellAtMarket(
-            symbol: _operationSettings.Value.Symbol.Name!,
-            price: tick.Trade.Ask!.Value,
-            volume: volume,
-            deviation: _operationSettings.Value.Order.Deviation,
-            magic: _operationSettings.Value.Order.Magic);
-
-        _logger.LogInformation("Sell Request {@request}", request);
-
-        var response = await _orderManagementSystemWrapper.SendOrderAsync(request, cancellationToken);
-
-        _logger.LogInformation("Sell Reply {@response}", response);
+        return orders.Orders ?? [];
     }
 
     private async Task<Position?> GetPositionAsync(CancellationToken cancellationToken)
     {
         var positions = await _orderManagementSystemWrapper.GetPositionsAsync(
-            group: _operationSettings.Value.Symbol.Name!,
+            group: _operationSettings.CurrentValue.Symbol!,
             cancellationToken: cancellationToken);
 
-        var position = positions.Positions.FirstOrDefault();
+        CheckResponseStatus(ResponseType.GetPosition, positions.ResponseStatus);
 
-        if (position is null)
+        return positions.Positions?.FirstOrDefault();
+    }
+
+    private void CheckResponseStatus(ResponseType type, ResponseStatus responseStatus)
+    {
+        if (responseStatus.ResponseCode == Res.SOk)
         {
-            return null;
+            return;
         }
 
-        return new Position(position);
-    }
+        _responseStatus.Add(new(_dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
 
-    private async Task<IEnumerable<TickerData>> GetTickerDatas(CancellationToken cancellationToken)
-    {
-        var rates = await _ratesProvider.GetRatesAsync(cancellationToken);
-        return rates.ToTickerData().ToArray();
-    }
-
-    private class Position(Grpc.Terminal.Position position)
-    {
-        public decimal Volume =>
-            position.Type == PositionType.Buy ?
-                Convert.ToDecimal(position.Volume) :
-                Convert.ToDecimal(position.Volume) * -1;
-
-        public decimal Profit => Convert.ToDecimal(position.Profit);
+        _logger.LogError("Grpc server error {@data}", new
+        {
+            responseStatus.ResponseCode,
+            responseStatus.ResponseMessage
+        });
     }
 }
