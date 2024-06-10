@@ -28,7 +28,7 @@ public class LoopService(
     private readonly IOptionsMonitor<OperationSettings> _operationSettings = operationSettings;
     private readonly ILogger<ILoopService> _logger = logger;
     private readonly RangeCalculation _rangeCalculation = new(operationSettings.CurrentValue.BrickSize!.Value);
-    private readonly List<GrpcError> _responseStatus = [];
+    private readonly List<TerminalError> _terminalError = [];
 
     private DateTime _time;
     private Trade? _lastTrade;
@@ -38,7 +38,7 @@ public class LoopService(
     private void PreExecution()
     {
         _time = _dateProvider.LocalDateSpecifiedUtcKind();
-        _responseStatus.Clear();
+        _terminalError.Clear();
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -163,7 +163,7 @@ public class LoopService(
             return;
         }
 
-        _responseStatus.Add(new(_dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
+        _terminalError.Add(new(_dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
 
         _logger.LogError("Grpc server error {@data}", new
         {

@@ -36,24 +36,26 @@ class MarketData(services.MarketDataServicer):
     def GetSymbolTick(self, request, _):
         MT5.initialize()
 
-        result = mt5.symbol_info_tick(request.symbol)
+        tick = mt5.symbol_info_tick(request.symbol)
         responseStatus = MT5.response_status()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetSymbolTickReply(responseStatus=responseStatus)
 
-        time = timestampProtos.Timestamp()
-        time.FromMilliseconds(int(result.time_msc))
-
         return protos.GetSymbolTickReply(
             trade=protos.Trade(
-                time=time,
-                bid=wrappersProtos.DoubleValue(value=result.bid),
-                ask=wrappersProtos.DoubleValue(value=result.ask),
-                last=wrappersProtos.DoubleValue(value=result.last),
-                volume=wrappersProtos.DoubleValue(value=result.volume),
-                flags=int(result.flags),
-                volumeReal=wrappersProtos.DoubleValue(value=result.volume_real),
+                time=timestampProtos.Timestamp(
+                    seconds=int(tick["time_msc"] / _MILLIS_PER_SECOND),
+                    nanos=int(
+                        (tick["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
+                    ),
+                ),
+                bid=wrappersProtos.DoubleValue(value=tick.bid),
+                ask=wrappersProtos.DoubleValue(value=tick.ask),
+                last=wrappersProtos.DoubleValue(value=tick.last),
+                volume=wrappersProtos.DoubleValue(value=tick.volume),
+                flags=int(tick.flags),
+                volumeReal=wrappersProtos.DoubleValue(value=tick.volume_real),
             ),
             responseStatus=responseStatus,
         )
@@ -68,7 +70,6 @@ class MarketData(services.MarketDataServicer):
             yield protos.StreamTicksRangeReply(responseStatus=responseStatus)
 
         logger.debug("StreamTicksRange: %s", len(data))
-
         trades = [
             protos.Trade(
                 time=timestampProtos.Timestamp(
@@ -87,9 +88,8 @@ class MarketData(services.MarketDataServicer):
             for trade in data
         ]
         del data
-        tradesCount = len(trades)
-
-        for i in range(0, tradesCount, request.chunkSize):
+        iterator = range(0, len(trades), request.chunkSize) 
+        for i in iterator:
             chunk = trades[i : i + request.chunkSize]
             logger.debug("reply %s trades", len(chunk))
             yield protos.StreamTicksRangeReply(
@@ -108,11 +108,9 @@ class MarketData(services.MarketDataServicer):
         for i in range(0, len(data), request.chunkSize):
             rates = []
             for rate in data[i : i + request.chunkSize]:
-                time = timestampProtos.Timestamp()
-                time.FromSeconds(int(rate["time"]))
                 rates.append(
                     protos.Rate(
-                        time=time,
+                        time=timestampProtos.Timestamp(seconds=int(rate["time"])),
                         open=wrappersProtos.DoubleValue(value=rate["open"]),
                         high=wrappersProtos.DoubleValue(value=rate["high"]),
                         low=wrappersProtos.DoubleValue(value=rate["low"]),
@@ -144,16 +142,15 @@ class MarketData(services.MarketDataServicer):
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
-        dataOHLC = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
+        ohlc = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
+        del data
 
-        for i in range(0, len(dataOHLC), request.chunkSize):
+        for i in range(0, len(ohlc), request.chunkSize):
             rates = []
-            for index, rate in dataOHLC[i : i + request.chunkSize].iterrows():
-                time = timestampProtos.Timestamp()
-                time.FromMilliseconds(int(index.timestamp() * _MILLIS_PER_SECOND))
+            for index, rate in ohlc[i : i + request.chunkSize].iterrows():
                 rates.append(
                     protos.Rate(
-                        time=time,
+                        time=timestampProtos.Timestamp(seconds=index.timestamp()),
                         open=wrappersProtos.DoubleValue(value=rate["open"]),
                         high=wrappersProtos.DoubleValue(value=rate["high"]),
                         low=wrappersProtos.DoubleValue(value=rate["low"]),

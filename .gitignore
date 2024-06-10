@@ -199,3 +199,4 @@ cython_debug/
 **.xlsx
 grpc_server/notebooks/*.png
 grpc_server/notebooks/*.png
+grpc_server/notebooks/dotnet_bricks.csv
