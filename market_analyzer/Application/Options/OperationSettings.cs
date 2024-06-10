@@ -3,7 +3,7 @@
 public class OperationSettings
 {
     public string? TimeZoneId { get; set; }
-    public string? Symbol { get; set; } 
+    public string? Symbol { get; set; }
     public double? BrickSize { get; set; }
     public OrderSettings Order { get; set; } = new();
     public StreamingSettings StreamingData { get; set; } = new();

@@ -5,12 +5,8 @@ using System.Diagnostics;
 
 namespace Application.Workers;
 
-public class WorkerService(
-    ILoopService loopService,
-    ILogger<WorkerService> logger) : BackgroundService
+public class WorkerService(ILoopService loopService, ILogger<WorkerService> logger) : BackgroundService
 {
-    private readonly ILoopService _loopService = loopService;
-    private readonly ILogger<WorkerService> _logger = logger;
     private readonly Stopwatch _stopwatch = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -20,12 +16,12 @@ public class WorkerService(
             try
             {
                 _stopwatch.Restart();
-                await _loopService.RunAsync(stoppingToken);
-                _logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
+                await loopService.RunAsync(stoppingToken);
+                logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Loop execution error.");
+                logger.LogError(e, "Loop execution error.");
             }
         }
     }

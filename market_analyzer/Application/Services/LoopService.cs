@@ -7,38 +7,30 @@ using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Net.Http.Headers;
 
 namespace Application.Services;
 
 public class LoopService(
     IMarketDataWrapper marketDataWrapper,
     IOrderManagementSystemWrapper orderManagementSystemWrapper,
-    IOrderCreator orderCreator,
     IDateProvider dateProvider,
     IOptionsMonitor<OperationSettings> operationSettings,
     ILogger<ILoopService> logger) : ILoopService
 {
     private const int AHEAD_SECONDS = 30;
 
-    private readonly IMarketDataWrapper _marketDataWrapper = marketDataWrapper;
-    private readonly IOrderManagementSystemWrapper _orderManagementSystemWrapper = orderManagementSystemWrapper;
-    private readonly IOrderCreator _orderCreator = orderCreator;
-    private readonly IDateProvider _dateProvider = dateProvider;
-    private readonly IOptionsMonitor<OperationSettings> _operationSettings = operationSettings;
-    private readonly ILogger<ILoopService> _logger = logger;
     private readonly RangeCalculation _rangeCalculation = new(operationSettings.CurrentValue.BrickSize!.Value);
-    private readonly List<TerminalError> _terminalError = [];
+    private readonly List<TerminalError> _errors = [];
 
-    private DateTime _time;
+    private DateTime _currentTime;
     private Trade? _lastTrade;
     private int _previousBricksCount;
     private int _newBricks;
 
     private void PreExecution()
     {
-        _time = _dateProvider.LocalDateSpecifiedUtcKind();
-        _terminalError.Clear();
+        _currentTime = dateProvider.LocalDateSpecifiedUtcKind();
+        _errors.Clear();
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -49,35 +41,30 @@ public class LoopService(
 
         if (_newBricks > 0)
         {
-            _logger.LogInformation("NewBricks: {newBricks}", _newBricks);
+            logger.LogInformation("NewBricks: {newBricks}", _newBricks);
         }
 
-        var current = await GetPositionAsync(cancellationToken);
-
-        if (current is null)
-        {
-            return;
-        }
+        var position = await GetPositionAsync(cancellationToken);
     }
 
     private async Task CheckNewPrice(CancellationToken cancellationToken)
     {
         _previousBricksCount = _rangeCalculation.Bricks.Count;
 
-        var fromDate = _lastTrade?.Time.ToDateTime() ?? (_time - _time.TimeOfDay);
-        var toDate = _time.AddSeconds(AHEAD_SECONDS);
+        var fromDate = _lastTrade?.Time.ToDateTime() ?? (_currentTime - _currentTime.TimeOfDay);
+        var toDate = _currentTime.AddSeconds(AHEAD_SECONDS);
 
         if (_previousBricksCount == 0)
         {
-            _logger.LogInformation("Loading data from: {fromDate}", fromDate);
+            logger.LogInformation("Loading data from: {fromDate}", fromDate);
         }
 
-        var ticksReply = _marketDataWrapper.StreamTicksRange(
-            _operationSettings.CurrentValue.Symbol!,
+        var ticksReply = marketDataWrapper.StreamTicksRange(
+            operationSettings.CurrentValue.Symbol!,
             fromDate,
             toDate,
             CopyTicks.Trade,
-            _operationSettings.CurrentValue.StreamingData.ChunkSize, cancellationToken);
+            operationSettings.CurrentValue.StreamingData.ChunkSize, cancellationToken);
 
         var lastTrade = default(Trade);
 
@@ -136,8 +123,8 @@ public class LoopService(
 
     private async Task<IEnumerable<Order>> GetOrdersAsync(CancellationToken cancellationToken)
     {
-        var orders = await _orderManagementSystemWrapper.GetOrdersAsync(
-            group: _operationSettings.CurrentValue.Symbol,
+        var orders = await orderManagementSystemWrapper.GetOrdersAsync(
+            group: operationSettings.CurrentValue.Symbol,
             cancellationToken: cancellationToken);
 
         CheckResponseStatus(ResponseType.GetOrder, orders.ResponseStatus);
@@ -147,8 +134,8 @@ public class LoopService(
 
     private async Task<Position?> GetPositionAsync(CancellationToken cancellationToken)
     {
-        var positions = await _orderManagementSystemWrapper.GetPositionsAsync(
-            group: _operationSettings.CurrentValue.Symbol!,
+        var positions = await orderManagementSystemWrapper.GetPositionsAsync(
+            group: operationSettings.CurrentValue.Symbol!,
             cancellationToken: cancellationToken);
 
         CheckResponseStatus(ResponseType.GetPosition, positions.ResponseStatus);
@@ -163,9 +150,9 @@ public class LoopService(
             return;
         }
 
-        _terminalError.Add(new(_dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
+        _errors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
 
-        _logger.LogError("Grpc server error {@data}", new
+        logger.LogError("Grpc server error {@data}", new
         {
             responseStatus.ResponseCode,
             responseStatus.ResponseMessage

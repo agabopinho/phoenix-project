@@ -1,7 +1,6 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Net.ClientFactory;
 using Grpc.Terminal;
-using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.GrpcServerTerminal;
 
@@ -35,24 +34,15 @@ public interface IOrderManagementSystemWrapper
     Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken = default);
 }
 
-public class OrderManagementSystemWrapper : IOrderManagementSystemWrapper
+public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) : IOrderManagementSystemWrapper
 {
     public static readonly string ClientName = nameof(OrderManagementSystemWrapper);
-
-    private readonly GrpcClientFactory _grpcClientFactory;
-    private readonly ILogger<OrderManagementSystemWrapper> _logger;
-
-    public OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory, ILogger<OrderManagementSystemWrapper> logger)
-    {
-        _grpcClientFactory = grpcClientFactory;
-        _logger = logger;
-    }
 
     public async Task<GetPositionsReply> GetPositionsAsync(
         string? symbol = null, string? group = null, long? ticket = null,
         CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetPositionsRequest();
 
@@ -70,7 +60,7 @@ public class OrderManagementSystemWrapper : IOrderManagementSystemWrapper
         string? symbol = null, string? group = null, long? ticket = null,
         CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetOrdersRequest();
 
@@ -88,7 +78,7 @@ public class OrderManagementSystemWrapper : IOrderManagementSystemWrapper
         string group, DateTime utcFromDate, DateTime utcToDate,
         CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryOrdersRequest
         {
@@ -107,7 +97,7 @@ public class OrderManagementSystemWrapper : IOrderManagementSystemWrapper
         long? ticket = null, long? position = null,
         CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryOrdersRequest();
 
@@ -125,7 +115,7 @@ public class OrderManagementSystemWrapper : IOrderManagementSystemWrapper
         string group, DateTime utcFromDate, DateTime utcToDate,
         CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryDealsRequest
         {
@@ -144,7 +134,7 @@ public class OrderManagementSystemWrapper : IOrderManagementSystemWrapper
         long? ticket = null, long? position = null,
         CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryDealsRequest();
 
@@ -160,13 +150,13 @@ public class OrderManagementSystemWrapper : IOrderManagementSystemWrapper
 
     public async Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
         return await client.CheckOrderAsync(request, cancellationToken: cancellationToken);
     }
 
     public async Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken = default)
     {
-        var client = _grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
         return await client.SendOrderAsync(request, cancellationToken: cancellationToken);
     }
 }
