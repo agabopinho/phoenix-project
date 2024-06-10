@@ -124,7 +124,9 @@ public class LoopService(
     private async Task<IEnumerable<Order>> GetOrdersAsync(CancellationToken cancellationToken)
     {
         var orders = await orderManagementSystemWrapper.GetOrdersAsync(
-            group: operationSettings.CurrentValue.Symbol,
+            symbol: operationSettings.CurrentValue.Symbol,
+            group: null,
+            ticket: null,
             cancellationToken: cancellationToken);
 
         CheckResponseStatus(ResponseType.GetOrder, orders.ResponseStatus);
@@ -135,7 +137,9 @@ public class LoopService(
     private async Task<Position?> GetPositionAsync(CancellationToken cancellationToken)
     {
         var positions = await orderManagementSystemWrapper.GetPositionsAsync(
-            group: operationSettings.CurrentValue.Symbol!,
+            symbol: operationSettings.CurrentValue.Symbol!,
+            group: null,
+            ticket: null,
             cancellationToken: cancellationToken);
 
         CheckResponseStatus(ResponseType.GetPosition, positions.ResponseStatus);
