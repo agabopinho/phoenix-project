@@ -9,7 +9,7 @@ import MetaTrader5 as mt5
 import pytz
 
 from terminal.Extensions.ChunkHelper import ChunkHelper
-from terminal.Extensions.Mt5Helper import Mt5Helper
+from terminal.Extensions.MT5 import MT5
 
 logger = logging.getLogger("app")
 
@@ -36,7 +36,7 @@ class MarketData(services.MarketDataServicer):
     def GetSymbolTick(self, request, _):
         result = mt5.symbol_info_tick(request.symbol)
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetSymbolTickReply(responseStatus=responseStatus)
 
@@ -59,7 +59,7 @@ class MarketData(services.MarketDataServicer):
     def StreamTicksRange(self, request, _):
         data = self.__copyTicksRange(request)
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamTicksRangeReply(responseStatus=responseStatus)
 
@@ -88,7 +88,7 @@ class MarketData(services.MarketDataServicer):
     def StreamRatesRange(self, request, _):
         data = self.__copyRatesRange(request)
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
@@ -123,11 +123,11 @@ class MarketData(services.MarketDataServicer):
             )
         )
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
-        rates = Mt5Helper.OHLC(data, request.timeframe.ToTimedelta())
+        rates = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
 
         for chunk in ChunkHelper.Chunks(rates, request.chunckSize):
             chunkData = []

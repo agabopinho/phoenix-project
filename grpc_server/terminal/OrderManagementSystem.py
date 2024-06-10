@@ -8,7 +8,7 @@ import Contracts_pb2 as contractsProtos
 import OrderManagementSystem_pb2_grpc as services
 import pytz
 
-from terminal.Extensions.Mt5Helper import Mt5Helper
+from terminal.Extensions.MT5 import MT5
 
 logger = logging.getLogger("app")
 
@@ -133,7 +133,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         else:
             result = mt5.positions_get()
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetPositionsReply(responseStatus=responseStatus)
 
@@ -189,7 +189,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         else:
             result = mt5.orders_get()
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetOrdersReply(responseStatus=responseStatus)
 
@@ -211,7 +211,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         elif request.HasField("position"):
             result = mt5.history_orders_get(position=request.position.value)
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetHistoryOrdersReply(responseStatus=responseStatus)
 
@@ -233,7 +233,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         elif request.HasField("position"):
             result = mt5.history_deals_get(position=request.position.value)
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetHistoryDealsReply(responseStatus=responseStatus)
 
@@ -274,7 +274,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
 
         result = mt5.order_check(orderRequest)
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.CheckOrderReply(responseStatus=responseStatus)
 
@@ -299,7 +299,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
 
         logger.info("SendOrder Result: %s", result)
 
-        responseStatus = Mt5Helper.ErrorToResponseStatus()
+        responseStatus = MT5.response_status()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.SendOrderReply(responseStatus=responseStatus)
 
