@@ -33,6 +33,20 @@ class MarketData(services.MarketDataServicer):
             request.toDate.ToDatetime(tzinfo=pytz.utc),
         )
 
+    def __tickRangeToTrade(self, trade):
+        return protos.Trade(
+            time=timestampProtos.Timestamp(
+                seconds=int(trade["time_msc"] / _MILLIS_PER_SECOND),
+                nanos=int((trade["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS),
+            ),
+            bid=wrappersProtos.DoubleValue(value=trade["bid"]),
+            ask=wrappersProtos.DoubleValue(value=trade["ask"]),
+            last=wrappersProtos.DoubleValue(value=trade["last"]),
+            volume=wrappersProtos.DoubleValue(value=trade["volume"]),
+            flags=int(trade["flags"]),
+            volumeReal=wrappersProtos.DoubleValue(value=trade["volume_real"]),
+        )
+
     def GetSymbolTick(self, request, _):
         MT5.initialize()
 
@@ -70,26 +84,11 @@ class MarketData(services.MarketDataServicer):
             yield protos.StreamTicksRangeReply(responseStatus=responseStatus)
 
         logger.debug("StreamTicksRange: %s", len(data))
-        trades = [
-            protos.Trade(
-                time=timestampProtos.Timestamp(
-                    seconds=int(trade["time_msc"] / _MILLIS_PER_SECOND),
-                    nanos=int(
-                        (trade["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
-                    ),
-                ),
-                bid=wrappersProtos.DoubleValue(value=trade["bid"]),
-                ask=wrappersProtos.DoubleValue(value=trade["ask"]),
-                last=wrappersProtos.DoubleValue(value=trade["last"]),
-                volume=wrappersProtos.DoubleValue(value=trade["volume"]),
-                flags=int(trade["flags"]),
-                volumeReal=wrappersProtos.DoubleValue(value=trade["volume_real"]),
-            )
-            for trade in data
-        ]
+        trades = [self.__tickRangeToTrade(trade) for trade in data]
+
         del data
-        iterator = range(0, len(trades), request.chunkSize) 
-        for i in iterator:
+
+        for i in range(0, len(trades), request.chunkSize):
             chunk = trades[i : i + request.chunkSize]
             logger.debug("reply %s trades", len(chunk))
             yield protos.StreamTicksRangeReply(
