@@ -33,20 +33,6 @@ class MarketData(services.MarketDataServicer):
             request.toDate.ToDatetime(tzinfo=pytz.utc),
         )
 
-    def __tickRangeToTrade(self, trade):
-        return protos.Trade(
-            time=timestampProtos.Timestamp(
-                seconds=int(trade["time_msc"] / _MILLIS_PER_SECOND),
-                nanos=int((trade["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS),
-            ),
-            bid=wrappersProtos.DoubleValue(value=trade["bid"]),
-            ask=wrappersProtos.DoubleValue(value=trade["ask"]),
-            last=wrappersProtos.DoubleValue(value=trade["last"]),
-            volume=wrappersProtos.DoubleValue(value=trade["volume"]),
-            flags=int(trade["flags"]),
-            volumeReal=wrappersProtos.DoubleValue(value=trade["volume_real"]),
-        )
-
     def GetSymbolTick(self, request, _):
         MT5.initialize()
 
@@ -84,7 +70,24 @@ class MarketData(services.MarketDataServicer):
             yield protos.StreamTicksRangeReply(responseStatus=responseStatus)
 
         logger.debug("StreamTicksRange: %s", len(data))
-        trades = [self.__tickRangeToTrade(trade) for trade in data]
+
+        trades = [
+            protos.Trade(
+                time=timestampProtos.Timestamp(
+                    seconds=int(trade["time_msc"] / _MILLIS_PER_SECOND),
+                    nanos=int(
+                        (trade["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
+                    ),
+                ),
+                bid=wrappersProtos.DoubleValue(value=trade["bid"]),
+                ask=wrappersProtos.DoubleValue(value=trade["ask"]),
+                last=wrappersProtos.DoubleValue(value=trade["last"]),
+                volume=wrappersProtos.DoubleValue(value=trade["volume"]),
+                flags=int(trade["flags"]),
+                volumeReal=wrappersProtos.DoubleValue(value=trade["volume_real"]),
+            )
+            for trade in data
+        ]
 
         del data
 
@@ -104,25 +107,25 @@ class MarketData(services.MarketDataServicer):
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
+        rates = [
+            protos.Rate(
+                time=timestampProtos.Timestamp(seconds=int(rate["time"])),
+                open=wrappersProtos.DoubleValue(value=rate["open"]),
+                high=wrappersProtos.DoubleValue(value=rate["high"]),
+                low=wrappersProtos.DoubleValue(value=rate["low"]),
+                close=wrappersProtos.DoubleValue(value=rate["close"]),
+                tickVolume=wrappersProtos.DoubleValue(value=rate["tick_volume"]),
+                spread=wrappersProtos.DoubleValue(value=rate["spread"]),
+                volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
+            )
+            for rate in data
+        ]
+
+        del data
+
         for i in range(0, len(data), request.chunkSize):
-            rates = []
-            for rate in data[i : i + request.chunkSize]:
-                rates.append(
-                    protos.Rate(
-                        time=timestampProtos.Timestamp(seconds=int(rate["time"])),
-                        open=wrappersProtos.DoubleValue(value=rate["open"]),
-                        high=wrappersProtos.DoubleValue(value=rate["high"]),
-                        low=wrappersProtos.DoubleValue(value=rate["low"]),
-                        close=wrappersProtos.DoubleValue(value=rate["close"]),
-                        tickVolume=wrappersProtos.DoubleValue(
-                            value=rate["tick_volume"]
-                        ),
-                        spread=wrappersProtos.DoubleValue(value=rate["spread"]),
-                        volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
-                    )
-                )
             yield protos.StreamRatesRangeReply(
-                rates=rates, responseStatus=responseStatus
+                rates=rates[i : i + request.chunkSize], responseStatus=responseStatus
             )
 
     def StreamRatesFromTicksRange(self, request, _):
@@ -142,25 +145,27 @@ class MarketData(services.MarketDataServicer):
             yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
 
         ohlc = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
+
         del data
 
-        for i in range(0, len(ohlc), request.chunkSize):
+        rates = [
+            protos.Rate(
+                time=timestampProtos.Timestamp(seconds=index.timestamp()),
+                open=wrappersProtos.DoubleValue(value=rate["open"]),
+                high=wrappersProtos.DoubleValue(value=rate["high"]),
+                low=wrappersProtos.DoubleValue(value=rate["low"]),
+                close=wrappersProtos.DoubleValue(value=rate["close"]),
+                tickVolume=wrappersProtos.DoubleValue(value=rate["tick_volume"]),
+                spread=wrappersProtos.DoubleValue(value=0),
+                volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
+            )
+            for index, rate in ohlc.iterrows()
+        ]
+
+        del ohlc
+
+        for i in range(0, len(rates), request.chunkSize):
             rates = []
-            for index, rate in ohlc[i : i + request.chunkSize].iterrows():
-                rates.append(
-                    protos.Rate(
-                        time=timestampProtos.Timestamp(seconds=index.timestamp()),
-                        open=wrappersProtos.DoubleValue(value=rate["open"]),
-                        high=wrappersProtos.DoubleValue(value=rate["high"]),
-                        low=wrappersProtos.DoubleValue(value=rate["low"]),
-                        close=wrappersProtos.DoubleValue(value=rate["close"]),
-                        tickVolume=wrappersProtos.DoubleValue(
-                            value=rate["tick_volume"]
-                        ),
-                        spread=wrappersProtos.DoubleValue(value=0),
-                        volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
-                    )
-                )
             yield protos.StreamRatesRangeReply(
-                rates=rates, responseStatus=responseStatus
+                rates=rates[i : i + request.chunkSize], responseStatus=responseStatus
             )
