@@ -40,6 +40,7 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
         stream=sys.stderr,
     )
+
     logging.getLogger("chardet.charsetprober").disabled = True
 
     MT5.initialize()

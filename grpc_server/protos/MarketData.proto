@@ -12,6 +12,7 @@ package terminal;
 service MarketData {
   rpc GetSymbolTick (GetSymbolTickRequest) returns (GetSymbolTickReply) {}
   rpc StreamTicksRange (StreamTicksRangeRequest) returns (stream StreamTicksRangeReply) {}
+  rpc StreamTicksRangeBytes (StreamTicksRangeRequest) returns (stream StreamTicksRangeBytesReply) {}
   rpc StreamRatesRange (StreamRatesRangeRequest) returns (stream StreamRatesRangeReply) {}
   rpc StreamRatesFromTicksRange (StreamRatesFromTicksRangeRequest) returns (stream StreamRatesRangeReply) {}
 }
@@ -35,6 +36,11 @@ message StreamTicksRangeRequest {
 
 message StreamTicksRangeReply {
   repeated Trade trades = 1;
+  ResponseStatus responseStatus = 2;
+}
+
+message StreamTicksRangeBytesReply {
+  repeated int32 bytes = 1;
   ResponseStatus responseStatus = 2;
 }
 

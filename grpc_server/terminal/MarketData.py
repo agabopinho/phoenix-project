@@ -1,7 +1,9 @@
+import io
 import logging
 
 import google.protobuf.timestamp_pb2 as timestampProtos
 import google.protobuf.wrappers_pb2 as wrappersProtos
+import numpy as np
 import MarketData_pb2 as protos
 import Contracts_pb2 as contractsProtos
 import MarketData_pb2_grpc as services
@@ -60,7 +62,7 @@ class MarketData(services.MarketDataServicer):
             responseStatus=responseStatus,
         )
 
-    def StreamTicksRange(self, request, _):
+    def StreamTicksRange(self, request, context):
         MT5.initialize()
 
         data = self.__copyTicksRange(request)
@@ -97,6 +99,37 @@ class MarketData(services.MarketDataServicer):
             yield protos.StreamTicksRangeReply(
                 trades=chunk, responseStatus=responseStatus
             )
+
+    def StreamTicksRangeBytes(self, request, _):
+        MT5.initialize()
+
+        data = self.__copyTicksRange(request)
+        responseStatus = MT5.response_status()
+
+        if responseStatus.responseCode != contractsProtos.RES_S_OK:
+            yield protos.StreamTicksRangeBytesReply(responseStatus=responseStatus)
+
+        logger.debug("StreamTicksRangeBytes: %s", len(data))
+        
+        with io.BytesIO() as bytesIO:
+            np.savez(
+                bytesIO,
+                time_msc=data["time_msc"],
+                bid=data["bid"],
+                ask=data["ask"],
+                last=data["last"],
+                volume=data["volume"],
+                flags=data["flags"],
+            )
+            bytesIO.flush()
+            bytesIO.seek(0)
+            chunk = bytesIO.read(request.chunkSize)
+            while len(chunk) > 0:
+                logger.debug("reply %s bytes", len(chunk))
+                yield protos.StreamTicksRangeBytesReply(
+                    bytes=chunk, responseStatus=responseStatus
+                )
+                chunk = bytesIO.read(request.chunkSize)
 
     def StreamRatesRange(self, request, _):
         MT5.initialize()
@@ -165,7 +198,6 @@ class MarketData(services.MarketDataServicer):
         del ohlc
 
         for i in range(0, len(rates), request.chunkSize):
-            rates = []
             yield protos.StreamRatesRangeReply(
                 rates=rates[i : i + request.chunkSize], responseStatus=responseStatus
             )
