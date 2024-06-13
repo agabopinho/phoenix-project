@@ -47,15 +47,13 @@ public interface IOrderManagementSystemWrapper
 
 public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOrderManagementSystemWrapper
 {
-    public static readonly string ClientName = nameof(OrderManagementSystemWrapper);
-
     public async Task<GetPositionsReply> GetPositionsAsync(
         string? symbol,
         string? group,
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetPositionsAsync)));
 
         var request = new GetPositionsRequest();
 
@@ -81,7 +79,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetOrdersAsync)));
 
         var request = new GetOrdersRequest();
 
@@ -107,7 +105,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryOrdersAsync), "Group"));
 
         var request = new GetHistoryOrdersRequest
         {
@@ -127,7 +125,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         long? position,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryOrdersAsync)));
 
         var request = new GetHistoryOrdersRequest();
 
@@ -153,7 +151,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryDealsAsync), "Group"));
 
         var request = new GetHistoryDealsRequest
         {
@@ -173,7 +171,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         long? position,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryDealsAsync)));
 
         var request = new GetHistoryDealsRequest();
 
@@ -195,13 +193,18 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
 
     public async Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(CheckOrderAsync)));
         return await client.CheckOrderAsync(request, cancellationToken: cancellationToken);
     }
 
     public async Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(SendOrderAsync)));
         return await client.SendOrderAsync(request, cancellationToken: cancellationToken);
+    }
+
+    private static string ClientName(string name, string? suffix = null)
+    {
+        return $"{name.Replace("Async", string.Empty)}{suffix}";
     }
 }

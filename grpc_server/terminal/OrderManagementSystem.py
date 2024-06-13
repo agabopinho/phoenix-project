@@ -122,8 +122,6 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         return orderRequest
 
     def GetPositions(self, request, _):
-        MT5.initialize()
-        
         result = []
 
         if request.HasField("symbol"):
@@ -135,7 +133,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         else:
             result = mt5.positions_get()
 
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetPositionsReply(responseStatus=responseStatus)
 
@@ -180,8 +178,6 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def GetOrders(self, request, _):
-        MT5.initialize()
-        
         result = []
 
         if request.HasField("symbol"):
@@ -193,7 +189,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         else:
             result = mt5.orders_get()
 
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetOrdersReply(responseStatus=responseStatus)
 
@@ -202,8 +198,6 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def GetHistoryOrders(self, request, _):
-        MT5.initialize()
-        
         result = []
 
         if request.HasField("group"):
@@ -217,7 +211,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         elif request.HasField("position"):
             result = mt5.history_orders_get(position=request.position.value)
 
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetHistoryOrdersReply(responseStatus=responseStatus)
 
@@ -226,8 +220,6 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def GetHistoryDeals(self, request, _):
-        MT5.initialize()
-        
         result = []
 
         if request.HasField("group"):
@@ -241,7 +233,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         elif request.HasField("position"):
             result = mt5.history_deals_get(position=request.position.value)
 
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetHistoryDealsReply(responseStatus=responseStatus)
 
@@ -278,12 +270,10 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         return protos.GetHistoryDealsReply(deals=deals, responseStatus=responseStatus)
 
     def CheckOrder(self, request, _):
-        MT5.initialize()
-        
         orderRequest = self.__orderRequest(request)
         result = mt5.order_check(orderRequest)
 
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.CheckOrderReply(responseStatus=responseStatus)
 
@@ -300,14 +290,12 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
         )
 
     def SendOrder(self, request, _):
-        MT5.initialize()
-        
         orderRequest = self.__orderRequest(request)
         logger.info("SendOrder Request: %s", orderRequest)
         result = mt5.order_send(orderRequest)
         logger.info("SendOrder Result: %s", result)
 
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.SendOrderReply(responseStatus=responseStatus)
 

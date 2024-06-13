@@ -6,24 +6,24 @@ namespace Infrastructure.GrpcServerTerminal;
 
 public static class OrderManagementSystemWrapperExtensions
 {
-    public static void AddOrderManagementWrapper(this IServiceCollection services, Action<OrderManagementSystemWrapperOptions> configure)
+    public static void AddOrderManagementWrapper(this IServiceCollection services)
     {
-        services.AddOptions<OrderManagementSystemWrapperOptions>()
-            .Configure(configure)
-            .Validate(options =>
-                !string.IsNullOrWhiteSpace(options.Endpoint) &&
-                Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _));
+        using var serviceProvider = services.BuildServiceProvider();
 
-        services
-            .AddGrpcClient<OrderManagementSystem.OrderManagementSystemClient>(
-                OrderManagementSystemWrapper.ClientName,
-                (serviceProvider, configure) =>
-                {
-                    var options = serviceProvider.GetRequiredService<IOptions<OrderManagementSystemWrapperOptions>>();
-                    configure.Address = new Uri(options.Value.Endpoint!);
-                })
-            .ConfigureChannel((serviceProvider, configure) =>
-                configure.MaxReceiveMessageSize = int.MaxValue);
+        var grpcServerOptions = serviceProvider.GetRequiredService<IOptionsSnapshot<GrpcServerOptions>>();
+
+        foreach (var endpoint in grpcServerOptions.Value.OrderManagement ?? [])
+        {
+            services
+                .AddGrpcClient<OrderManagementSystem.OrderManagementSystemClient>(
+                    endpoint.Key,
+                    (serviceProvider, configure) =>
+                    {
+                        configure.Address = new Uri(endpoint.Value);
+                    })
+                .ConfigureChannel((serviceProvider, configure) =>
+                    configure.MaxReceiveMessageSize = int.MaxValue);
+        }
 
         services.AddSingleton<IOrderCreator, OrderCreator>();
         services.AddSingleton<IOrderManagementSystemWrapper, OrderManagementSystemWrapper>();

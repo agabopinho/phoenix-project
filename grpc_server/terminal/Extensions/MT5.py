@@ -40,13 +40,23 @@ class MT5:
         return rates
 
     @staticmethod
-    def response_status():
+    def check_conn():
         error = mt5.last_error()
 
         if error[0] == mt5.RES_S_OK:
             logger.debug("response status, error code = %s", error)
         else:
             logger.error("response status, error code = %s", error)
+
+        if (
+            error[0] == mt5.RES_E_INTERNAL_FAIL
+            or error[0] == mt5.RES_E_INTERNAL_FAIL_SEND
+            or error[0] == mt5.RES_E_INTERNAL_FAIL_RECEIVE
+            or error[0] == mt5.RES_E_INTERNAL_FAIL_INIT
+            or error[0] == mt5.RES_E_INTERNAL_FAIL_CONNECT
+            or error[0] == mt5.RES_E_INTERNAL_FAIL_TIMEOUT
+        ):
+            MT5.initialize()
 
         return contractsProtos.ResponseStatus(
             responseCode=int(error[0]),

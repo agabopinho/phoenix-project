@@ -7,6 +7,7 @@ using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NumSharp;
+using System.IO.Compression;
 
 namespace Application.Services;
 
@@ -15,7 +16,7 @@ public class MarketDataLoopService(
     IDateProvider dateProvider,
     State state,
     IOptionsMonitor<OperationSettings> operationSettings,
-    ILogger<ILoopService> logger) : ILoopService
+    ILogger<MarketDataLoopService> logger) : ILoopService
 {
     private const int AHEAD_SECONDS = 30;
 
@@ -51,28 +52,53 @@ public class MarketDataLoopService(
     {
         _previousBricksCount = _rangeCalculation.Bricks.Count;
 
-        var bytes = await GetNpzTicksStreamAsync(cancellationToken);
+        var bytesAsInt = await GetNpzTicksStreamAsync(cancellationToken);
 
-        var data = np.LoadMatrix_Npz(bytes.Select(it => (byte)it).ToArray());
+        if (bytesAsInt is null || !bytesAsInt.Any())
+        {
+            return;
+        }
+
+        var bytes = bytesAsInt.Select(it => (byte)it).ToArray();
+
+        CheckNewPrice(bytes);
+    }
+
+    private void CheckNewPrice(byte[] bytes)
+    {
+        using var bytesStream = new MemoryStream(bytes);
+
+        CheckNewPrice(bytesStream);
+    }
+
+    private void CheckNewPrice(Stream bytesStream)
+    {
+        using var zipArchive = new ZipArchive(bytesStream);
+
+        var data = new Dictionary<string, Array>();
+
+        foreach (var entry in zipArchive.Entries)
+        {
+            using var entryStream = entry.Open();
+            using var entryReader = new BinaryReader(entryStream);
+
+            var entryBytes = entryReader.ReadBytes((int)entry.Length);
+
+            data[entry.Name] = np.Load<Array>(entryBytes);
+        }
 
         var time = data["time_msc.npy"];
         var bid = data["bid.npy"];
         var ask = data["ask.npy"];
         var last = data["last.npy"];
-        var volume = data["volume.npy"];
+        var volume = data["volume_real.npy"];
         var flags = data["flags.npy"];
 
         var tempLastTrade = default(SimpleTrade);
 
         for (var i = 0; i < time.Length - 1; i++)
         {
-            var trade = SimpleTrade.Create(
-                time.GetValue(i)!,
-                bid.GetValue(i)!,
-                ask.GetValue(i)!,
-                last.GetValue(i)!,
-                volume.GetValue(i)!,
-                flags.GetValue(i)!);
+            var trade = SimpleTrade.Create(i, time, bid, ask, last, volume, flags);
 
             if (!IsNewTrade(trade))
             {
@@ -107,6 +133,7 @@ public class MarketDataLoopService(
             fromDate,
             toDate,
             CopyTicks.Trade,
+            ["time_msc", "last"],
             cancellationToken);
 
         state.CheckResponseStatus(ResponseType.GetTicks, ticksReply.ResponseStatus);

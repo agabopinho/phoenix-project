@@ -36,10 +36,8 @@ class MarketData(services.MarketDataServicer):
         )
 
     def GetSymbolTick(self, request, _):
-        MT5.initialize()
-
         tick = mt5.symbol_info_tick(request.symbol)
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetSymbolTickReply(responseStatus=responseStatus)
@@ -63,10 +61,8 @@ class MarketData(services.MarketDataServicer):
         )
 
     def StreamTicksRange(self, request, _):
-        MT5.initialize()
-
         data = self.__copyTicksRange(request)
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.TicksRangeReply(responseStatus=responseStatus)
@@ -102,10 +98,8 @@ class MarketData(services.MarketDataServicer):
             )
 
     def StreamTicksRangeBytes(self, request, _):
-        MT5.initialize()
-
         data = self.__copyTicksRange(request)
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.TicksRangeBytesReply(responseStatus=responseStatus)
@@ -113,14 +107,17 @@ class MarketData(services.MarketDataServicer):
         logger.debug("StreamTicksRangeBytes: %s", len(data))
 
         with io.BytesIO() as bytesIO:
-            np.savez(
+            np.savez_compressed(
                 bytesIO,
-                time_msc=data["time_msc"],
-                bid=data["bid"],
-                ask=data["ask"],
-                last=data["last"],
-                volume=data["volume"],
-                flags=data["flags"],
+                time_msc=data["time_msc"] if "time_msc" in request.returnFields else [],
+                bid=data["bid"] if "bid" in request.returnFields else [],
+                ask=data["ask"] if "ask" in request.returnFields else [],
+                last=data["last"] if "last" in request.returnFields else [],
+                volume=data["volume"] if "volume" in request.returnFields else [],
+                volume_real=(
+                    data["volume_real"] if "volume_real" in request.returnFields else []
+                ),
+                flags=data["flags"] if "flags" in request.returnFields else [],
             )
             bytesIO.flush()
             bytesIO.seek(0)
@@ -134,10 +131,8 @@ class MarketData(services.MarketDataServicer):
                 chunk = bytesIO.read(request.chunkSize)
 
     def GetTicksRangeBytes(self, request, _):
-        MT5.initialize()
-
         data = self.__copyTicksRange(request)
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.TicksRangeBytesReply(responseStatus=responseStatus)
@@ -145,14 +140,17 @@ class MarketData(services.MarketDataServicer):
         logger.debug("GetTicksRangeBytes: %s", len(data))
 
         with io.BytesIO() as bytesIO:
-            np.savez(
+            np.savez_compressed(
                 bytesIO,
-                time_msc=data["time_msc"],
-                bid=data["bid"],
-                ask=data["ask"],
-                last=data["last"],
-                volume=data["volume"],
-                flags=data["flags"],
+                time_msc=data["time_msc"] if "time_msc" in request.returnFields else [],
+                bid=data["bid"] if "bid" in request.returnFields else [],
+                ask=data["ask"] if "ask" in request.returnFields else [],
+                last=data["last"] if "last" in request.returnFields else [],
+                volume=data["volume"] if "volume" in request.returnFields else [],
+                volume_real=(
+                    data["volume_real"] if "volume_real" in request.returnFields else []
+                ),
+                flags=data["flags"] if "flags" in request.returnFields else [],
             )
             nbytes = bytesIO.tell()
             bytesIO.flush()
@@ -164,10 +162,8 @@ class MarketData(services.MarketDataServicer):
             )
 
     def StreamRatesRange(self, request, _):
-        MT5.initialize()
-
         data = self.__copyRatesRange(request)
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.RatesRangeReply(responseStatus=responseStatus)
@@ -195,8 +191,6 @@ class MarketData(services.MarketDataServicer):
             )
 
     def StreamRatesRangeFromTicks(self, request, _):
-        MT5.initialize()
-
         data = self.__copyTicksRange(
             protos.TicksRangeRequest(
                 symbol=request.symbol,
@@ -205,7 +199,7 @@ class MarketData(services.MarketDataServicer):
                 type=int(mt5.COPY_TICKS_TRADE),
             )
         )
-        responseStatus = MT5.response_status()
+        responseStatus = MT5.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.RatesRangeReply(responseStatus=responseStatus)

@@ -16,7 +16,25 @@ public class SimpleTrade(DateTime time, double bid, double ask, double last, dou
             (double)bid!,
             (double)ask!,
             (double)last!,
-            (ulong)volume!,
+            (double)volume!,
             (uint)flags);
+    }
+
+    public static SimpleTrade Create(int index, Array time, Array bid, Array ask, Array last, Array volume, Array flags)
+    {
+        var timeValue = index <= time.Length - 1 ? time.GetValue(index)! : DateTime.UnixEpoch;
+        var bidValue = index <= bid.Length - 1 ? bid.GetValue(index)! : 0D;
+        var askValue = index <= ask.Length - 1 ? ask.GetValue(index)! : 0D;
+        var lastValue = index <= last.Length - 1 ? last.GetValue(index)! : 0D;
+        var volumeValue = index <= volume.Length - 1 ? volume.GetValue(index)! : 0D;
+        var flagsValue = index <= flags.Length - 1 ? flags.GetValue(index)! : 0U;
+
+        return Create(
+            timeValue,
+            bidValue,
+            askValue,
+            lastValue,
+            volumeValue,
+            flagsValue);
     }
 }

@@ -11,6 +11,11 @@ public class MarketDataService(MarketDataLoopService marketDataLoop, ILogger<Mar
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Run(async () => await LoopAsync(stoppingToken), stoppingToken);
+    }
+
+    private async Task LoopAsync(CancellationToken stoppingToken)
+    {
         while (!stoppingToken.IsCancellationRequested)
         {
             try

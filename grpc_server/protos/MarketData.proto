@@ -12,7 +12,7 @@ package terminal;
 service MarketData {
   rpc GetSymbolTick (GetSymbolTickRequest) returns (GetSymbolTickReply) {}
   rpc StreamTicksRange (StreamTicksRangeRequest) returns (stream TicksRangeReply) {}
-  rpc StreamTicksRangeBytes (StreamTicksRangeRequest) returns (stream TicksRangeBytesReply) {}
+  rpc StreamTicksRangeBytes (StreamTicksRangeBytesRequest) returns (stream TicksRangeBytesReply) {}
   rpc GetTicksRangeBytes (GetTicksRangeBytesRequest) returns (TicksRangeBytesReply) {}
   rpc StreamRatesRange (StreamRatesRangeRequest) returns (stream RatesRangeReply) {}
   rpc StreamRatesRangeFromTicks (StreamRatesRangeFromTicksRequest) returns (stream RatesRangeReply) {}
@@ -40,6 +40,15 @@ message TicksRangeReply {
   ResponseStatus responseStatus = 2;
 }
 
+message StreamTicksRangeBytesRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  CopyTicks type = 4;
+  int32 chunkSize = 5;
+  repeated string returnFields = 6;
+}
+
 message TicksRangeBytesReply {
   repeated int32 bytes = 1;
   ResponseStatus responseStatus = 2;
@@ -50,6 +59,7 @@ message GetTicksRangeBytesRequest {
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
   CopyTicks type = 4;
+  repeated string returnFields = 5;
 }
 
 message StreamRatesRangeRequest {

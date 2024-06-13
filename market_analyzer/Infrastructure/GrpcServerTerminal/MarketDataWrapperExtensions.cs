@@ -6,24 +6,24 @@ namespace Infrastructure.GrpcServerTerminal;
 
 public static class MarketDataWrapperExtensions
 {
-    public static void AddMarketDataWrapper(this IServiceCollection services, Action<MarketDataWrapperOptions> configure)
+    public static void AddMarketDataWrapper(this IServiceCollection services)
     {
-        services.AddOptions<MarketDataWrapperOptions>()
-            .Configure(configure)
-            .Validate(options =>
-                !string.IsNullOrWhiteSpace(options.Endpoint) &&
-                Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _));
+        using var serviceProvider = services.BuildServiceProvider();
 
-        services
-            .AddGrpcClient<MarketData.MarketDataClient>(
-                MarketDataWrapper.ClientName,
-                (serviceProvider, configure) =>
-                {
-                    var options = serviceProvider.GetRequiredService<IOptions<MarketDataWrapperOptions>>();
-                    configure.Address = new Uri(options.Value.Endpoint!);
-                })
-            .ConfigureChannel((serviceProvider, configure) =>
-                configure.MaxReceiveMessageSize = int.MaxValue);
+        var grpcServerOptions = serviceProvider.GetRequiredService<IOptionsSnapshot<GrpcServerOptions>>();
+
+        foreach (var endpoint in grpcServerOptions.Value.MarketData ?? [])
+        {
+            services
+                .AddGrpcClient<MarketData.MarketDataClient>(
+                    endpoint.Key,
+                    (serviceProvider, configure) =>
+                    {
+                        configure.Address = new Uri(endpoint.Value);
+                    })
+                .ConfigureChannel((serviceProvider, configure) =>
+                    configure.MaxReceiveMessageSize = int.MaxValue);
+        }
 
         services.AddSingleton<IMarketDataWrapper, MarketDataWrapper>();
     }

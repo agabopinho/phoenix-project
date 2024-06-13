@@ -8,9 +8,12 @@ namespace Application.Models;
 
 public class State(IDateProvider dateProvider, ILogger<State> logger)
 {
-    public ConcurrentBag<ErrorOccurrence> LastErrors { get; } = [];
-    public IReadOnlyCollection<Brick> Bricks { get; set; } = Array.Empty<Brick>();
+    private ConcurrentBag<ErrorOccurrence> _lastErrors = [];
+
+    public IReadOnlyCollection<Brick> Bricks { get; set; } = [];
     public DateTime? LastTradeTime { get; set; }
+
+    public IEnumerable<ErrorOccurrence> GetErrors() => _lastErrors;
 
     public void CheckResponseStatus(ResponseType type, ResponseStatus responseStatus)
     {
@@ -19,10 +22,11 @@ public class State(IDateProvider dateProvider, ILogger<State> logger)
             return;
         }
 
-        LastErrors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
+        _lastErrors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
 
         logger.LogError("Grpc server error {@data}", new
         {
+            ResponseType = type,
             responseStatus.ResponseCode,
             responseStatus.ResponseMessage
         });

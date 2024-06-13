@@ -23,10 +23,11 @@ builder.UseSerilog((context, services, configuration) => configuration
 
 builder.ConfigureServices((context, services) =>
 {
-    services.AddMarketDataWrapper(configure =>
-        context.Configuration.GetSection("GrpcServer:MarketData").Bind(configure));
-    services.AddOrderManagementWrapper(configure =>
-        context.Configuration.GetSection("GrpcServer:OrderManagement").Bind(configure));
+    services.AddGrpcServerOptions(configure =>
+        context.Configuration.GetSection("GrpcServer").Bind(configure));
+
+    services.AddMarketDataWrapper();
+    services.AddOrderManagementWrapper();
 
     services.AddOperationSettings(configure
         => context.Configuration.GetSection("Operation").Bind(configure));

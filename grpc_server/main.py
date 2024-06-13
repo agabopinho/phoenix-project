@@ -1,5 +1,3 @@
-"""The Python implementation of the GRPC helloworld.Greeter server."""
-
 import asyncio
 import logging
 import sys
@@ -16,7 +14,6 @@ from terminal.OrderManagementSystem import OrderManagementSystem
 async def serve():
     logger = logging.getLogger("app")
 
-    address = "[::]:5051"
     server = grpc.aio.server()
 
     services.add_MarketDataServicer_to_server(MarketData(), server)
@@ -24,11 +21,12 @@ async def serve():
         OrderManagementSystem(), server
     )
 
-    server.add_insecure_port(address)
+    for port in sys.argv[1:]:
+        address = f"[::]:{port}"
+        server.add_insecure_port(address)
+        logger.info("listening on %s", address)
 
     await server.start()
-
-    logger.info("listening on %s", address)
 
     await server.wait_for_termination()
 
