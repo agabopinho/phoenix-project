@@ -11,10 +11,11 @@ package terminal;
 
 service MarketData {
   rpc GetSymbolTick (GetSymbolTickRequest) returns (GetSymbolTickReply) {}
-  rpc StreamTicksRange (StreamTicksRangeRequest) returns (stream StreamTicksRangeReply) {}
-  rpc StreamTicksRangeBytes (StreamTicksRangeRequest) returns (stream StreamTicksRangeBytesReply) {}
-  rpc StreamRatesRange (StreamRatesRangeRequest) returns (stream StreamRatesRangeReply) {}
-  rpc StreamRatesFromTicksRange (StreamRatesFromTicksRangeRequest) returns (stream StreamRatesRangeReply) {}
+  rpc StreamTicksRange (StreamTicksRangeRequest) returns (stream TicksRangeReply) {}
+  rpc StreamTicksRangeBytes (StreamTicksRangeRequest) returns (stream TicksRangeBytesReply) {}
+  rpc GetTicksRangeBytes (GetTicksRangeBytesRequest) returns (TicksRangeBytesReply) {}
+  rpc StreamRatesRange (StreamRatesRangeRequest) returns (stream RatesRangeReply) {}
+  rpc StreamRatesRangeFromTicks (StreamRatesRangeFromTicksRequest) returns (stream RatesRangeReply) {}
 }
 
 message GetSymbolTickRequest {
@@ -34,14 +35,21 @@ message StreamTicksRangeRequest {
   int32 chunkSize = 5;
 }
 
-message StreamTicksRangeReply {
+message TicksRangeReply {
   repeated Trade trades = 1;
   ResponseStatus responseStatus = 2;
 }
 
-message StreamTicksRangeBytesReply {
+message TicksRangeBytesReply {
   repeated int32 bytes = 1;
   ResponseStatus responseStatus = 2;
+}
+
+message GetTicksRangeBytesRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  CopyTicks type = 4;
 }
 
 message StreamRatesRangeRequest {
@@ -52,12 +60,12 @@ message StreamRatesRangeRequest {
   int32 chunkSize = 5;
 }
 
-message StreamRatesRangeReply {
+message RatesRangeReply {
   repeated Rate rates = 1;
   ResponseStatus responseStatus = 2;
 }
 
-message StreamRatesFromTicksRangeRequest {
+message StreamRatesRangeFromTicksRequest {
   string symbol = 1;
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;

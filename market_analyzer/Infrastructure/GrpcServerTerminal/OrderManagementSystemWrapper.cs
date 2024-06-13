@@ -41,10 +41,11 @@ public interface IOrderManagementSystemWrapper
         CancellationToken cancellationToken);
 
     Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken);
+
     Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken);
 }
 
-public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) : IOrderManagementSystemWrapper
+public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOrderManagementSystemWrapper
 {
     public static readonly string ClientName = nameof(OrderManagementSystemWrapper);
 
@@ -54,16 +55,22 @@ public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) :
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetPositionsRequest();
 
         if (!string.IsNullOrWhiteSpace(symbol))
+        {
             request.Symbol = symbol.ToUpper().Trim();
+        }
         else if (!string.IsNullOrWhiteSpace(group))
+        {
             request.Group = group;
+        }
         else if (ticket is not null)
+        {
             request.Ticket = ticket;
+        }
 
         return await client.GetPositionsAsync(request, cancellationToken: cancellationToken);
     }
@@ -74,16 +81,22 @@ public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) :
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetOrdersRequest();
 
         if (!string.IsNullOrWhiteSpace(symbol))
+        {
             request.Symbol = symbol.ToUpper().Trim();
+        }
         else if (!string.IsNullOrWhiteSpace(group))
+        {
             request.Group = group;
+        }
         else if (ticket is not null)
+        {
             request.Ticket = ticket;
+        }
 
         return await client.GetOrdersAsync(request, cancellationToken: cancellationToken);
     }
@@ -94,7 +107,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) :
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryOrdersRequest
         {
@@ -114,16 +127,22 @@ public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) :
         long? position,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryOrdersRequest();
 
         if (ticket is not null)
+        {
             request.Ticket = ticket;
+        }
         else if (position is not null)
+        {
             request.Position = position;
+        }
         else
+        {
             throw new InvalidOperationException();
+        }
 
         return await client.GetHistoryOrdersAsync(request, cancellationToken: cancellationToken);
     }
@@ -134,7 +153,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) :
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryDealsRequest
         {
@@ -154,7 +173,7 @@ public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) :
         long? position,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
 
         var request = new GetHistoryDealsRequest();
 
@@ -176,13 +195,13 @@ public class OrderManagementSystemWrapper(GrpcClientFactory grpcClientFactory) :
 
     public async Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
         return await client.CheckOrderAsync(request, cancellationToken: cancellationToken);
     }
 
     public async Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
+        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName);
         return await client.SendOrderAsync(request, cancellationToken: cancellationToken);
     }
 }

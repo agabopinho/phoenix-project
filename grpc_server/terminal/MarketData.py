@@ -62,14 +62,14 @@ class MarketData(services.MarketDataServicer):
             responseStatus=responseStatus,
         )
 
-    def StreamTicksRange(self, request, context):
+    def StreamTicksRange(self, request, _):
         MT5.initialize()
 
         data = self.__copyTicksRange(request)
         responseStatus = MT5.response_status()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.StreamTicksRangeReply(responseStatus=responseStatus)
+            yield protos.TicksRangeReply(responseStatus=responseStatus)
 
         logger.debug("StreamTicksRange: %s", len(data))
 
@@ -96,8 +96,9 @@ class MarketData(services.MarketDataServicer):
         for i in range(0, len(trades), request.chunkSize):
             chunk = trades[i : i + request.chunkSize]
             logger.debug("reply %s trades", len(chunk))
-            yield protos.StreamTicksRangeReply(
-                trades=chunk, responseStatus=responseStatus
+            yield protos.TicksRangeReply(
+                trades=chunk,
+                responseStatus=responseStatus,
             )
 
     def StreamTicksRangeBytes(self, request, _):
@@ -107,10 +108,10 @@ class MarketData(services.MarketDataServicer):
         responseStatus = MT5.response_status()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.StreamTicksRangeBytesReply(responseStatus=responseStatus)
+            yield protos.TicksRangeBytesReply(responseStatus=responseStatus)
 
         logger.debug("StreamTicksRangeBytes: %s", len(data))
-        
+
         with io.BytesIO() as bytesIO:
             np.savez(
                 bytesIO,
@@ -126,10 +127,41 @@ class MarketData(services.MarketDataServicer):
             chunk = bytesIO.read(request.chunkSize)
             while len(chunk) > 0:
                 logger.debug("reply %s bytes", len(chunk))
-                yield protos.StreamTicksRangeBytesReply(
-                    bytes=chunk, responseStatus=responseStatus
+                yield protos.TicksRangeBytesReply(
+                    bytes=chunk,
+                    responseStatus=responseStatus,
                 )
                 chunk = bytesIO.read(request.chunkSize)
+
+    def GetTicksRangeBytes(self, request, _):
+        MT5.initialize()
+
+        data = self.__copyTicksRange(request)
+        responseStatus = MT5.response_status()
+
+        if responseStatus.responseCode != contractsProtos.RES_S_OK:
+            return protos.TicksRangeBytesReply(responseStatus=responseStatus)
+
+        logger.debug("GetTicksRangeBytes: %s", len(data))
+
+        with io.BytesIO() as bytesIO:
+            np.savez(
+                bytesIO,
+                time_msc=data["time_msc"],
+                bid=data["bid"],
+                ask=data["ask"],
+                last=data["last"],
+                volume=data["volume"],
+                flags=data["flags"],
+            )
+            nbytes = bytesIO.tell()
+            bytesIO.flush()
+            bytesIO.seek(0)
+            logger.debug("reply %s bytes", nbytes)
+            return protos.TicksRangeBytesReply(
+                bytes=bytesIO.read(),
+                responseStatus=responseStatus,
+            )
 
     def StreamRatesRange(self, request, _):
         MT5.initialize()
@@ -138,7 +170,7 @@ class MarketData(services.MarketDataServicer):
         responseStatus = MT5.response_status()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
+            yield protos.RatesRangeReply(responseStatus=responseStatus)
 
         rates = [
             protos.Rate(
@@ -157,15 +189,16 @@ class MarketData(services.MarketDataServicer):
         del data
 
         for i in range(0, len(data), request.chunkSize):
-            yield protos.StreamRatesRangeReply(
-                rates=rates[i : i + request.chunkSize], responseStatus=responseStatus
+            yield protos.RatesRangeReply(
+                rates=rates[i : i + request.chunkSize],
+                responseStatus=responseStatus,
             )
 
-    def StreamRatesFromTicksRange(self, request, _):
+    def StreamRatesRangeFromTicks(self, request, _):
         MT5.initialize()
 
         data = self.__copyTicksRange(
-            protos.StreamTicksRangeRequest(
+            protos.TicksRangeRequest(
                 symbol=request.symbol,
                 fromDate=request.fromDate,
                 toDate=request.toDate,
@@ -175,7 +208,7 @@ class MarketData(services.MarketDataServicer):
         responseStatus = MT5.response_status()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.StreamRatesRangeReply(responseStatus=responseStatus)
+            yield protos.RatesRangeReply(responseStatus=responseStatus)
 
         ohlc = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
 
@@ -198,6 +231,7 @@ class MarketData(services.MarketDataServicer):
         del ohlc
 
         for i in range(0, len(rates), request.chunkSize):
-            yield protos.StreamRatesRangeReply(
-                rates=rates[i : i + request.chunkSize], responseStatus=responseStatus
+            yield protos.RatesRangeReply(
+                rates=rates[i : i + request.chunkSize],
+                responseStatus=responseStatus,
             )

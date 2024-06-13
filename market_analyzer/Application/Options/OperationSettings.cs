@@ -6,16 +6,10 @@ public class OperationSettings
     public string? Symbol { get; set; }
     public double? BrickSize { get; set; }
     public OrderSettings Order { get; set; } = new();
-    public StreamingSettings StreamingData { get; set; } = new();
 }
 
 public class OrderSettings
 {
     public int Deviation { get; set; }
     public long Magic { get; set; }
-}
-
-public class StreamingSettings
-{
-    public int ChunkSize { get; set; }
 }

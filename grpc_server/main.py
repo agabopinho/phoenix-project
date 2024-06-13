@@ -45,5 +45,4 @@ if __name__ == "__main__":
 
     MT5.initialize()
 
-    logging.basicConfig(level=logging.INFO)
     asyncio.get_event_loop().run_until_complete(serve())

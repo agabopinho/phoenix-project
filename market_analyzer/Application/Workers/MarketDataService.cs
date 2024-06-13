@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Application.Workers;
 
-public class WorkerService(ILoopService loopService, ILogger<WorkerService> logger) : BackgroundService
+public class MarketDataService(MarketDataLoopService marketDataLoop, ILogger<MarketDataService> logger) : BackgroundService
 {
     private readonly Stopwatch _stopwatch = new();
 
@@ -16,7 +16,7 @@ public class WorkerService(ILoopService loopService, ILogger<WorkerService> logg
             try
             {
                 _stopwatch.Restart();
-                await loopService.RunAsync(stoppingToken);
+                await marketDataLoop.RunAsync(stoppingToken);
                 logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
             }
             catch (Exception e)

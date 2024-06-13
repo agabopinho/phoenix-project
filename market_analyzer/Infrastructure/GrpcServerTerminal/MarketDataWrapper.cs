@@ -8,7 +8,7 @@ namespace Infrastructure.GrpcServerTerminal;
 
 public interface IMarketDataWrapper
 {
-    AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesRange(
+    AsyncServerStreamingCall<RatesRangeReply> StreamRatesRangeAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -16,7 +16,7 @@ public interface IMarketDataWrapper
         int chunkSize,
         CancellationToken cancellationToken);
 
-    AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesFromTicksRange(
+    AsyncServerStreamingCall<RatesRangeReply> StreamRatesRangeFromTicksAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -24,7 +24,7 @@ public interface IMarketDataWrapper
         int chunkSize,
         CancellationToken cancellationToken);
 
-    AsyncServerStreamingCall<StreamTicksRangeBytesReply> StreamTicksRangeBytes(
+    AsyncServerStreamingCall<TicksRangeBytesReply> StreamTicksRangeBytesAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -32,7 +32,14 @@ public interface IMarketDataWrapper
         int chunkSize,
         CancellationToken cancellationToken);
 
-    AsyncServerStreamingCall<StreamTicksRangeReply> StreamTicksRange(
+    Task<TicksRangeBytesReply> GetTicksRangeBytesAsync(
+        string symbol,
+        DateTime utcFromDate,
+        DateTime utcToDate,
+        CopyTicks type,
+        CancellationToken cancellationToken);
+
+    AsyncServerStreamingCall<TicksRangeReply> StreamTicksRangeAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -43,11 +50,11 @@ public interface IMarketDataWrapper
     Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken);
 }
 
-public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDataWrapper
+public class MarketDataWrapper(GrpcClientFactory clientFactory) : IMarketDataWrapper
 {
     public static readonly string ClientName = nameof(MarketDataWrapper);
 
-    public AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesRange(
+    public AsyncServerStreamingCall<RatesRangeReply> StreamRatesRangeAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -55,7 +62,7 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
         int chunkSize,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+        var client = clientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
         var request = new StreamRatesRangeRequest
         {
@@ -69,7 +76,7 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
         return client.StreamRatesRange(request, cancellationToken: cancellationToken);
     }
 
-    public AsyncServerStreamingCall<StreamRatesRangeReply> StreamRatesFromTicksRange(
+    public AsyncServerStreamingCall<RatesRangeReply> StreamRatesRangeFromTicksAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -77,9 +84,9 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
         int chunkSize,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+        var client = clientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
-        var request = new StreamRatesFromTicksRangeRequest
+        var request = new StreamRatesRangeFromTicksRequest
         {
             Symbol = symbol,
             FromDate = Timestamp.FromDateTime(utcFromDate),
@@ -88,10 +95,10 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
             ChunkSize = chunkSize
         };
 
-        return client.StreamRatesFromTicksRange(request, cancellationToken: cancellationToken);
+        return client.StreamRatesRangeFromTicks(request, cancellationToken: cancellationToken);
     }
 
-    public AsyncServerStreamingCall<StreamTicksRangeReply> StreamTicksRange(
+    public AsyncServerStreamingCall<TicksRangeReply> StreamTicksRangeAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -99,7 +106,7 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
         int chunkSize,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+        var client = clientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
         var request = new StreamTicksRangeRequest
         {
@@ -113,7 +120,7 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
         return client.StreamTicksRange(request, cancellationToken: cancellationToken);
     }
 
-    public AsyncServerStreamingCall<StreamTicksRangeBytesReply> StreamTicksRangeBytes(
+    public AsyncServerStreamingCall<TicksRangeBytesReply> StreamTicksRangeBytesAsync(
         string symbol,
         DateTime utcFromDate,
         DateTime utcToDate,
@@ -121,7 +128,7 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
         int chunkSize,
         CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+        var client = clientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
         var request = new StreamTicksRangeRequest
         {
@@ -135,9 +142,29 @@ public class MarketDataWrapper(GrpcClientFactory grpcClientFactory) : IMarketDat
         return client.StreamTicksRangeBytes(request, cancellationToken: cancellationToken);
     }
 
+    public async Task<TicksRangeBytesReply> GetTicksRangeBytesAsync(
+        string symbol,
+        DateTime utcFromDate,
+        DateTime utcToDate,
+        CopyTicks type,
+        CancellationToken cancellationToken)
+    {
+        var client = clientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+
+        var request = new GetTicksRangeBytesRequest
+        {
+            Symbol = symbol,
+            FromDate = Timestamp.FromDateTime(utcFromDate),
+            ToDate = Timestamp.FromDateTime(utcToDate),
+            Type = type,
+        };
+
+        return await client.GetTicksRangeBytesAsync(request, cancellationToken: cancellationToken);
+    }
+
     public async Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
     {
-        var client = grpcClientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
+        var client = clientFactory.CreateClient<MarketData.MarketDataClient>(ClientName);
 
         var request = new GetSymbolTickRequest
         {
