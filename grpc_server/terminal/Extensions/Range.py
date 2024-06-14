@@ -2,12 +2,14 @@ import math
 
 
 class Range:
-    
+
     def __init__(self, brick_size, times, prices, volume):
         self.brick_size = brick_size
         self.bricks = []
-        for i, d in enumerate(prices):
+        [
             self.check_new_price(times[i], float(d), volume[i])
+            for i, d in enumerate(prices)
+        ]
 
     def check_new_price(self, time, price, volume, brick_size=None):
         if brick_size is not None:
@@ -28,17 +30,17 @@ class Range:
             return
 
         last = self.bricks[-1]
-        
+
         delta = abs(price - last["open"])
         bricks_count = math.floor(delta / self.brick_size)
-        
-        if bricks_count == 0: 
+
+        if bricks_count == 0:
             last["close"] = price
             last["high"] = max(last["open"], last["high"], last["low"], last["close"])
             last["low"] = min(last["open"], last["high"], last["low"], last["close"])
             last["ticks_count"] += 1
             last["volume"] += volume
-   
+
         if last["type"] in ["up", "last"]:
             if price > last["open"]:
                 delta = price - last["open"]
@@ -80,7 +82,7 @@ class Range:
 
         for _ in range(1, count):
             last = self.bricks[-1]
-            
+
             if type == "up":
                 item = {
                     "time": time,
@@ -106,8 +108,8 @@ class Range:
                 }
                 self.bricks.append(item)
 
-        last = self.bricks[-1] 
-        
+        last = self.bricks[-1]
+
         item = {
             "time": time,
             "type": "last",
