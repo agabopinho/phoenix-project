@@ -4,9 +4,9 @@ namespace Application.Options;
 
 public static class OperationSettingsExtensions
 {
-    public static void AddOperationSettings(this IServiceCollection services, Action<OperationSettings> configure)
+    public static void AddOperationSettings(this IServiceCollection services, Action<OperationOptions> configure)
     {
-        services.AddOptions<OperationSettings>()
+        services.AddOptions<OperationOptions>()
             .Configure(configure);
     }
 }

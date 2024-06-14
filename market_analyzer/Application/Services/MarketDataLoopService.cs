@@ -15,7 +15,7 @@ public class MarketDataLoopService(
     IMarketDataWrapper marketDataWrapper,
     IDate dateProvider,
     State state,
-    IOptionsMonitor<OperationSettings> operationSettings,
+    IOptionsMonitor<OperationOptions> operationSettings,
     ILogger<MarketDataLoopService> logger) : ILoopService
 {
     private const int AHEAD_SECONDS = 30;
@@ -30,6 +30,16 @@ public class MarketDataLoopService(
     private void PreExecution()
     {
         _currentTime = dateProvider.LocalDateSpecifiedUtcKind();
+    }
+
+    public Task<bool> CanRunAsync(CancellationToken stoppingToken)
+    {
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> StoppedAsync(CancellationToken stoppingToken)
+    {
+        return Task.FromResult(false);
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)

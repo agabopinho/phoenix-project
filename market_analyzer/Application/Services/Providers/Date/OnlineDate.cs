@@ -3,9 +3,9 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Services.Providers.Date;
 
-public class OnlineDate(IOptions<OperationSettings> operationSettings) : IDate
+public class OnlineDate(IOptions<OperationOptions> operationSettings) : IDate
 {
-    private readonly IOptions<OperationSettings> _operationSettings = operationSettings;
+    private readonly IOptions<OperationOptions> _operationSettings = operationSettings;
 
     public TimeZoneInfo TimeZone => TimeZoneInfo.FindSystemTimeZoneById(_operationSettings.Value.TimeZoneId!);
 

@@ -15,6 +15,7 @@ public class State(IDate dateProvider, ILogger<State> logger)
     private Position? _position;
     private IReadOnlyCollection<Order> _orders = [];
     private Tick? _lasTick;
+    private SanityTestStatus _sanityTestStatus = SanityTestStatus.WaitExecution;
 
     public IReadOnlyCollection<Brick> Bricks => _bricks;
     public DateTime? BricksUpdated { get; private set; }
@@ -27,6 +28,9 @@ public class State(IDate dateProvider, ILogger<State> logger)
     public DateTime? LastTradeUpdated { get; private set; }
     public IReadOnlyCollection<ErrorOccurrence> LastErrors => _lastErrors;
     public bool WarnAuction => LastTick?.Bid > LastTick?.Ask;
+    public bool OpenMarket => LastTick is not null && LastTick.Ask - LastTick.Bid > 0;
+    public bool Ready => !WarnAuction && OpenMarket;
+    public SanityTestStatus SanityTestStatus => _sanityTestStatus;
 
     public void SetBricks(IReadOnlyCollection<Brick> bricks)
     {
@@ -57,6 +61,11 @@ public class State(IDate dateProvider, ILogger<State> logger)
         LastTradeUpdated = DateTime.Now;
     }
 
+    public void SetSanityTestStatus(SanityTestStatus sanityTestStatus)
+    {
+        _sanityTestStatus = sanityTestStatus;
+    }
+
     public void CheckResponseStatus(ResponseType type, ResponseStatus responseStatus)
     {
         if (responseStatus.ResponseCode == Res.SOk)
@@ -73,4 +82,12 @@ public class State(IDate dateProvider, ILogger<State> logger)
             responseStatus.ResponseMessage
         });
     }
+}
+
+public enum SanityTestStatus
+{
+    WaitExecution,
+    Passed,
+    Skipped,
+    Error
 }

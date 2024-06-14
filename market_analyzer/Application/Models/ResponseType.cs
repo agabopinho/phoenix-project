@@ -4,5 +4,6 @@ public enum ResponseType
 {
     GetPosition,
     GetOrder,
-    GetTicks
+    GetTicks,
+    SendOrder
 }

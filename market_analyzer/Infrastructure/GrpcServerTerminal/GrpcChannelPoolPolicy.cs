@@ -7,7 +7,7 @@ public class GrpcChannelPoolPolicy : PooledObjectPolicy<GrpcChannel>
 {
     public override GrpcChannel Create()
     {
-        throw new InvalidOperationException("No grpc port available.");
+        return null!;
     }
 
     public override bool Return(GrpcChannel obj)

@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Net.Client;
 using Grpc.Terminal;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 
 namespace Infrastructure.GrpcServerTerminal;
@@ -46,8 +47,10 @@ public interface IOrderManagementSystemWrapper
     Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken);
 }
 
-public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IOrderManagementSystemWrapper
+public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPool, ILogger<OrderManagementSystemWrapper> logger) : IOrderManagementSystemWrapper
 {
+    private GrpcChannel? _lastChannel;
+
     public async Task<GetPositionsReply> GetPositionsAsync(
         string? symbol,
         string? group,
@@ -77,7 +80,10 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -110,7 +116,10 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -138,7 +147,10 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -170,7 +182,10 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -198,7 +213,10 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -230,7 +248,10 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -244,7 +265,10 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -258,13 +282,30 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
-    private (OrderManagementSystem.OrderManagementSystemClient client, GrpcChannel channel) CreateClient()
+    private (OrderManagementSystem.OrderManagementSystemClient client, GrpcChannel? channel) CreateClient()
     {
         var channel = grpcChannelPool.Get();
+
+        if (channel is null && _lastChannel is not null)
+        {
+            logger.LogWarning("Reusing last grpc channel.");
+
+            return (new OrderManagementSystem.OrderManagementSystemClient(_lastChannel), null);
+        }
+
+        if (channel is null)
+        {
+            throw new InvalidOperationException("Error in channel configuration.");
+        }
+
+        Interlocked.Exchange(ref _lastChannel, channel);
 
         return (new OrderManagementSystem.OrderManagementSystemClient(channel), channel);
     }

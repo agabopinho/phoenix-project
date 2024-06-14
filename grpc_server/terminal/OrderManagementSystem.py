@@ -75,7 +75,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
             orderRequest["magic"] = request.magic.value
 
         if request.HasField("order"):
-            orderRequest["order"] = int(request.order)
+            orderRequest["order"] = int(request.order.value)
 
         if request.HasField("symbol"):
             orderRequest["symbol"] = request.symbol.value
@@ -271,6 +271,7 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
 
     def CheckOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
+        logger.info(orderRequest)
         result = mt5.order_check(orderRequest)
 
         responseStatus = MT5.check_conn()
@@ -291,9 +292,9 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
 
     def SendOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
-        logger.info("SendOrder Request: %s", orderRequest)
+        logger.debug("SendOrder Request: %s", orderRequest)
         result = mt5.order_send(orderRequest)
-        logger.info("SendOrder Result: %s", result)
+        logger.debug("SendOrder Result: %s", result)
 
         responseStatus = MT5.check_conn()
         if responseStatus.responseCode != contractsProtos.RES_S_OK:

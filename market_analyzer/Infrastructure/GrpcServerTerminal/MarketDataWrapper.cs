@@ -3,6 +3,7 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 
 namespace Infrastructure.GrpcServerTerminal;
@@ -53,8 +54,10 @@ public interface IMarketDataWrapper
     Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken);
 }
 
-public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarketDataWrapper
+public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool, ILogger<MarketDataWrapper> logger) : IMarketDataWrapper
 {
+    private GrpcChannel? _lastChannel;
+
     public AsyncServerStreamingCall<RatesRangeReply> StreamRatesRangeAsync(
         string symbol,
         DateTime utcFromDate,
@@ -80,7 +83,10 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -109,7 +115,10 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -138,7 +147,10 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -173,7 +185,10 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -206,7 +221,10 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
@@ -225,13 +243,30 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         }
         finally
         {
-            grpcChannelPool.Return(channel);
+            if (channel is not null)
+            {
+                grpcChannelPool.Return(channel);
+            }
         }
     }
 
-    private (MarketData.MarketDataClient client, GrpcChannel channel) CreateClient()
+    private (MarketData.MarketDataClient client, GrpcChannel? channel) CreateClient()
     {
         var channel = grpcChannelPool.Get();
+
+        if (channel is null && _lastChannel is not null)
+        {
+            logger.LogWarning("Reusing last grpc channel.");
+
+            return (new MarketData.MarketDataClient(_lastChannel), null);
+        }
+
+        if (channel is null)
+        {
+            throw new InvalidOperationException("Error in channel configuration.");
+        }
+
+        Interlocked.Exchange(ref _lastChannel, channel);
 
         return (new MarketData.MarketDataClient(channel), channel);
     }

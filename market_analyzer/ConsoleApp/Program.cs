@@ -1,6 +1,7 @@
 ﻿using Application.Models;
 using Application.Options;
 using Application.Services;
+using Application.Services.Providers;
 using Application.Services.Providers.Date;
 using Application.Workers;
 using Infrastructure.GrpcServerTerminal;
@@ -36,12 +37,14 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IDate, OnlineDate>();
 
     services.AddSingleton<State>();
+    services.AddSingleton<OrderWrapper>();
 
     services.AddSingleton<ILoopService, PositionLoopService>();
     services.AddSingleton<ILoopService, OrdersLoopService>();
     services.AddSingleton<ILoopService, LastTickLoopService>();
     services.AddSingleton<ILoopService, MarketDataLoopService>();
     services.AddSingleton<ILoopService, StrategyLoopService>();
+    services.AddSingleton<ILoopService, SanityTestLoopService>();
 
     services.AddHostedService<LoopBackgroundService>();
 });

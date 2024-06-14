@@ -1,3 +1,3 @@
 echo off
 cls
-python multiserver.py 5051+9
+python multiserver.py 5051+19

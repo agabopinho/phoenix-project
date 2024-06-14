@@ -89,7 +89,7 @@ message OrderRequest {
    google.protobuf.DoubleValue stopLimit = 7;   // A price a pending Limit order is set at when the price reaches the 'price' value (this condition is mandatory). The pending order is not passed to the trading system until that moment
    google.protobuf.DoubleValue stopLoss = 8;    // A price a Stop Loss order is activated at when the price moves in an unfavorable direction
    google.protobuf.DoubleValue takeProfit = 9;  // A price a Take Profit order is activated at when the price moves in a favorable direction
-   google.protobuf.Int32Value deviation = 10;        // Maximum acceptable deviation from the requested price, specified in points
+   google.protobuf.Int32Value deviation = 10;   // Maximum acceptable deviation from the requested price, specified in points
    optional OrderType type = 11;                // Order type. The value can be one of the values of the ORDER_TYPE enumeration
    optional OrderFilling typeFilling = 12;      // Order filling type. The value can be one of the ORDER_TYPE_FILLING values
    optional OrderTime typeTime = 13;            // Order type by expiration. The value can be one of the ORDER_TYPE_TIME values
