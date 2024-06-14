@@ -2,6 +2,5 @@
 
 public class GrpcServerOptions
 {
-    public Dictionary<string, string>? MarketData { get; set; }
-    public Dictionary<string, string>? OrderManagement { get; set; }
+    public IEnumerable<string>? Hosts { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Net.ClientFactory;
+using Grpc.Net.Client;
 using Grpc.Terminal;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Infrastructure.GrpcServerTerminal;
 
@@ -45,7 +46,7 @@ public interface IOrderManagementSystemWrapper
     Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken);
 }
 
-public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOrderManagementSystemWrapper
+public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IOrderManagementSystemWrapper
 {
     public async Task<GetPositionsReply> GetPositionsAsync(
         string? symbol,
@@ -53,24 +54,31 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetPositionsAsync)));
+        var (client, channel) = CreateClient();
 
-        var request = new GetPositionsRequest();
+        try
+        {
+            var request = new GetPositionsRequest();
 
-        if (!string.IsNullOrWhiteSpace(symbol))
-        {
-            request.Symbol = symbol.ToUpper().Trim();
-        }
-        else if (!string.IsNullOrWhiteSpace(group))
-        {
-            request.Group = group;
-        }
-        else if (ticket is not null)
-        {
-            request.Ticket = ticket;
-        }
+            if (!string.IsNullOrWhiteSpace(symbol))
+            {
+                request.Symbol = symbol.ToUpper().Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(group))
+            {
+                request.Group = group;
+            }
+            else if (ticket is not null)
+            {
+                request.Ticket = ticket;
+            }
 
-        return await client.GetPositionsAsync(request, cancellationToken: cancellationToken);
+            return await client.GetPositionsAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
     public async Task<GetOrdersReply> GetOrdersAsync(
@@ -79,24 +87,31 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetOrdersAsync)));
+        var (client, channel) = CreateClient();
 
-        var request = new GetOrdersRequest();
+        try
+        {
+            var request = new GetOrdersRequest();
 
-        if (!string.IsNullOrWhiteSpace(symbol))
-        {
-            request.Symbol = symbol.ToUpper().Trim();
-        }
-        else if (!string.IsNullOrWhiteSpace(group))
-        {
-            request.Group = group;
-        }
-        else if (ticket is not null)
-        {
-            request.Ticket = ticket;
-        }
+            if (!string.IsNullOrWhiteSpace(symbol))
+            {
+                request.Symbol = symbol.ToUpper().Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(group))
+            {
+                request.Group = group;
+            }
+            else if (ticket is not null)
+            {
+                request.Ticket = ticket;
+            }
 
-        return await client.GetOrdersAsync(request, cancellationToken: cancellationToken);
+            return await client.GetOrdersAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
     public async Task<GetHistoryOrdersReply> GetHistoryOrdersAsync(
@@ -105,19 +120,26 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryOrdersAsync), "Group"));
+        var (client, channel) = CreateClient();
 
-        var request = new GetHistoryOrdersRequest
+        try
         {
-            Group = new GetHistoryOrdersRequest.Types.Group
+            var request = new GetHistoryOrdersRequest
             {
-                FromDate = Timestamp.FromDateTime(utcFromDate),
-                ToDate = Timestamp.FromDateTime(utcToDate),
-                GroupValue = group,
-            }
-        };
+                Group = new GetHistoryOrdersRequest.Types.Group
+                {
+                    FromDate = Timestamp.FromDateTime(utcFromDate),
+                    ToDate = Timestamp.FromDateTime(utcToDate),
+                    GroupValue = group,
+                }
+            };
 
-        return await client.GetHistoryOrdersAsync(request, cancellationToken: cancellationToken);
+            return await client.GetHistoryOrdersAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
     public async Task<GetHistoryOrdersReply> GetHistoryOrdersAsync(
@@ -125,24 +147,31 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         long? position,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryOrdersAsync)));
+        var (client, channel) = CreateClient();
 
-        var request = new GetHistoryOrdersRequest();
+        try
+        {
+            var request = new GetHistoryOrdersRequest();
 
-        if (ticket is not null)
-        {
-            request.Ticket = ticket;
-        }
-        else if (position is not null)
-        {
-            request.Position = position;
-        }
-        else
-        {
-            throw new InvalidOperationException();
-        }
+            if (ticket is not null)
+            {
+                request.Ticket = ticket;
+            }
+            else if (position is not null)
+            {
+                request.Position = position;
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
 
-        return await client.GetHistoryOrdersAsync(request, cancellationToken: cancellationToken);
+            return await client.GetHistoryOrdersAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
     public async Task<GetHistoryDealsReply> GetHistoryDealsAsync(
@@ -151,19 +180,26 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryDealsAsync), "Group"));
+        var (client, channel) = CreateClient();
 
-        var request = new GetHistoryDealsRequest
+        try
         {
-            Group = new GetHistoryDealsRequest.Types.Group
+            var request = new GetHistoryDealsRequest
             {
-                FromDate = Timestamp.FromDateTime(utcFromDate),
-                ToDate = Timestamp.FromDateTime(utcToDate),
-                GroupValue = group,
-            }
-        };
+                Group = new GetHistoryDealsRequest.Types.Group
+                {
+                    FromDate = Timestamp.FromDateTime(utcFromDate),
+                    ToDate = Timestamp.FromDateTime(utcToDate),
+                    GroupValue = group,
+                }
+            };
 
-        return await client.GetHistoryDealsAsync(request, cancellationToken: cancellationToken);
+            return await client.GetHistoryDealsAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
     public async Task<GetHistoryDealsReply> GetHistoryDealsAsync(
@@ -171,40 +207,65 @@ public class OrderManagementSystemWrapper(GrpcClientFactory clientFactory) : IOr
         long? position,
         CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(GetHistoryDealsAsync)));
+        var (client, channel) = CreateClient();
 
-        var request = new GetHistoryDealsRequest();
+        try
+        {
+            var request = new GetHistoryDealsRequest();
 
-        if (ticket is not null)
-        {
-            request.Ticket = ticket;
-        }
-        else if (position is not null)
-        {
-            request.Position = position;
-        }
-        else
-        {
-            throw new InvalidOperationException();
-        }
+            if (ticket is not null)
+            {
+                request.Ticket = ticket;
+            }
+            else if (position is not null)
+            {
+                request.Position = position;
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
 
-        return await client.GetHistoryDealsAsync(request, cancellationToken: cancellationToken);
+            return await client.GetHistoryDealsAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
     public async Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(CheckOrderAsync)));
-        return await client.CheckOrderAsync(request, cancellationToken: cancellationToken);
+        var (client, channel) = CreateClient();
+
+        try
+        {
+            return await client.CheckOrderAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
     public async Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var client = clientFactory.CreateClient<OrderManagementSystem.OrderManagementSystemClient>(ClientName(nameof(SendOrderAsync)));
-        return await client.SendOrderAsync(request, cancellationToken: cancellationToken);
+        var (client, channel) = CreateClient();
+
+        try
+        {
+            return await client.SendOrderAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
     }
 
-    private static string ClientName(string name, string? suffix = null)
+    private (OrderManagementSystem.OrderManagementSystemClient client, GrpcChannel channel) CreateClient()
     {
-        return $"{name.Replace("Async", string.Empty)}{suffix}";
+        var channel = grpcChannelPool.Get();
+
+        return (new OrderManagementSystem.OrderManagementSystemClient(channel), channel);
     }
 }

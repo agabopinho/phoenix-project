@@ -11,6 +11,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.6" />
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="..\..\grpc_server\protos\Contracts.proto" GrpcServices="Client">
