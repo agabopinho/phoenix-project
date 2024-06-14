@@ -43,11 +43,11 @@ class MarketData(services.MarketDataServicer):
             return protos.GetSymbolTickReply(responseStatus=responseStatus)
 
         return protos.GetSymbolTickReply(
-            trade=protos.Trade(
+            tick=protos.Tick(
                 time=timestampProtos.Timestamp(
-                    seconds=int(tick["time_msc"] / _MILLIS_PER_SECOND),
+                    seconds=int(tick.time_msc / _MILLIS_PER_SECOND),
                     nanos=int(
-                        (tick["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
+                        (tick.time_msc % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
                     ),
                 ),
                 bid=wrappersProtos.DoubleValue(value=tick.bid),
@@ -69,31 +69,31 @@ class MarketData(services.MarketDataServicer):
 
         logger.debug("StreamTicksRange: %s", len(data))
 
-        trades = [
-            protos.Trade(
+        ticks = [
+            protos.Tick(
                 time=timestampProtos.Timestamp(
-                    seconds=int(trade["time_msc"] / _MILLIS_PER_SECOND),
+                    seconds=int(tick["time_msc"] / _MILLIS_PER_SECOND),
                     nanos=int(
-                        (trade["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
+                        (tick["time_msc"] % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
                     ),
                 ),
-                bid=wrappersProtos.DoubleValue(value=trade["bid"]),
-                ask=wrappersProtos.DoubleValue(value=trade["ask"]),
-                last=wrappersProtos.DoubleValue(value=trade["last"]),
-                volume=wrappersProtos.DoubleValue(value=trade["volume"]),
-                flags=int(trade["flags"]),
-                volumeReal=wrappersProtos.DoubleValue(value=trade["volume_real"]),
+                bid=wrappersProtos.DoubleValue(value=tick["bid"]),
+                ask=wrappersProtos.DoubleValue(value=tick["ask"]),
+                last=wrappersProtos.DoubleValue(value=tick["last"]),
+                volume=wrappersProtos.DoubleValue(value=tick["volume"]),
+                flags=int(tick["flags"]),
+                volumeReal=wrappersProtos.DoubleValue(value=tick["volume_real"]),
             )
-            for trade in data
+            for tick in data
         ]
 
         del data
 
-        for i in range(0, len(trades), request.chunkSize):
-            chunk = trades[i : i + request.chunkSize]
+        for i in range(0, len(ticks), request.chunkSize):
+            chunk = ticks[i : i + request.chunkSize]
             logger.debug("reply %s trades", len(chunk))
             yield protos.TicksRangeReply(
-                trades=chunk,
+                ticks=chunk,
                 responseStatus=responseStatus,
             )
 

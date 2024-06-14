@@ -1,7 +1,7 @@
 ﻿using Application.Models;
 using Application.Options;
-using Application.Range;
 using Application.Services.Providers.Date;
+using Application.Services.Providers.RangeCalculation;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
@@ -13,7 +13,7 @@ namespace Application.Services;
 
 public class MarketDataLoopService(
     IMarketDataWrapper marketDataWrapper,
-    IDateProvider dateProvider,
+    IDate dateProvider,
     State state,
     IOptionsMonitor<OperationSettings> operationSettings,
     ILogger<MarketDataLoopService> logger) : ILoopService
@@ -23,7 +23,7 @@ public class MarketDataLoopService(
     private readonly RangeCalculation _rangeCalculation = new(operationSettings.CurrentValue.BrickSize!.Value);
 
     private DateTime _currentTime;
-    private SimpleTrade? _lastTrade;
+    private Trade? _lastTrade;
     private int _previousBricksCount;
     private int _newBricks;
 
@@ -36,11 +36,10 @@ public class MarketDataLoopService(
     {
         PreExecution();
 
-        state.Bricks = _rangeCalculation.Bricks;
-
         await CheckNewPrice(cancellationToken);
 
-        state.LastTradeTime = _lastTrade?.Time;
+        state.SetLastTradeTime(_lastTrade?.Time);
+        state.SetBricks([.. _rangeCalculation.Bricks]);
 
         if (_newBricks > 0)
         {
@@ -94,11 +93,11 @@ public class MarketDataLoopService(
         var volume = data["volume_real.npy"];
         var flags = data["flags.npy"];
 
-        var tempLastTrade = default(SimpleTrade);
+        var tempLastTrade = default(Trade);
 
         for (var i = 0; i < time.Length - 1; i++)
         {
-            var trade = SimpleTrade.Create(i, time, bid, ask, last, volume, flags);
+            var trade = Trade.Create(i, time, bid, ask, last, volume, flags);
 
             if (!IsNewTrade(trade))
             {
@@ -141,7 +140,7 @@ public class MarketDataLoopService(
         return ticksReply.Bytes;
     }
 
-    private bool IsNewTrade(SimpleTrade trade)
+    private bool IsNewTrade(Trade trade)
     {
         if (trade.Time == DateTime.UnixEpoch)
         {

@@ -23,7 +23,7 @@ message GetSymbolTickRequest {
 }
 
 message GetSymbolTickReply {
-  Trade trade = 1;
+  Tick tick = 1;
   ResponseStatus responseStatus = 2;
 }
 
@@ -36,7 +36,7 @@ message StreamTicksRangeRequest {
 }
 
 message TicksRangeReply {
-  repeated Trade trades = 1;
+  repeated Tick ticks = 1;
   ResponseStatus responseStatus = 2;
 }
 
@@ -83,7 +83,7 @@ message StreamRatesRangeFromTicksRequest {
   int32 chunkSize = 5;
 }
 
-message Trade {
+message Tick {
   google.protobuf.Timestamp time = 1;
   google.protobuf.DoubleValue bid = 2;
   google.protobuf.DoubleValue ask = 3;

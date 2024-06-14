@@ -32,15 +32,18 @@ builder.ConfigureServices((context, services) =>
     services.AddOperationSettings(configure
         => context.Configuration.GetSection("Operation").Bind(configure));
 
-    services.AddSingleton<OnlineDateProvider>();
-    services.AddSingleton<IDateProvider, OnlineDateProvider>();
+    services.AddSingleton<OnlineDate>();
+    services.AddSingleton<IDate, OnlineDate>();
 
     services.AddSingleton<State>();
-    services.AddSingleton<LoopService>();
-    services.AddSingleton<MarketDataLoopService>();
 
-    services.AddHostedService<StrategyService>();
-    services.AddHostedService<MarketDataService>();
+    services.AddSingleton<ILoopService, PositionLoopService>();
+    services.AddSingleton<ILoopService, OrdersLoopService>();
+    services.AddSingleton<ILoopService, LastTickLoopService>();
+    services.AddSingleton<ILoopService, MarketDataLoopService>();
+    services.AddSingleton<ILoopService, StrategyLoopService>();
+
+    services.AddHostedService<LoopBackgroundService>();
 });
 
 await builder.Build().RunAsync();
