@@ -1,7 +1,6 @@
 ﻿using Application.Models;
 using Application.Options;
 using Application.Services.Providers;
-using Application.Services.Strategy;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,32 +10,34 @@ public class SanityTestLoopService(
     OrderWrapper orderWrapper,
     State state,
     IOptionsMonitor<OperationOptions> operationSettings,
-    ILogger<StrategyLoopService> logger) : ILoopService
+    ILogger<SanityTestLoopService> logger) : ILoopService
 {
-    public Task<bool> CanRunAsync(CancellationToken stoppingToken)
-    {
-        return Task.FromResult(true);
-    }
-
     public Task<bool> StoppedAsync(CancellationToken stoppingToken)
     {
         return Task.FromResult(state.SanityTestStatus != SanityTestStatus.WaitExecution);
     }
 
+    public Task<bool> CanRunAsync(CancellationToken stoppingToken)
+    {
+        if (!state.ReadyForSanityTest)
+        {
+            if (state.WarnAuction)
+            {
+                logger.LogWarning("WarnAuction: {LastTick}", state.LastTick);
+            }
+            else
+            {
+                logger.LogDebug("Waiting ready.");
+            }
+
+            return Task.FromResult(false);
+        }
+
+        return Task.FromResult(true);
+    }
+
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
-
-        if (state.WarnAuction)
-        {
-            logger.LogWarning("WarnAuction: {WarnAuction} LastTick: {LastTick}", state.WarnAuction, state.LastTick);
-        }
-
-        if (!state.Ready)
-        {
-            return;
-        }
-
         var sanityTestOptions = operationSettings.CurrentValue.SanityTest;
 
         if (!sanityTestOptions.Execute)

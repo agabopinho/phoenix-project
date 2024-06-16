@@ -34,12 +34,12 @@ public class LoopBackgroundService(IEnumerable<ILoopService> loops, IServiceProv
         {
             try
             {
+                _stopwatch.Restart();
+
                 if (await loop.StoppedAsync(stoppingToken))
                 {
-                    break;
+                    continue;
                 }
-
-                _stopwatch.Restart();
 
                 if (!await loop.CanRunAsync(stoppingToken))
                 {
@@ -48,7 +48,9 @@ public class LoopBackgroundService(IEnumerable<ILoopService> loops, IServiceProv
 
                 await loop.RunAsync(stoppingToken);
 
-                logger.LogDebug("Run in {@ms}ms.", _stopwatch.Elapsed.TotalMilliseconds);
+                _stopwatch.Stop();
+
+                logger.LogTrace("Run in {@ms}ms.", _stopwatch.Elapsed.TotalMilliseconds);
             }
             catch (Exception e)
             {

@@ -38,7 +38,8 @@ public class State(IDate dateProvider, ILogger<State> logger)
 
     public bool WarnAuction => LastTick?.Bid > LastTick?.Ask;
     public bool OpenMarket => LastTick is not null && LastTick.Time.ToDateTime() > DateTime.UtcNow.Date;
-    public bool Ready => OpenMarket && !WarnAuction;
+    public bool ReadyForTrading => ReadyForSanityTest && SanityTestStatus is SanityTestStatus.Skipped or SanityTestStatus.Passed;
+    public bool ReadyForSanityTest => OpenMarket && !WarnAuction;
     public SanityTestStatus SanityTestStatus => (SanityTestStatus)_sanityTestStatus;
 
     public void SetBricks(IReadOnlyCollection<Brick> bricks, Trade? lastTrade)

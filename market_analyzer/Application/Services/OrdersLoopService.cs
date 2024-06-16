@@ -11,14 +11,14 @@ public class OrdersLoopService(
     State state,
     IOptionsMonitor<OperationOptions> operationSettings) : ILoopService
 {
-    public Task<bool> CanRunAsync(CancellationToken stoppingToken)
-    {
-        return Task.FromResult(true);
-    }
-
     public Task<bool> StoppedAsync(CancellationToken stoppingToken)
     {
         return Task.FromResult(false);
+    }
+
+    public Task<bool> CanRunAsync(CancellationToken stoppingToken)
+    {
+        return Task.FromResult(true);
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)

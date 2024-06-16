@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Services.Providers;
 
-public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State state, IOptionsMonitor<OperationOptions> options, ILogger<Order> logger)
+public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State state, IOptionsMonitor<OperationOptions> options, ILogger<OrderWrapper> logger)
 {
     public async Task<long?> SellLimitAsync(double price, double volume, long? sellLimitTicket, CancellationToken cancellationToken)
     {
