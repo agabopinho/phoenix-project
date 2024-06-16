@@ -19,37 +19,29 @@ public static class GrpcServerExtensions
 
         services.AddSingleton(serviceProvider =>
         {
-            var grpcServerOptions = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcServerOptions>>();
+            var addresses = GetAddresses(serviceProvider);
 
-            var addresses = GetAddresses(grpcServerOptions);
+            var policy = serviceProvider.GetRequiredService<GrpcChannelPoolPolicy>();
 
-            var channelOptions = new GrpcChannelOptions
+            policy.ConfigureChannels(addresses, new GrpcChannelOptions
             {
                 MaxReceiveMessageSize = int.MaxValue,
                 MaxSendMessageSize = int.MaxValue,
-            };
+            });
 
             var provider = new DefaultObjectPoolProvider
             {
                 MaximumRetained = addresses.Count
             };
 
-            var policy = serviceProvider.GetRequiredService<GrpcChannelPoolPolicy>();
-            policy.ConfigureFallbackChannels(addresses, channelOptions);
-
-            var objectPool = provider.Create(policy);
-
-            foreach (var address in addresses)
-            {
-                objectPool.Return(GrpcChannel.ForAddress(address, channelOptions));
-            }
-
-            return objectPool;
+            return provider.Create(policy);
         });
     }
 
-    private static List<Uri> GetAddresses(IOptionsMonitor<GrpcServerOptions> grpcServerOptions)
+    private static List<Uri> GetAddresses(IServiceProvider serviceProvider)
     {
+        var grpcServerOptions = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcServerOptions>>();
+
         var addresses = new List<Uri>();
 
         foreach (var host in grpcServerOptions.CurrentValue.Hosts!)

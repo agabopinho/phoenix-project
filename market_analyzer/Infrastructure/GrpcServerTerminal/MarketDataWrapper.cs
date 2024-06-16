@@ -63,7 +63,8 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         int chunkSize,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -92,7 +93,8 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         int chunkSize,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -121,7 +123,8 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         int chunkSize,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -151,7 +154,8 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         IEnumerable<string> returnFields,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -185,7 +189,8 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         IEnumerable<string> returnFields,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -212,7 +217,8 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
 
     public async Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -229,9 +235,8 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
         }
     }
 
-    private (MarketData.MarketDataClient client, GrpcChannel channel) CreateClient()
+    private static MarketData.MarketDataClient CreateClient(GrpcChannel channel)
     {
-        var channel = grpcChannelPool.Get();
-        return (new MarketData.MarketDataClient(channel), channel);
+        return new MarketData.MarketDataClient(channel);
     }
 }

@@ -54,7 +54,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -87,7 +88,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         long? ticket,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -120,7 +122,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -147,7 +150,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         long? position,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -180,7 +184,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         DateTime utcToDate,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -207,7 +212,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         long? position,
         CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -236,7 +242,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
 
     public async Task<CheckOrderReply> CheckOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -250,7 +257,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
 
     public async Task<SendOrderReply> SendOrderAsync(OrderRequest request, CancellationToken cancellationToken)
     {
-        var (client, channel) = CreateClient();
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
 
         try
         {
@@ -262,9 +270,8 @@ public class OrderManagementSystemWrapper(ObjectPool<GrpcChannel> grpcChannelPoo
         }
     }
 
-    private (OrderManagementSystem.OrderManagementSystemClient client, GrpcChannel channel) CreateClient()
+    private static OrderManagementSystem.OrderManagementSystemClient CreateClient(GrpcChannel channel)
     {
-        var channel = grpcChannelPool.Get();
-        return (new OrderManagementSystem.OrderManagementSystemClient(channel), channel);
+        return new OrderManagementSystem.OrderManagementSystemClient(channel);
     }
 }
