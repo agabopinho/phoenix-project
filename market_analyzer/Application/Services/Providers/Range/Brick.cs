@@ -1,4 +1,4 @@
-﻿namespace Application.Services.Providers.RangeCalculation;
+﻿namespace Application.Services.Providers.Range;
 
 public record class Brick
 {

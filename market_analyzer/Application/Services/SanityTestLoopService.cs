@@ -1,6 +1,7 @@
 ﻿using Application.Models;
 using Application.Options;
 using Application.Services.Providers;
+using Application.Services.Strategy;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

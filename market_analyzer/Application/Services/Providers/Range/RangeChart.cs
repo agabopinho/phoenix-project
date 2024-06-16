@@ -1,11 +1,11 @@
-﻿namespace Application.Services.Providers.RangeCalculation;
+﻿namespace Application.Services.Providers.Range;
 
-public class RangeCalculation
+public class RangeChart
 {
     private readonly List<Brick> _bricks = new(1000);
     private double _brickSize;
 
-    public RangeCalculation(double brickSize, List<DateTime>? times = null, List<double>? prices = null, List<double>? volume = null)
+    public RangeChart(double brickSize, List<DateTime>? times = null, List<double>? prices = null, List<double>? volume = null)
     {
         _brickSize = brickSize;
 

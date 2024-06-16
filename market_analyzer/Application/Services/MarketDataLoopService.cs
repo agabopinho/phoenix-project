@@ -1,7 +1,7 @@
 ﻿using Application.Models;
 using Application.Options;
 using Application.Services.Providers.Date;
-using Application.Services.Providers.RangeCalculation;
+using Application.Services.Providers.Range;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
@@ -20,7 +20,14 @@ public class MarketDataLoopService(
 {
     private const int AHEAD_SECONDS = 30;
 
-    private readonly RangeCalculation _rangeCalculation = new(operationSettings.CurrentValue.BrickSize!.Value);
+    private const string FIELD_TIME_MSC = "time_msc";
+    private const string FIELD_BID = "bid";
+    private const string FIELD_ASK = "ask";
+    private const string FIELD_LAST = "last";
+    private const string FIELD_VOLUME_REAL = "volume_real";
+    private const string FIELD_FLAGS = "flags";
+
+    private readonly RangeChart _rangeCalculation = new(operationSettings.CurrentValue.BrickSize!.Value);
 
     private DateTime _currentTime;
     private Trade? _lastTrade;
@@ -48,8 +55,7 @@ public class MarketDataLoopService(
 
         await CheckNewPrice(cancellationToken);
 
-        state.SetLastTradeTime(_lastTrade?.Time);
-        state.SetBricks([.. _rangeCalculation.Bricks]);
+        state.SetBricks([.. _rangeCalculation.Bricks], _lastTrade);
 
         if (_newBricks > 0)
         {
@@ -96,12 +102,12 @@ public class MarketDataLoopService(
             data[entry.Name] = np.Load<Array>(entryBytes);
         }
 
-        var time = data["time_msc.npy"];
-        var bid = data["bid.npy"];
-        var ask = data["ask.npy"];
-        var last = data["last.npy"];
-        var volume = data["volume_real.npy"];
-        var flags = data["flags.npy"];
+        var time = data[$"{FIELD_TIME_MSC}.npy"];
+        var bid = data[$"{FIELD_BID}.npy"];
+        var ask = data[$"{FIELD_ASK}.npy"];
+        var last = data[$"{FIELD_LAST}.npy"];
+        var volume = data[$"{FIELD_VOLUME_REAL}.npy"];
+        var flags = data[$"{FIELD_FLAGS}.npy"];
 
         var tempLastTrade = default(Trade);
 
@@ -129,7 +135,7 @@ public class MarketDataLoopService(
 
     private async Task<IEnumerable<int>> GetNpzTicksStreamAsync(CancellationToken cancellationToken)
     {
-        var fromDate = _lastTrade?.Time ?? (_currentTime - _currentTime.TimeOfDay);
+        var fromDate = GetFromDate();
         var toDate = _currentTime.AddSeconds(AHEAD_SECONDS);
 
         if (_previousBricksCount == 0)
@@ -142,12 +148,29 @@ public class MarketDataLoopService(
             fromDate,
             toDate,
             CopyTicks.Trade,
-            ["time_msc", "last"],
+            [FIELD_TIME_MSC, FIELD_LAST],
             cancellationToken);
 
         state.CheckResponseStatus(ResponseType.GetTicks, ticksReply.ResponseStatus);
 
         return ticksReply.Bytes;
+    }
+
+    private DateTime GetFromDate()
+    {
+        if (_lastTrade?.Time is not null)
+        {
+            return _lastTrade.Time;
+        }
+
+        var resumeFrom = operationSettings.CurrentValue.ResumeFrom;
+
+        if (resumeFrom is not null)
+        {
+            return DateTime.SpecifyKind(resumeFrom.Value, DateTimeKind.Utc);
+        }
+
+        return _currentTime - _currentTime.TimeOfDay;
     }
 
     private bool IsNewTrade(Trade trade)

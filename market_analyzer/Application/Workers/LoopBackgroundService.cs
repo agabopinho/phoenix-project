@@ -16,7 +16,11 @@ public class LoopBackgroundService(IEnumerable<ILoopService> loops, IServiceProv
 
         foreach (var loop in loops)
         {
-            tasks.Add(Task.Run(() => LoopAsync(loop, stoppingToken), stoppingToken));
+            var task = Task.Factory.StartNew(
+                function: () => LoopAsync(loop, stoppingToken),
+                creationOptions: TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach);
+
+            tasks.Add(task);
         }
 
         await Task.WhenAll(tasks);
@@ -44,7 +48,7 @@ public class LoopBackgroundService(IEnumerable<ILoopService> loops, IServiceProv
 
                 await loop.RunAsync(stoppingToken);
 
-                logger.LogDebug("Run in {@ms}ms", _stopwatch.Elapsed.TotalMilliseconds);
+                logger.LogDebug("Run in {@ms}ms.", _stopwatch.Elapsed.TotalMilliseconds);
             }
             catch (Exception e)
             {

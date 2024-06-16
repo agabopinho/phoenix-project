@@ -15,31 +15,64 @@ public static class GrpcServerExtensions
                 it.Hosts is not null &&
                 it.Hosts.Any());
 
+        services.AddTransient<GrpcChannelPoolPolicy>();
+
         services.AddSingleton(serviceProvider =>
         {
             var grpcServerOptions = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcServerOptions>>();
 
-            var objectPoolProvider = new DefaultObjectPoolProvider
-            {
-                MaximumRetained = grpcServerOptions.CurrentValue.Hosts!.Count()
-            };
+            var addresses = GetAddresses(grpcServerOptions);
 
-            var poolPolicy = new GrpcChannelPoolPolicy();
-            var objectPool = objectPoolProvider.Create(poolPolicy);
-
-            var grpcChannelOptions = new GrpcChannelOptions
+            var channelOptions = new GrpcChannelOptions
             {
                 MaxReceiveMessageSize = int.MaxValue,
                 MaxSendMessageSize = int.MaxValue,
             };
 
-            foreach (var host in grpcServerOptions.CurrentValue.Hosts!)
+            var provider = new DefaultObjectPoolProvider
             {
-                objectPool.Return(GrpcChannel.ForAddress(host, grpcChannelOptions));
+                MaximumRetained = addresses.Count
+            };
+
+            var policy = serviceProvider.GetRequiredService<GrpcChannelPoolPolicy>();
+            policy.ConfigureFallbackChannels(addresses, channelOptions);
+
+            var objectPool = provider.Create(policy);
+
+            foreach (var address in addresses)
+            {
+                objectPool.Return(GrpcChannel.ForAddress(address, channelOptions));
             }
 
             return objectPool;
         });
+    }
+
+    private static List<Uri> GetAddresses(IOptionsMonitor<GrpcServerOptions> grpcServerOptions)
+    {
+        var addresses = new List<Uri>();
+
+        foreach (var host in grpcServerOptions.CurrentValue.Hosts!)
+        {
+            var parts = host.Split("+", StringSplitOptions.RemoveEmptyEntries);
+            var hostPart = new Uri(parts[0]);
+            var quantityParty = parts.Length > 1 ? int.Parse(parts[1]) : 0;
+
+            quantityParty += 1;
+
+            var port = hostPart.Port;
+
+            for (var i = 0; i < quantityParty; i++)
+            {
+                var channelHost = new Uri($"{hostPart.Scheme}://{hostPart.Host}:{port}");
+
+                addresses.Add(channelHost);
+
+                port += 1;
+            }
+        }
+
+        return addresses;
     }
 }
 

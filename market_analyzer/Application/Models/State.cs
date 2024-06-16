@@ -1,5 +1,6 @@
-﻿using Application.Services.Providers.Date;
-using Application.Services.Providers.RangeCalculation;
+﻿using Application.Helpers;
+using Application.Services.Providers.Date;
+using Application.Services.Providers.Range;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
@@ -12,58 +13,62 @@ public class State(IDate dateProvider, ILogger<State> logger)
     private readonly ConcurrentBag<ErrorOccurrence> _lastErrors = [];
 
     private IReadOnlyCollection<Brick> _bricks = [];
+    private Trade? _lastBricksTrade;
     private Position? _position;
     private IReadOnlyCollection<Order> _orders = [];
     private Tick? _lasTick;
-    private SanityTestStatus _sanityTestStatus = SanityTestStatus.WaitExecution;
+
+    private double _bricksUpdated;
+    private double _positionUpdated;
+    private double _ordersUpdated;
+    private double _lastTradeUpdated;
+    private int _sanityTestStatus;
 
     public IReadOnlyCollection<Brick> Bricks => _bricks;
-    public DateTime? BricksUpdated { get; private set; }
-    public DateTime? LastTradeTime { get; private set; }
+    public Trade? LastBricksTrade => _lastBricksTrade;
     public Position? Position => _position;
-    public DateTime? PositionUpdated { get; private set; }
     public IReadOnlyCollection<Order> Orders => _orders;
-    public DateTime? OrdersUpdated { get; private set; }
     public Tick? LastTick => _lasTick;
-    public DateTime? LastTradeUpdated { get; private set; }
     public IReadOnlyCollection<ErrorOccurrence> LastErrors => _lastErrors;
-    public bool WarnAuction => LastTick?.Bid > LastTick?.Ask;
-    public bool OpenMarket => LastTick is not null && LastTick.Ask - LastTick.Bid > 0;
-    public bool Ready => !WarnAuction && OpenMarket;
-    public SanityTestStatus SanityTestStatus => _sanityTestStatus;
 
-    public void SetBricks(IReadOnlyCollection<Brick> bricks)
+    public DateTime BricksUpdated => _bricksUpdated.DateTimeFromUnixEpochMilliseconds();
+    public DateTime PositionUpdated => _positionUpdated.DateTimeFromUnixEpochMilliseconds();
+    public DateTime OrdersUpdated => _ordersUpdated.DateTimeFromUnixEpochMilliseconds();
+    public DateTime LastTradeUpdated => _lastTradeUpdated.DateTimeFromUnixEpochMilliseconds();
+
+    public bool WarnAuction => LastTick?.Bid > LastTick?.Ask;
+    public bool OpenMarket => LastTick is not null && LastTick.Time.ToDateTime() > DateTime.UtcNow.Date;
+    public bool Ready => OpenMarket && !WarnAuction;
+    public SanityTestStatus SanityTestStatus => (SanityTestStatus)_sanityTestStatus;
+
+    public void SetBricks(IReadOnlyCollection<Brick> bricks, Trade? lastTrade)
     {
         Interlocked.Exchange(ref _bricks, bricks);
-        BricksUpdated = DateTime.Now;
-    }
-
-    public void SetLastTradeTime(DateTime? lastTradeTime)
-    {
-        LastTradeTime = lastTradeTime;
+        Interlocked.Exchange(ref _lastBricksTrade, lastTrade);
+        Interlocked.Exchange(ref _bricksUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetPosition(Position? position)
     {
         Interlocked.Exchange(ref _position, position);
-        PositionUpdated = DateTime.Now;
+        Interlocked.Exchange(ref _positionUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetOrders(IReadOnlyCollection<Order> orders)
     {
         Interlocked.Exchange(ref _orders, orders);
-        OrdersUpdated = DateTime.Now;
+        Interlocked.Exchange(ref _ordersUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetLastTick(Tick trade)
     {
         Interlocked.Exchange(ref _lasTick, trade);
-        LastTradeUpdated = DateTime.Now;
+        Interlocked.Exchange(ref _lastTradeUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetSanityTestStatus(SanityTestStatus sanityTestStatus)
     {
-        _sanityTestStatus = sanityTestStatus;
+        Interlocked.Exchange(ref _sanityTestStatus, (int)sanityTestStatus);
     }
 
     public void CheckResponseStatus(ResponseType type, ResponseStatus responseStatus)
@@ -82,12 +87,4 @@ public class State(IDate dateProvider, ILogger<State> logger)
             responseStatus.ResponseMessage
         });
     }
-}
-
-public enum SanityTestStatus
-{
-    WaitExecution,
-    Passed,
-    Skipped,
-    Error
 }
