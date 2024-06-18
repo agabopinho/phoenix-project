@@ -99,7 +99,7 @@ public class SanityTestLoopService(
             throw new InvalidOperationException("Invalid order type.");
         }
 
-        var result = true;
+        var testResult = true;
         var sanityTestOptions = operationSettings.CurrentValue.SanityTest;
 
         var stopwatch = new Stopwatch();
@@ -118,45 +118,43 @@ public class SanityTestLoopService(
 
         var orderLimit = default(Order);
 
-        do
-        {
-            orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket);
-        }
-        while (orderLimit is null);
+        while ((orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket)) is null) ;
 
         logger.LogInformation("Waited {orderType} order appear in the order list in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
         stopwatch.Restart();
 
-        limitPrice = orderType is OrderType.BuyLimit ?
-            limitPrice + sanityTestOptions.PipsStep :
-            limitPrice - sanityTestOptions.PipsStep;
-
-        await orderWrapper.ModifyOrderLimitAsync(ticket.Value, limitPrice, cancellationToken);
-
-        do
+        for (var i = 0; i < sanityTestOptions.OrderModifications && testResult; i++)
         {
-            orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket);
-        }
-        while (orderLimit is not null && orderLimit.PriceOpen != limitPrice);
+            limitPrice = orderType is OrderType.BuyLimit ?
+                limitPrice - sanityTestOptions.PipsStep :
+                limitPrice + sanityTestOptions.PipsStep;
 
-        if (orderLimit?.PriceOpen == limitPrice)
-        {
-            logger.LogInformation("Modified order {orderType} in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
-        }
-        else
-        {
-            logger.LogError("Modified order {orderType} in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
-            result = false;
-        }
+            await orderWrapper.ModifyOrderLimitAsync(ticket.Value, limitPrice, cancellationToken);
 
-        stopwatch.Restart();
+            while ((orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket)) is not null &&
+                orderLimit.PriceOpen != limitPrice) ;
+
+            if (orderLimit?.PriceOpen == limitPrice)
+            {
+                logger.LogInformation("Modified order {orderType} in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
+            }
+            else
+            {
+                logger.LogError("Failed to find modified {orderType} price in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
+                testResult = false;
+            }
+
+            stopwatch.Restart();
+        }
 
         await orderWrapper.CancelAsync(ticket.Value, cancellationToken);
+
+        while (state.Orders.Any(it => it.Ticket == ticket)) ;
 
         logger.LogInformation("Canceled {orderType} order in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
         stopwatch.Restart();
 
-        return result;
+        return testResult;
     }
 
     private async Task CancelTestOrdersAsync(CancellationToken cancellationToken)
