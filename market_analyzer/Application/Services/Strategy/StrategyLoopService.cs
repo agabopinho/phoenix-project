@@ -8,7 +8,8 @@ namespace Application.Services.Strategy;
 public abstract class StrategyLoopService(
     State state,
     IOptionsMonitor<OperationOptions> operationSettings,
-    ILogger logger) : ILoopService
+    ILogger logger
+) : ILoopService
 {
     private const int WAIT_BRICKS_LOAD_DELAY = 10;
 
@@ -18,11 +19,16 @@ public abstract class StrategyLoopService(
 
     public Task<bool> StoppedAsync(CancellationToken stoppingToken)
     {
-        return Task.FromResult(OperationSettings.CurrentValue.ProductionMode == ProductionMode.Off);
+        return Task.FromResult(false);
     }
 
     public Task<bool> CanRunAsync(CancellationToken stoppingToken)
     {
+        if (OperationSettings.CurrentValue.ProductionMode is ProductionMode.Off)
+        {
+            return Task.FromResult(false);
+        }
+
         if (!State.ReadyForTrading)
         {
             if (State.WarnAuction)

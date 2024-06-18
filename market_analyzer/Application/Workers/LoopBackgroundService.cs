@@ -38,7 +38,9 @@ public class LoopBackgroundService(IEnumerable<ILoopService> loops, IServiceProv
 
                 if (await loop.StoppedAsync(stoppingToken))
                 {
-                    continue;
+                    logger.LogInformation("Service stopped.");
+
+                    break;
                 }
 
                 if (!await loop.CanRunAsync(stoppingToken))

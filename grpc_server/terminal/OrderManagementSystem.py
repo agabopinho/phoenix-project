@@ -271,7 +271,6 @@ class OrderManagementSystem(services.OrderManagementSystemServicer):
 
     def CheckOrder(self, request, _):
         orderRequest = self.__orderRequest(request)
-        logger.info(orderRequest)
         result = mt5.order_check(orderRequest)
 
         responseStatus = MT5.check_conn()

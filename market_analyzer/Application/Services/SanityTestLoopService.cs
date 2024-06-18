@@ -1,8 +1,11 @@
 ﻿using Application.Models;
 using Application.Options;
 using Application.Services.Providers;
+using Grpc.Terminal;
+using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 
 namespace Application.Services;
 
@@ -10,7 +13,8 @@ public class SanityTestLoopService(
     OrderWrapper orderWrapper,
     State state,
     IOptionsMonitor<OperationOptions> operationSettings,
-    ILogger<SanityTestLoopService> logger) : ILoopService
+    ILogger<SanityTestLoopService> logger
+) : ILoopService
 {
     public Task<bool> StoppedAsync(CancellationToken stoppingToken)
     {
@@ -47,8 +51,126 @@ public class SanityTestLoopService(
             return;
         }
 
-        state.SetSanityTestStatus(SanityTestStatus.Passed);
+        var updated = new[] { state.OrdersUpdated, state.LastTradeUpdated };
+        var delay = DateTime.UtcNow - updated.Min();
 
-        await Task.CompletedTask;
+        if (delay.TotalMilliseconds > 100)
+        {
+            return;
+        }
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        try
+        {
+            await CancelTestOrdersAsync(cancellationToken);
+
+            var buyTest = RunTestAsync(OrderType.BuyLimit, cancellationToken);
+            var sellTest = RunTestAsync(OrderType.SellLimit, cancellationToken);
+
+            await Task.WhenAll(buyTest, sellTest);
+
+            if (buyTest.Result && sellTest.Result)
+            {
+                logger.LogInformation("Passed the sanity test in {ms}ms.", stopwatch.ElapsedMilliseconds);
+
+                state.SetSanityTestStatus(SanityTestStatus.Passed);
+            }
+            else
+            {
+                logger.LogError("Failed the sanity test in {ms}ms.", stopwatch.ElapsedMilliseconds);
+
+                state.SetSanityTestStatus(SanityTestStatus.Error);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error when running sanity test in {ms}.", stopwatch.ElapsedMilliseconds);
+
+            state.SetSanityTestStatus(SanityTestStatus.Error);
+        }
+    }
+
+    private async Task<bool> RunTestAsync(OrderType orderType, CancellationToken cancellationToken)
+    {
+        if (orderType is not (OrderType.BuyLimit or OrderType.SellLimit))
+        {
+            throw new InvalidOperationException("Invalid order type.");
+        }
+
+        var result = true;
+        var sanityTestOptions = operationSettings.CurrentValue.SanityTest;
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        var limitPrice = orderType is OrderType.BuyLimit ?
+            state.LastTick!.Bid!.Value - sanityTestOptions.PipsRange :
+            state.LastTick!.Ask!.Value + sanityTestOptions.PipsRange;
+
+        var ticket = orderType is OrderType.BuyLimit ?
+            await orderWrapper.BuyLimitAsync(limitPrice, sanityTestOptions.Lot, sanityTestOptions.Magic, cancellationToken) :
+            await orderWrapper.SellLimitAsync(limitPrice, sanityTestOptions.Lot, sanityTestOptions.Magic, cancellationToken);
+
+        logger.LogInformation("{orderType} order launched in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
+        stopwatch.Restart();
+
+        var orderLimit = default(Order);
+
+        do
+        {
+            orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket);
+        }
+        while (orderLimit is null);
+
+        logger.LogInformation("Waited {orderType} order appear in the order list in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
+        stopwatch.Restart();
+
+        limitPrice = orderType is OrderType.BuyLimit ?
+            limitPrice + sanityTestOptions.PipsStep :
+            limitPrice - sanityTestOptions.PipsStep;
+
+        await orderWrapper.ModifyOrderLimitAsync(ticket.Value, limitPrice, cancellationToken);
+
+        do
+        {
+            orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket);
+        }
+        while (orderLimit is not null && orderLimit.PriceOpen != limitPrice);
+
+        if (orderLimit?.PriceOpen == limitPrice)
+        {
+            logger.LogInformation("Modified order {orderType} in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
+        }
+        else
+        {
+            logger.LogError("Modified order {orderType} in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
+            result = false;
+        }
+
+        stopwatch.Restart();
+
+        await orderWrapper.CancelAsync(ticket.Value, cancellationToken);
+
+        logger.LogInformation("Canceled {orderType} order in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
+        stopwatch.Restart();
+
+        return result;
+    }
+
+    private async Task CancelTestOrdersAsync(CancellationToken cancellationToken)
+    {
+        var sanityTestOptions = operationSettings.CurrentValue.SanityTest;
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        foreach (var order in state.Orders.Where(it => it.Magic == sanityTestOptions.Magic))
+        {
+            await orderWrapper.CancelAsync(order.Ticket!.Value, cancellationToken);
+        }
+
+        logger.LogInformation("Canceled all test orders in {ms}ms.", stopwatch.ElapsedMilliseconds);
     }
 }

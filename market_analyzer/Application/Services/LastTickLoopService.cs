@@ -9,7 +9,8 @@ namespace Application.Services;
 public class LastTickLoopService(
     IMarketDataWrapper marketDataWrapper,
     State state,
-    IOptionsMonitor<OperationOptions> operationSettings) : ILoopService
+    IOptionsMonitor<OperationOptions> operationSettings
+) : ILoopService
 {
     public Task<bool> StoppedAsync(CancellationToken stoppingToken)
     {
@@ -33,7 +34,7 @@ public class LastTickLoopService(
             symbol: operationSettings.CurrentValue.Symbol!,
             cancellationToken: cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.GetPosition, getSymbolTick.ResponseStatus);
+        state.CheckResponseStatus(ResponseType.GetLastTick, getSymbolTick.ResponseStatus);
 
         return getSymbolTick.Tick;
     }

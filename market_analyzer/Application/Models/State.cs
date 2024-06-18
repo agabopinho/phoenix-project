@@ -37,7 +37,7 @@ public class State(IDate dateProvider, ILogger<State> logger)
     public DateTime LastTradeUpdated => _lastTradeUpdated.DateTimeFromUnixEpochMilliseconds();
 
     public bool WarnAuction => LastTick?.Bid > LastTick?.Ask;
-    public bool OpenMarket => LastTick is not null && LastTick.Time.ToDateTime() > DateTime.UtcNow.Date;
+    public bool OpenMarket => LastTick is not null && LastTick.Time.ToDateTime() > DateTime.Today;
     public bool ReadyForTrading => ReadyForSanityTest && SanityTestStatus is SanityTestStatus.Skipped or SanityTestStatus.Passed;
     public bool ReadyForSanityTest => OpenMarket && !WarnAuction;
     public SanityTestStatus SanityTestStatus => (SanityTestStatus)_sanityTestStatus;
@@ -72,14 +72,14 @@ public class State(IDate dateProvider, ILogger<State> logger)
         Interlocked.Exchange(ref _sanityTestStatus, (int)sanityTestStatus);
     }
 
-    public void CheckResponseStatus(ResponseType type, ResponseStatus responseStatus)
+    public void CheckResponseStatus(ResponseType type, ResponseStatus responseStatus, string? comment = null)
     {
         if (responseStatus.ResponseCode == Res.SOk)
         {
             return;
         }
 
-        _lastErrors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus));
+        _lastErrors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus, comment));
 
         logger.LogError("Grpc server error {@data}", new
         {

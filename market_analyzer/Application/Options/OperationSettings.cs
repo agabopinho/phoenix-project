@@ -21,7 +21,9 @@ public class OrderOptions
 public class SanityTestOptions
 {
     public double Lot { get; set; }
-    public double Pips { get; set; }
+    public double PipsRange { get; set; }
+    public double PipsStep { get; set; }
+    public long Magic { get; set; }
     public bool Execute { get; set; }
 }
 

@@ -10,78 +10,94 @@ namespace Application.Services.Providers;
 
 public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State state, IOptionsMonitor<OperationOptions> options, ILogger<OrderWrapper> logger)
 {
-    public async Task<long?> SellLimitAsync(double price, double volume, long? sellLimitTicket, CancellationToken cancellationToken)
+    public async Task<long?> SellLimitAsync(double price, double volume, long? magic, CancellationToken cancellationToken)
     {
-        var order = Order(TradeAction.Pending, OrderType.SellLimit, price, volume, sellLimitTicket);
+        var order = OrderLimit(options.CurrentValue, OrderType.SellLimit, price, volume, magic);
 
         var sendOrderReply = await SendOrderAsync(order, cancellationToken);
 
-        return sendOrderReply.Order;
+        return sendOrderReply?.Order;
     }
 
-    public async Task<long?> BuyLimitAsync(double price, double volume, long? buyLimitTicket, CancellationToken cancellationToken)
+    public async Task<long?> BuyLimitAsync(double price, double volume, long? magic, CancellationToken cancellationToken)
     {
-        var order = Order(TradeAction.Pending, OrderType.BuyLimit, price, volume, buyLimitTicket);
+        var order = OrderLimit(options.CurrentValue, OrderType.BuyLimit, price, volume, magic);
 
         var sendOrderReply = await SendOrderAsync(order, cancellationToken);
 
-        return sendOrderReply.Order;
+        return sendOrderReply?.Order;
+    }
+
+    public async Task<long?> ModifyOrderLimitAsync(long orderTicket, double price, CancellationToken cancellationToken)
+    {
+        var order = ModifyOrderLimit(options.CurrentValue, orderTicket, price);
+
+        var sendOrderReply = await SendOrderAsync(order, cancellationToken);
+
+        return sendOrderReply?.Order;
     }
 
     public async Task<long?> CancelAsync(long orderTicket, CancellationToken cancellationToken)
     {
-        var order = CancelOrder(orderTicket);
+        var order = CancelOrderLimit(options.CurrentValue, orderTicket);
 
         var sendOrderReply = await SendOrderAsync(order, cancellationToken);
 
-        return sendOrderReply.Order;
+        return sendOrderReply?.Order;
     }
 
-    private async Task<SendOrderReply> SendOrderAsync(OrderRequest order, CancellationToken cancellationToken)
+    public async Task<SendOrderReply?> SendOrderAsync(OrderRequest order, CancellationToken cancellationToken)
     {
         var sendOrderReply = await orderManagement.SendOrderAsync(order, cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.SendOrder, sendOrderReply.ResponseStatus);
+        state.CheckResponseStatus(ResponseType.SendOrder, sendOrderReply.ResponseStatus, sendOrderReply.Comment);
 
         if (sendOrderReply.Retcode != TradeRetcode.Done)
         {
-            logger.LogError("Error sending order: {error}", sendOrderReply);
+            logger.LogError("Error sending order: {@error}", sendOrderReply);
         }
 
         return sendOrderReply;
     }
 
-    private OrderRequest Order(TradeAction tradeAction, OrderType orderType, double price, double lot, long? modifyOrderTicket = null, long? positionTicket = null)
+    private static OrderRequest OrderLimit(OperationOptions settings, OrderType orderType, double price, double lot, long? magic = null)
     {
-        if (modifyOrderTicket is not null && tradeAction != TradeAction.Pending)
+        if (orderType is not (OrderType.BuyLimit or OrderType.SellLimit))
         {
-            throw new InvalidOperationException("It's only possible to modify pending order.");
+            throw new InvalidOperationException("Invalid order type.");
         }
-
-        var settings = options.CurrentValue;
 
         return new()
         {
             Symbol = settings.Symbol,
             Deviation = settings.Order.Deviation,
-            Magic = settings.Order.Magic,
+            Magic = magic ?? settings.Order.Magic,
             Price = price,
             Volume = lot,
-            Order = modifyOrderTicket,
-            Action = modifyOrderTicket is null ? tradeAction : TradeAction.Modify,
+            Action = TradeAction.Pending,
             Type = orderType,
             TypeFilling = OrderFilling.Return,
             TypeTime = OrderTime.Day,
-            Position = positionTicket,
         };
     }
 
-    private static OrderRequest CancelOrder(long orderTicket)
+    private static OrderRequest CancelOrderLimit(OperationOptions _, long orderTicket)
     {
         return new()
         {
             Order = orderTicket,
             Action = TradeAction.Remove,
+        };
+    }
+
+    private static OrderRequest ModifyOrderLimit(OperationOptions _, long orderTicket, double price)
+    {
+        return new()
+        {
+            Order = orderTicket,
+            Price = price,
+            Action = TradeAction.Modify,
+            TypeTime = OrderTime.Day,
         };
     }
 }

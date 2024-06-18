@@ -9,7 +9,8 @@ namespace Application.Services;
 public class OrdersLoopService(
     IOrderManagementSystemWrapper orderManagementSystemWrapper,
     State state,
-    IOptionsMonitor<OperationOptions> operationSettings) : ILoopService
+    IOptionsMonitor<OperationOptions> operationSettings
+) : ILoopService
 {
     public Task<bool> StoppedAsync(CancellationToken stoppingToken)
     {

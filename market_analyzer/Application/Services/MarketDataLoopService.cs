@@ -16,7 +16,8 @@ public class MarketDataLoopService(
     IDate dateProvider,
     State state,
     IOptionsMonitor<OperationOptions> operationSettings,
-    ILogger<MarketDataLoopService> logger) : ILoopService
+    ILogger<MarketDataLoopService> logger
+) : ILoopService
 {
     private const int AHEAD_SECONDS = 30;
 
