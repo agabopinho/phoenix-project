@@ -56,7 +56,7 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
     public bool CheckDelayed(DateTime updatedAt)
     {
         var delay = DateTime.UtcNow - updatedAt;
-        return delay.TotalMilliseconds > operationSettings.CurrentValue.MaximumInformationDelay;
+        return delay.TotalMilliseconds > operationSettings.CurrentValue.Order.MaximumInformationDelay;
     }
 
     public void SetBricks(IReadOnlyCollection<Brick> bricks, Trade? lastTrade)

@@ -26,7 +26,7 @@ public class OpenBuyLimitLoopService(
             return;
         }
 
-        if (State.Position is not null)
+        if (State.Position is null)
         {
             return;
         }

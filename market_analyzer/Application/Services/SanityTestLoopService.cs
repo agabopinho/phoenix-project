@@ -117,7 +117,7 @@ public class SanityTestLoopService(
 
         while ((orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket)) is null)
         {
-            await Task.Delay(operationSettings.CurrentValue.WhileDelay, cancellationToken);
+            await Task.Delay(operationSettings.CurrentValue.Order.WhileDelay, cancellationToken);
         }
 
         logger.LogInformation("Waited {orderType} order appear in the order list in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
@@ -134,7 +134,7 @@ public class SanityTestLoopService(
             while ((orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket)) is not null &&
                 orderLimit.PriceOpen != limitPrice)
             {
-                await Task.Delay(operationSettings.CurrentValue.WhileDelay, cancellationToken);
+                await Task.Delay(operationSettings.CurrentValue.Order.WhileDelay, cancellationToken);
             }
 
             if (orderLimit?.PriceOpen == limitPrice)
@@ -154,7 +154,7 @@ public class SanityTestLoopService(
 
         while (state.Orders.Any(it => it.Ticket == ticket))
         {
-            await Task.Delay(operationSettings.CurrentValue.WhileDelay, cancellationToken);
+            await Task.Delay(operationSettings.CurrentValue.Order.WhileDelay, cancellationToken);
         }
 
         logger.LogInformation("Canceled {orderType} order in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);

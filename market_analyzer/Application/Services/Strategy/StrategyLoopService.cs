@@ -58,7 +58,7 @@ public abstract class StrategyLoopService(
 
             while (State.BricksUpdated <= DateTime.UnixEpoch)
             {
-                await Task.Delay(OperationSettings.CurrentValue.WhileDelay, cancellationToken);
+                await Task.Delay(OperationSettings.CurrentValue.Order.WhileDelay, cancellationToken);
             }
         }
 
@@ -81,41 +81,41 @@ public abstract class StrategyLoopService(
         return delta > OperationSettings.CurrentValue.Order.MaximumPriceProximity;
     }
 
-    protected async Task<Order?> AwaitOrderOrPositionAsync(long ticket, CancellationToken cancellationToken)
+    protected async Task<Order?> AwaitOrderAsync(long ticket, CancellationToken cancellationToken)
     {
         Order? order;
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        while ((order = State.Orders.FirstOrDefault(it => it.Ticket == ticket)) is null || State.Position is null)
+        while ((order = State.Orders.FirstOrDefault(it => it.Ticket == ticket)) is null)
         {
             if (stopwatch.ElapsedMilliseconds >= OperationSettings.CurrentValue.Order.WaitingTimeout)
             {
                 break;
             }
 
-            await Task.Delay(OperationSettings.CurrentValue.WhileDelay, cancellationToken);
+            await Task.Delay(OperationSettings.CurrentValue.Order.WhileDelay, cancellationToken);
         }
 
         return order;
     }
 
-    protected async Task<Order?> AwaitOrderPriceOrPositionAsync(long ticket, double price, CancellationToken cancellationToken)
+    protected async Task<Order?> AwaitOrderPriceAsync(long ticket, double price, CancellationToken cancellationToken)
     {
         Order? order;
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        while ((order = State.Orders.FirstOrDefault(it => it.Ticket == ticket && it.PriceOpen == price)) is null || State.Position is null)
+        while ((order = State.Orders.FirstOrDefault(it => it.Ticket == ticket && it.PriceOpen == price)) is null)
         {
             if (stopwatch.ElapsedMilliseconds >= OperationSettings.CurrentValue.Order.WaitingTimeout)
             {
                 break;
             }
 
-            await Task.Delay(OperationSettings.CurrentValue.WhileDelay, cancellationToken);
+            await Task.Delay(OperationSettings.CurrentValue.Order.WhileDelay, cancellationToken);
         }
 
         return order;
@@ -144,7 +144,7 @@ public abstract class StrategyLoopService(
 
         if (orderTask.Result is not null)
         {
-            await AwaitOrderOrPositionAsync(orderTask.Result.Value, cancellationToken);
+            await AwaitOrderAsync(orderTask.Result.Value, cancellationToken);
         }
     }
 
@@ -169,7 +169,7 @@ public abstract class StrategyLoopService(
 
         if (orderTask.Result is not null)
         {
-            await AwaitOrderPriceOrPositionAsync(modifyTicket.Ticket!.Value, price, cancellationToken);
+            await AwaitOrderPriceAsync(modifyTicket.Ticket!.Value, price, cancellationToken);
         }
     }
 

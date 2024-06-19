@@ -26,7 +26,7 @@ public class PositionBuyLoopService(
             return;
         }
 
-        if (State.Position is null || State.Position.Type != PositionType.Buy)
+        if (State.Position?.Type is not PositionType.Buy)
         {
             return;
         }
