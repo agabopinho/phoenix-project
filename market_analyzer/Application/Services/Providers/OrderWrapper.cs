@@ -10,7 +10,12 @@ namespace Application.Services.Providers;
 
 public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State state, IOptionsMonitor<OperationOptions> options, ILogger<OrderWrapper> logger)
 {
-    public async Task<long?> SellLimitAsync(double price, double volume, long? magic, CancellationToken cancellationToken)
+    public Task<long?> SellLimitAsync(double price, double volume, CancellationToken cancellationToken)
+    {
+        return SellLimitAsync(price, volume, cancellationToken);
+    }
+
+    public async Task<long?> SellLimitAsync(double price, double volume, long magic, CancellationToken cancellationToken)
     {
         var order = OrderLimit(options.CurrentValue, OrderType.SellLimit, price, volume, magic);
 
@@ -19,7 +24,12 @@ public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State s
         return sendOrderReply?.Order;
     }
 
-    public async Task<long?> BuyLimitAsync(double price, double volume, long? magic, CancellationToken cancellationToken)
+    public Task<long?> BuyLimitAsync(double price, double volume, CancellationToken cancellationToken)
+    {
+        return BuyLimitAsync(price, volume, cancellationToken);
+    }
+
+    public async Task<long?> BuyLimitAsync(double price, double volume, long magic, CancellationToken cancellationToken)
     {
         var order = OrderLimit(options.CurrentValue, OrderType.BuyLimit, price, volume, magic);
 

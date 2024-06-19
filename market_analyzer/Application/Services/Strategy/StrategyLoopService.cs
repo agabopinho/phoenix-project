@@ -1,21 +1,25 @@
 ﻿using Application.Models;
 using Application.Options;
+using Application.Services.Providers;
+using Grpc.Terminal;
+using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 
 namespace Application.Services.Strategy;
 
 public abstract class StrategyLoopService(
     State state,
+    OrderWrapper orderWrapper,
     IOptionsMonitor<OperationOptions> operationSettings,
     ILogger logger
 ) : ILoopService
 {
-    private const int WAIT_BRICKS_LOAD_DELAY = 10;
-
-    public State State { get; } = state;
-    public IOptionsMonitor<OperationOptions> OperationSettings { get; } = operationSettings;
-    public ILogger Logger { get; } = logger;
+    protected State State { get; } = state;
+    protected OrderWrapper OrderWrapper { get; } = orderWrapper;
+    protected IOptionsMonitor<OperationOptions> OperationSettings { get; } = operationSettings;
+    protected ILogger Logger { get; } = logger;
 
     public Task<bool> StoppedAsync(CancellationToken stoppingToken)
     {
@@ -24,7 +28,7 @@ public abstract class StrategyLoopService(
 
     public Task<bool> CanRunAsync(CancellationToken stoppingToken)
     {
-        if (OperationSettings.CurrentValue.ProductionMode is ProductionMode.Off)
+        if (OperationSettings.CurrentValue.Order.ProductionMode is ProductionMode.Off)
         {
             return Task.FromResult(false);
         }
@@ -54,7 +58,7 @@ public abstract class StrategyLoopService(
 
             while (State.BricksUpdated <= DateTime.UnixEpoch)
             {
-                await Task.Delay(WAIT_BRICKS_LOAD_DELAY, cancellationToken);
+                await Task.Delay(OperationSettings.CurrentValue.WhileDelay, cancellationToken);
             }
         }
 
@@ -62,4 +66,122 @@ public abstract class StrategyLoopService(
     }
 
     protected abstract Task StrategyRunAsync(CancellationToken cancellationToken);
+
+    protected bool PermittedDistance(OrderType orderType, double price)
+    {
+        if (orderType is not (OrderType.BuyLimit or OrderType.SellLimit))
+        {
+            throw new InvalidOperationException("Invalid order type.");
+        }
+
+        var delta = orderType is OrderType.BuyLimit ?
+            State.LastTick!.Last!.Value - price :
+            price - State.LastTick!.Last!.Value;
+
+        return delta > OperationSettings.CurrentValue.Order.MaximumPriceProximity;
+    }
+
+    protected async Task<Order?> AwaitOrderOrPositionAsync(long ticket, CancellationToken cancellationToken)
+    {
+        Order? order;
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        while ((order = State.Orders.FirstOrDefault(it => it.Ticket == ticket)) is null || State.Position is null)
+        {
+            if (stopwatch.ElapsedMilliseconds >= OperationSettings.CurrentValue.Order.WaitingTimeout)
+            {
+                break;
+            }
+
+            await Task.Delay(OperationSettings.CurrentValue.WhileDelay, cancellationToken);
+        }
+
+        return order;
+    }
+
+    protected async Task<Order?> AwaitOrderPriceOrPositionAsync(long ticket, double price, CancellationToken cancellationToken)
+    {
+        Order? order;
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        while ((order = State.Orders.FirstOrDefault(it => it.Ticket == ticket && it.PriceOpen == price)) is null || State.Position is null)
+        {
+            if (stopwatch.ElapsedMilliseconds >= OperationSettings.CurrentValue.Order.WaitingTimeout)
+            {
+                break;
+            }
+
+            await Task.Delay(OperationSettings.CurrentValue.WhileDelay, cancellationToken);
+        }
+
+        return order;
+    }
+
+    protected async Task NewOrderAsync(OrderType orderType, double price, double lot, IEnumerable<Order> cancelTickets, CancellationToken cancellationToken)
+    {
+        if (orderType is not (OrderType.BuyLimit or OrderType.SellLimit))
+        {
+            throw new InvalidOperationException("Invalid order type.");
+        }
+
+        if (!PermittedDistance(orderType, price))
+        {
+            return;
+        }
+
+        var taskList = Cancel(cancelTickets, cancellationToken);
+        var orderTask = orderType is OrderType.BuyLimit ?
+            OrderWrapper.BuyLimitAsync(price, lot, cancellationToken) :
+            OrderWrapper.SellLimitAsync(price, lot, cancellationToken);
+
+        taskList.Add(orderTask);
+
+        await Task.WhenAll(taskList);
+
+        if (orderTask.Result is not null)
+        {
+            await AwaitOrderOrPositionAsync(orderTask.Result.Value, cancellationToken);
+        }
+    }
+
+    protected async Task ModifyOrderAsync(OrderType orderType, Order modifyTicket, double price, double lot, IEnumerable<Order> cancelTickets, CancellationToken cancellationToken)
+    {
+        if (orderType is not (OrderType.BuyLimit or OrderType.SellLimit))
+        {
+            throw new InvalidOperationException("Invalid order type.");
+        }
+
+        if (!PermittedDistance(orderType, price))
+        {
+            return;
+        }
+
+        var taskList = Cancel(cancelTickets, cancellationToken);
+        var orderTask = OrderWrapper.ModifyOrderLimitAsync(modifyTicket.Ticket!.Value, price, cancellationToken);
+
+        taskList.Add(orderTask);
+
+        await Task.WhenAll(taskList);
+
+        if (orderTask.Result is not null)
+        {
+            await AwaitOrderPriceOrPositionAsync(modifyTicket.Ticket!.Value, price, cancellationToken);
+        }
+    }
+
+    protected List<Task> Cancel(IEnumerable<Order> cancelTickets, CancellationToken cancellationToken)
+    {
+        var taskList = new List<Task>();
+
+        foreach (var order in cancelTickets)
+        {
+            taskList.Add(OrderWrapper.CancelAsync(order.Ticket!.Value, cancellationToken));
+        }
+
+        return taskList;
+    }
 }

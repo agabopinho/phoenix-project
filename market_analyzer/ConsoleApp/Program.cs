@@ -48,10 +48,10 @@ builder.ConfigureServices((context, services) =>
 
     services.AddSingleton<ILoopService, OpenBuyLimitLoopService>();
     services.AddSingleton<ILoopService, OpenSellLimitLoopService>();
+    services.AddSingleton<ILoopService, PositionBuyLoopService>();
+    services.AddSingleton<ILoopService, PositionSellLoopService>();
     services.AddSingleton<ILoopService, CancelBuyLimitLoopService>();
     services.AddSingleton<ILoopService, CancelSellLimitLoopService>();
-    services.AddSingleton<ILoopService, BuyPositionLoopService>();
-    services.AddSingleton<ILoopService, SellPositionLoopService>();
 
     services.AddHostedService<LoopBackgroundService>();
 });

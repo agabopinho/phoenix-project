@@ -28,7 +28,7 @@ public class MarketDataLoopService(
     private const string FIELD_VOLUME_REAL = "volume_real";
     private const string FIELD_FLAGS = "flags";
 
-    private readonly RangeChart _rangeCalculation = new(operationSettings.CurrentValue.BrickSize!.Value);
+    private readonly RangeChart _rangeCalculation = new(operationSettings.CurrentValue.BrickSize);
 
     private DateTime _currentTime;
     private Trade? _lastTrade;

@@ -51,10 +51,7 @@ public class SanityTestLoopService(
             return;
         }
 
-        var updated = new[] { state.OrdersUpdated, state.LastTradeUpdated };
-        var delay = DateTime.UtcNow - updated.Min();
-
-        if (delay.TotalMilliseconds > 100)
+        if (state.Delayed)
         {
             return;
         }
@@ -118,7 +115,10 @@ public class SanityTestLoopService(
 
         var orderLimit = default(Order);
 
-        while ((orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket)) is null) ;
+        while ((orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket)) is null)
+        {
+            await Task.Delay(operationSettings.CurrentValue.WhileDelay, cancellationToken);
+        }
 
         logger.LogInformation("Waited {orderType} order appear in the order list in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
         stopwatch.Restart();
@@ -132,7 +132,10 @@ public class SanityTestLoopService(
             await orderWrapper.ModifyOrderLimitAsync(ticket.Value, limitPrice, cancellationToken);
 
             while ((orderLimit = state.Orders.FirstOrDefault(it => it.Ticket == ticket)) is not null &&
-                orderLimit.PriceOpen != limitPrice) ;
+                orderLimit.PriceOpen != limitPrice)
+            {
+                await Task.Delay(operationSettings.CurrentValue.WhileDelay, cancellationToken);
+            }
 
             if (orderLimit?.PriceOpen == limitPrice)
             {
@@ -149,7 +152,10 @@ public class SanityTestLoopService(
 
         await orderWrapper.CancelAsync(ticket.Value, cancellationToken);
 
-        while (state.Orders.Any(it => it.Ticket == ticket)) ;
+        while (state.Orders.Any(it => it.Ticket == ticket))
+        {
+            await Task.Delay(operationSettings.CurrentValue.WhileDelay, cancellationToken);
+        }
 
         logger.LogInformation("Canceled {orderType} order in {ms}ms.", orderType, stopwatch.ElapsedMilliseconds);
         stopwatch.Restart();

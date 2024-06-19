@@ -1,5 +1,7 @@
 ﻿using Application.Models;
 using Application.Options;
+using Application.Services.Providers;
+using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -7,33 +9,56 @@ namespace Application.Services.Strategy;
 
 public class OpenBuyLimitLoopService(
     State state,
+    OrderWrapper orderWrapper,
     IOptionsMonitor<OperationOptions> operationSettings,
     ILogger<OpenBuyLimitLoopService> logger
-) : StrategyLoopService(state, operationSettings, logger)
+) : StrategyLoopService(state, orderWrapper, operationSettings, logger)
 {
     protected override async Task StrategyRunAsync(CancellationToken cancellationToken)
     {
+        if (State.Delayed)
+        {
+            return;
+        }
+
+        if (State.CheckDelayed(State.BricksUpdated))
+        {
+            return;
+        }
+
         if (State.Position is not null)
         {
             return;
         }
 
-        await Task.CompletedTask;
+        var price = State.Bricks.Last().Open - OperationSettings.CurrentValue.BrickSize;
+        var lot = OperationSettings.CurrentValue.Order.Lot;
 
-        //var lastBrick = State.Bricks.Last();
+        var orders = State.Orders
+            .Where(it =>
+                it.Type == OrderType.BuyLimit &&
+                it.Magic == OperationSettings.CurrentValue.Order.Magic);
 
-        //var brickSize = settings.BrickSize!.Value;
-        //var lot = settings.Order.Lot;
+        if (orders.All(it => it.PriceOpen == price) && orders.Sum(it => it.VolumeCurrent) == lot)
+        {
+            return;
+        }
 
-        //var sellLimitPrice = lastBrick.Open + brickSize;
-        //var buyLimitPrice = lastBrick.Open - brickSize;
+        var modifyTicket = orders
+            .FirstOrDefault(it =>
+                it.VolumeCurrent == lot &&
+                it.PriceOpen != price);
 
-        //var modifySellLimitTicket = State.Orders.FirstOrDefault(it => it.Type == OrderType.SellLimit)?.Ticket;
-        //var modifyBuyLimitTicket = State.Orders.FirstOrDefault(it => it.Type == OrderType.BuyLimit)?.Ticket;
+        var cancelTickets = orders
+            .Where(it => it.Ticket != modifyTicket?.Ticket);
 
-        //var sellLimit = orderWrapper.SellLimitAsync(sellLimitPrice, lot, modifySellLimitTicket, cancellationToken);
-        //var buyLimit = orderWrapper.BuyLimitAsync(buyLimitPrice, lot, modifyBuyLimitTicket, cancellationToken);
-
-        //await Task.WhenAll(sellLimit, buyLimit);
+        if (modifyTicket is null)
+        {
+            await NewOrderAsync(OrderType.BuyLimit, price, lot, cancelTickets, cancellationToken);
+        }
+        else
+        {
+            await ModifyOrderAsync(OrderType.BuyLimit, modifyTicket, price, lot, cancelTickets, cancellationToken);
+        }
     }
 }
