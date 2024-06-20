@@ -61,6 +61,8 @@ public class MarketDataLoopService(
         if (_newBricks > 0)
         {
             logger.LogInformation("NewBricks: {newBricks}", _newBricks);
+            logger.LogInformation("LastBrick:Shift(1): {lastBrick}", _rangeCalculation.Bricks.Reverse().Skip(1).FirstOrDefault());
+            logger.LogInformation("LastBrick: {lastBrick}", _rangeCalculation.Bricks.Last());
         }
     }
 
@@ -149,7 +151,7 @@ public class MarketDataLoopService(
             fromDate,
             toDate,
             CopyTicks.Trade,
-            [FIELD_TIME_MSC, FIELD_LAST],
+            [FIELD_TIME_MSC, FIELD_LAST, FIELD_VOLUME_REAL],
             cancellationToken);
 
         state.CheckResponseStatus(ResponseType.GetTicks, ticksReply.ResponseStatus);

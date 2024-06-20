@@ -12,10 +12,11 @@ public class OperationOptions
 
 public class OrderOptions
 {
-    public double Lot { get; set; }
-    public int Deviation { get; set; }
     public long Magic { get; set; }
+    public int Deviation { get; set; }
+    public double Lot { get; set; }
     public ProductionMode ProductionMode { get; set; }
+    public double Offset { get; set; }
     public double WaitingTimeout { get; set; }
     public double MaximumPriceProximity { get; set; }
     public double MaximumInformationDelay { get; set; }

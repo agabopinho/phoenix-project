@@ -21,7 +21,9 @@ public class CancelSellLimitLoopService(
             return;
         }
 
-        if (State.Position?.Type is not PositionType.Sell)
+        var position = State.Position;
+
+        if (position?.Type is not PositionType.Sell)
         {
             return;
         }

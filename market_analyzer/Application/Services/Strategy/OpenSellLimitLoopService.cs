@@ -26,29 +26,32 @@ public class OpenSellLimitLoopService(
             return;
         }
 
-        if (State.Position is not null)
+        var position = State.Position;
+
+        if (position is not null)
         {
             return;
         }
 
-        var price = State.Bricks.Last().Open + OperationSettings.CurrentValue.BrickSize;
-        var lot = OperationSettings.CurrentValue.Order.Lot;
+        var options = OperationSettings.CurrentValue;
+        var price = State.Bricks.Last().Open + options.BrickSize - options.Order.Offset;
+        var lot = options.Order.Lot;
 
         var orders = State.Orders
             .Where(it =>
                 it.Type == OrderType.SellLimit &&
-                it.Magic == OperationSettings.CurrentValue.Order.Magic);
-
-        if (orders.All(it => it.PriceOpen == price) && orders.Sum(it => it.VolumeCurrent) == lot)
-        {
-            return;
-        }
+                it.Magic == options.Order.Magic);
 
         if (orders.Any())
         {
+            if (orders.All(it => it.PriceOpen == price))
+            {
+                return;
+            }
+
             var averagePrice = orders.Average(it => it.PriceOpen!.Value);
 
-            if (!PermittedDistance(OrderType.SellLimit, averagePrice, OperationSettings.CurrentValue.BrickSize))
+            if (!PermittedDistance(OrderType.SellLimit, averagePrice, options.BrickSize - options.Order.Offset))
             {
                 return;
             }

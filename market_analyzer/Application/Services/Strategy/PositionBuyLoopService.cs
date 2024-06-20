@@ -26,29 +26,32 @@ public class PositionBuyLoopService(
             return;
         }
 
-        if (State.Position?.Type is not PositionType.Buy)
+        var position = State.Position;
+
+        if (position?.Type is not PositionType.Buy)
         {
             return;
         }
 
-        var price = State.Bricks.Last().Open + OperationSettings.CurrentValue.BrickSize;
-        var lot = Math.Min(State.Position!.Volume!.Value * 2, OperationSettings.CurrentValue.Order.Lot * 2);
+        var options = OperationSettings.CurrentValue;
+        var price = State.Bricks.Last().Open + options.BrickSize - options.Order.Offset;
+        var lot = Math.Min(position.Volume!.Value * 2, options.Order.Lot * 2);
 
         var orders = State.Orders
             .Where(it =>
                 it.Type == OrderType.SellLimit &&
-                it.Magic == OperationSettings.CurrentValue.Order.Magic);
-
-        if (orders.All(it => it.PriceOpen == price) && orders.Sum(it => it.VolumeCurrent) == lot)
-        {
-            return;
-        }
+                it.Magic == options.Order.Magic);
 
         if (orders.Any())
         {
+            if (orders.All(it => it.PriceOpen == price))
+            {
+                return;
+            }
+
             var averagePrice = orders.Average(it => it.PriceOpen!.Value);
 
-            if (!PermittedDistance(OrderType.SellLimit, averagePrice, OperationSettings.CurrentValue.BrickSize))
+            if (!PermittedDistance(OrderType.SellLimit, averagePrice, options.BrickSize - options.Order.Offset))
             {
                 return;
             }
