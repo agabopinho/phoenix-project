@@ -26,7 +26,7 @@ public class OpenSellLimitLoopService(
             return;
         }
 
-        if (State.Position is null)
+        if (State.Position is not null)
         {
             return;
         }
@@ -42,6 +42,16 @@ public class OpenSellLimitLoopService(
         if (orders.All(it => it.PriceOpen == price) && orders.Sum(it => it.VolumeCurrent) == lot)
         {
             return;
+        }
+
+        if (orders.Any())
+        {
+            var averagePrice = orders.Average(it => it.PriceOpen!.Value);
+
+            if (!PermittedDistance(OrderType.SellLimit, averagePrice, OperationSettings.CurrentValue.BrickSize))
+            {
+                return;
+            }
         }
 
         var modifyTicket = orders

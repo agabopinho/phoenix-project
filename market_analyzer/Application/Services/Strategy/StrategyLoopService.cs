@@ -67,7 +67,7 @@ public abstract class StrategyLoopService(
 
     protected abstract Task StrategyRunAsync(CancellationToken cancellationToken);
 
-    protected bool PermittedDistance(OrderType orderType, double price)
+    protected bool PermittedDistance(OrderType orderType, double price, double? proximity = null)
     {
         if (orderType is not (OrderType.BuyLimit or OrderType.SellLimit))
         {
@@ -78,7 +78,7 @@ public abstract class StrategyLoopService(
             State.LastTick!.Last!.Value - price :
             price - State.LastTick!.Last!.Value;
 
-        return delta > OperationSettings.CurrentValue.Order.MaximumPriceProximity;
+        return delta >= (proximity ?? OperationSettings.CurrentValue.Order.MaximumPriceProximity);
     }
 
     protected async Task<Order?> AwaitOrderAsync(long ticket, CancellationToken cancellationToken)
@@ -92,6 +92,8 @@ public abstract class StrategyLoopService(
         {
             if (stopwatch.ElapsedMilliseconds >= OperationSettings.CurrentValue.Order.WaitingTimeout)
             {
+                Logger.LogWarning("Timeout when waiting for order {ticket}", ticket);
+
                 break;
             }
 
@@ -112,6 +114,8 @@ public abstract class StrategyLoopService(
         {
             if (stopwatch.ElapsedMilliseconds >= OperationSettings.CurrentValue.Order.WaitingTimeout)
             {
+                Logger.LogWarning("Timeout when waiting for order {ticket}", ticket);
+
                 break;
             }
 

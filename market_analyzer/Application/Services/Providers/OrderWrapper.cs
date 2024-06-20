@@ -12,7 +12,7 @@ public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State s
 {
     public Task<long?> SellLimitAsync(double price, double volume, CancellationToken cancellationToken)
     {
-        return SellLimitAsync(price, volume, cancellationToken);
+        return SellLimitAsync(price, volume, options.CurrentValue.Order.Magic, cancellationToken);
     }
 
     public async Task<long?> SellLimitAsync(double price, double volume, long magic, CancellationToken cancellationToken)
@@ -26,7 +26,7 @@ public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State s
 
     public Task<long?> BuyLimitAsync(double price, double volume, CancellationToken cancellationToken)
     {
-        return BuyLimitAsync(price, volume, cancellationToken);
+        return BuyLimitAsync(price, volume, options.CurrentValue.Order.Magic, cancellationToken);
     }
 
     public async Task<long?> BuyLimitAsync(double price, double volume, long magic, CancellationToken cancellationToken)
@@ -70,7 +70,7 @@ public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State s
         return sendOrderReply;
     }
 
-    private static OrderRequest OrderLimit(OperationOptions settings, OrderType orderType, double price, double lot, long? magic = null)
+    private static OrderRequest OrderLimit(OperationOptions settings, OrderType orderType, double price, double lot, long magic)
     {
         if (orderType is not (OrderType.BuyLimit or OrderType.SellLimit))
         {
@@ -81,7 +81,7 @@ public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State s
         {
             Symbol = settings.Symbol,
             Deviation = settings.Order.Deviation,
-            Magic = magic ?? settings.Order.Magic,
+            Magic = magic,
             Price = price,
             Volume = lot,
             Action = TradeAction.Pending,

@@ -32,7 +32,7 @@ public class PositionBuyLoopService(
         }
 
         var price = State.Bricks.Last().Open + OperationSettings.CurrentValue.BrickSize;
-        var lot = State.Position!.Volume!.Value * 2;
+        var lot = Math.Min(State.Position!.Volume!.Value * 2, OperationSettings.CurrentValue.Order.Lot * 2);
 
         var orders = State.Orders
             .Where(it =>
@@ -42,6 +42,16 @@ public class PositionBuyLoopService(
         if (orders.All(it => it.PriceOpen == price) && orders.Sum(it => it.VolumeCurrent) == lot)
         {
             return;
+        }
+
+        if (orders.Any())
+        {
+            var averagePrice = orders.Average(it => it.PriceOpen!.Value);
+
+            if (!PermittedDistance(OrderType.SellLimit, averagePrice, OperationSettings.CurrentValue.BrickSize))
+            {
+                return;
+            }
         }
 
         var modifyTicket = orders
