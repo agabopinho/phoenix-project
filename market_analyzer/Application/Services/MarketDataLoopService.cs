@@ -70,16 +70,14 @@ public class MarketDataLoopService(
     {
         _previousBricksCount = _rangeCalculation.Bricks.Count;
 
-        var bytesAsInt = await GetNpzTicksStreamAsync(cancellationToken);
+        var bytes = await GetNpzTicksBytesAsync(cancellationToken);
 
-        if (bytesAsInt is null || !bytesAsInt.Any())
+        if ((bytes?.Length ?? 0) == 0)
         {
             return;
         }
 
-        var bytes = bytesAsInt.Select(it => (byte)it).ToArray();
-
-        CheckNewPrice(bytes);
+        CheckNewPrice(bytes!);
     }
 
     private void CheckNewPrice(byte[] bytes)
@@ -136,7 +134,7 @@ public class MarketDataLoopService(
         _newBricks = _rangeCalculation.Bricks.Count - _previousBricksCount;
     }
 
-    private async Task<IEnumerable<int>> GetNpzTicksStreamAsync(CancellationToken cancellationToken)
+    private async Task<byte[]> GetNpzTicksBytesAsync(CancellationToken cancellationToken)
     {
         var fromDate = GetFromDate();
         var toDate = _currentTime.AddSeconds(AHEAD_SECONDS);
@@ -156,7 +154,7 @@ public class MarketDataLoopService(
 
         state.CheckResponseStatus(ResponseType.GetTicks, ticksReply.ResponseStatus);
 
-        return ticksReply.Bytes;
+        return ticksReply.Bytes.Select(it => (byte)it).ToArray();
     }
 
     private DateTime GetFromDate()
