@@ -59,7 +59,7 @@ public class RangeChart
 
             last.High = ohlc.Max();
             last.Low = ohlc.Min();
-           
+
             return;
         }
 
