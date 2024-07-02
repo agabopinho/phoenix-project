@@ -18,10 +18,10 @@ import plotly.graph_objects as go
 import pandas_ta as ta
 
 from datetime import datetime, timedelta
-from terminal.Extensions.MT5 import MT5
+from terminal.Extensions.MT5Ext import MT5Ext
 from terminal.Extensions.Range import Range
 
-MT5.initialize()
+MT5Ext.initialize()
 
 from_date = datetime(2024, 6, 19, hour=6, tzinfo=pytz.utc)
 to_date = datetime(2024, 6, 20, tzinfo=pytz.utc)
@@ -40,7 +40,7 @@ while from_date < to_date:
     from_date += timedelta(days=1)
     del trades
     
-ohlc = MT5.create_ohlc_from_ticks(trades_list, '10s')
+ohlc = MT5Ext.create_ohlc_from_ticks(trades_list, '10s')
 ohlc["volume"] = ohlc["real_volume"]
 
 # Create a Stratey

@@ -11,11 +11,18 @@ package terminal;
 
 service MarketData {
   rpc GetSymbolTick (GetSymbolTickRequest) returns (GetSymbolTickReply) {}
+  
   rpc StreamTicksRange (StreamTicksRangeRequest) returns (stream TicksRangeReply) {}
+  rpc GetTicksRange (GetTicksRangeRequest) returns (TicksRangeReply) {} // todo: pendente
+  
   rpc StreamTicksRangeBytes (StreamTicksRangeBytesRequest) returns (stream TicksRangeBytesReply) {}
   rpc GetTicksRangeBytes (GetTicksRangeBytesRequest) returns (TicksRangeBytesReply) {}
+
   rpc StreamRatesRange (StreamRatesRangeRequest) returns (stream RatesRangeReply) {}
+  rpc GetRatesRange (GetRatesRangeRequest) returns (RatesRangeReply) {} // todo: pendente
+  
   rpc StreamRatesRangeFromTicks (StreamRatesRangeFromTicksRequest) returns (stream RatesRangeReply) {}
+  rpc GetRatesRangeFromTicks (GetRatesRangeFromTicksRequest) returns (RatesRangeReply) {} // todo: pendente
 }
 
 message GetSymbolTickRequest {
@@ -35,6 +42,13 @@ message StreamTicksRangeRequest {
   int32 chunkSize = 5;
 }
 
+message GetTicksRangeRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  CopyTicks type = 4;
+}
+
 message TicksRangeReply {
   repeated Tick ticks = 1;
   ResponseStatus responseStatus = 2;
@@ -49,11 +63,6 @@ message StreamTicksRangeBytesRequest {
   repeated string returnFields = 6;
 }
 
-message TicksRangeBytesReply {
-  repeated int32 bytes = 1;
-  ResponseStatus responseStatus = 2;
-}
-
 message GetTicksRangeBytesRequest {
   string symbol = 1;
   google.protobuf.Timestamp fromDate = 2;
@@ -62,12 +71,25 @@ message GetTicksRangeBytesRequest {
   repeated string returnFields = 5;
 }
 
+
+message TicksRangeBytesReply {
+  repeated int32 bytes = 1;
+  ResponseStatus responseStatus = 2;
+}
+
 message StreamRatesRangeRequest {
   string symbol = 1;
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
   Timeframe timeframe = 4;
   int32 chunkSize = 5;
+}
+
+message GetRatesRangeRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  Timeframe timeframe = 4;
 }
 
 message RatesRangeReply {
@@ -81,6 +103,13 @@ message StreamRatesRangeFromTicksRequest {
   google.protobuf.Timestamp toDate = 3;
   google.protobuf.Duration timeframe = 4;
   int32 chunkSize = 5;
+}
+
+message GetRatesRangeFromTicksRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp fromDate = 2;
+  google.protobuf.Timestamp toDate = 3;
+  google.protobuf.Duration timeframe = 4;
 }
 
 message Tick {

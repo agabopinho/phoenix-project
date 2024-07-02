@@ -10,7 +10,7 @@ import MarketData_pb2_grpc as services
 import MetaTrader5 as mt5
 import pytz
 
-from terminal.Extensions.MT5 import MT5
+from terminal.Extensions.MT5Ext import MT5Ext
 
 logger = logging.getLogger("app")
 
@@ -37,7 +37,7 @@ class MarketData(services.MarketDataServicer):
 
     def GetSymbolTick(self, request, _):
         tick = mt5.symbol_info_tick(request.symbol)
-        responseStatus = MT5.check_conn()
+        responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.GetSymbolTickReply(responseStatus=responseStatus)
@@ -62,7 +62,7 @@ class MarketData(services.MarketDataServicer):
 
     def StreamTicksRange(self, request, _):
         data = self.__copyTicksRange(request)
-        responseStatus = MT5.check_conn()
+        responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.TicksRangeReply(responseStatus=responseStatus)
@@ -99,7 +99,7 @@ class MarketData(services.MarketDataServicer):
 
     def StreamTicksRangeBytes(self, request, _):
         data = self.__copyTicksRange(request)
-        responseStatus = MT5.check_conn()
+        responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.TicksRangeBytesReply(responseStatus=responseStatus)
@@ -132,7 +132,7 @@ class MarketData(services.MarketDataServicer):
 
     def GetTicksRangeBytes(self, request, _):
         data = self.__copyTicksRange(request)
-        responseStatus = MT5.check_conn()
+        responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             return protos.TicksRangeBytesReply(responseStatus=responseStatus)
@@ -163,7 +163,7 @@ class MarketData(services.MarketDataServicer):
 
     def StreamRatesRange(self, request, _):
         data = self.__copyRatesRange(request)
-        responseStatus = MT5.check_conn()
+        responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.RatesRangeReply(responseStatus=responseStatus)
@@ -192,25 +192,25 @@ class MarketData(services.MarketDataServicer):
 
     def StreamRatesRangeFromTicks(self, request, _):
         data = self.__copyTicksRange(
-            protos.TicksRangeRequest(
+            protos.StreamTicksRangeRequest(
                 symbol=request.symbol,
                 fromDate=request.fromDate,
                 toDate=request.toDate,
                 type=int(mt5.COPY_TICKS_TRADE),
             )
         )
-        responseStatus = MT5.check_conn()
+        responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
             yield protos.RatesRangeReply(responseStatus=responseStatus)
 
-        ohlc = MT5.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
+        ohlc = MT5Ext.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
 
         del data
 
         rates = [
             protos.Rate(
-                time=timestampProtos.Timestamp(seconds=index.timestamp()),
+                time=timestampProtos.Timestamp(seconds=int(index.timestamp())),
                 open=wrappersProtos.DoubleValue(value=rate["open"]),
                 high=wrappersProtos.DoubleValue(value=rate["high"]),
                 low=wrappersProtos.DoubleValue(value=rate["low"]),

@@ -13,15 +13,17 @@ public static class RangeChartExtensions
     public const string FIELD_VOLUME_REAL = "volume_real";
     public const string FIELD_FLAGS = "flags";
 
-    public static Trade? CheckNewPrice(this RangeChart rangeChart, byte[] bytes, Trade? lastTrade = null)
+    public static Trade? CheckNewPrice(this RangeChart rangeChart, byte[] bytes, Trade? lastTrade = null, IEnumerable<Skender.Stock.Indicators.AtrResult>? atr = null)
     {
         using var bytesStream = new MemoryStream(bytes);
 
-        return rangeChart.CheckNewPrice(bytesStream, lastTrade);
+        return rangeChart.CheckNewPrice(bytesStream, lastTrade, atr);
     }
 
-    public static Trade? CheckNewPrice(this RangeChart rangeChart, Stream bytesStream, Trade? lastTrade = null)
+    public static Trade? CheckNewPrice(this RangeChart rangeChart, Stream bytesStream, Trade? lastTrade = null, IEnumerable<Skender.Stock.Indicators.AtrResult>? atr = null)
     {
+        var atrValues = atr?.ToDictionary(it => it.Date, it => it.Atr);
+
         using var zipArchive = new ZipArchive(bytesStream);
 
         var data = new Dictionary<string, Array>();
@@ -54,7 +56,10 @@ public static class RangeChartExtensions
                 continue;
             }
 
-            rangeChart.CheckNewPrice(trade.Time, trade.Last, trade.Volume);
+            var atrKey = atrValues?.Keys.LastOrDefault(key => key < trade.Time);
+            var atrValue = atrValues is not null && atrKey is not null ? atrValues[atrKey.Value] : null;
+
+            rangeChart.CheckNewPrice(trade.Time, trade.Last, trade.Volume, atrValue);
 
             tempLastTrade = trade;
         }

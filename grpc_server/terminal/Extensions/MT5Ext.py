@@ -8,7 +8,7 @@ import google.protobuf.wrappers_pb2 as wrappersProtos
 logger = logging.getLogger("app")
 
 
-class MT5:
+class MT5Ext:
 
     @staticmethod
     def initialize():
@@ -31,7 +31,7 @@ class MT5:
         if isinstance(ticks, pd.DataFrame):
             trades = ticks
         else:
-            trades = MT5.create_ticks_dataframe(ticks)
+            trades = MT5Ext.create_ticks_dataframe(ticks)
         resample = trades.resample(rule=rule, label="left")
         rates = resample["last"].ohlc()
         rates["tick_volume"] = resample["last"].count()
@@ -56,7 +56,7 @@ class MT5:
             or error[0] == mt5.RES_E_INTERNAL_FAIL_CONNECT
             or error[0] == mt5.RES_E_INTERNAL_FAIL_TIMEOUT
         ):
-            MT5.initialize()
+            MT5Ext.initialize()
 
         return contractsProtos.ResponseStatus(
             responseCode=int(error[0]),

@@ -24,7 +24,7 @@ public class RangeChart
     {
         if (brickSize != null)
         {
-            _brickSize = (double)brickSize;
+            _brickSize = brickSize.Value;
         }
 
         if (_bricks.Count == 0)
@@ -52,64 +52,34 @@ public class RangeChart
         if (bricksCount == 0)
         {
             last.Close = price;
-
-            var values = new[] { last.Open, last.High, last.Low, last.Close };
-
-            last.High = values.Max();
-            last.Low = values.Min();
             last.TicksCount += 1;
             last.Volume += volume;
-        }
 
-        if (last.Type is BrickType.Up or BrickType.Last)
-        {
-            if (price > last.Open)
-            {
-                delta = price - last.Open;
-                bricksCount = (int)Math.Floor(delta / _brickSize);
-                if (bricksCount > 0)
-                {
-                    AddBricks(BrickType.Up, time, price, volume, bricksCount);
-                }
-            }
-            else if (price <= last.Open)
-            {
-                delta = last.Open - price;
-                bricksCount = (int)Math.Floor(delta / _brickSize);
-                if (bricksCount > 0)
-                {
-                    AddBricks(BrickType.Down, time, price, volume, bricksCount);
-                }
-            }
+            var ohlc = last.Ohlc;
+
+            last.High = ohlc.Max();
+            last.Low = ohlc.Min();
+           
             return;
         }
 
-        if (last.Type is BrickType.Down)
+        if (price > last.Open)
         {
-            if (price < last.Open)
-            {
-                delta = last.Open - price;
-                bricksCount = (int)Math.Floor(delta / _brickSize);
-                if (bricksCount > 0)
-                {
-                    AddBricks(BrickType.Down, time, price, volume, bricksCount);
-                }
-            }
-            else if (price >= last.Open)
-            {
-                delta = price - last.Open;
-                bricksCount = (int)Math.Floor(delta / _brickSize);
-                if (bricksCount > 0)
-                {
-                    AddBricks(BrickType.Up, time, price, volume, bricksCount);
-                }
-            }
-            return;
+            AddBricks(BrickType.Up, time, price, volume, bricksCount);
+        }
+        else
+        {
+            AddBricks(BrickType.Down, time, price, volume, bricksCount);
         }
     }
 
     private void AddBricks(BrickType type, DateTime time, double price, double volume, int count)
     {
+        if (type is not (BrickType.Up or BrickType.Down))
+        {
+            throw new ArgumentException($"Invalid add {nameof(BrickType)}: {type}.");
+        }
+
         var last = _bricks.Last();
 
         if (last.Type is BrickType.Last)

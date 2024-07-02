@@ -6,7 +6,7 @@ import grpc
 import MarketData_pb2_grpc as services
 import OrderManagementSystem_pb2_grpc as OrderManagementSystemService
 
-from terminal.Extensions.MT5 import MT5
+from terminal.Extensions.MT5Ext import MT5Ext
 from terminal.MarketData import MarketData
 from terminal.OrderManagementSystem import OrderManagementSystem
 
@@ -41,6 +41,6 @@ if __name__ == "__main__":
 
     logging.getLogger("chardet.charsetprober").disabled = True
 
-    MT5.initialize()
+    MT5Ext.initialize()
 
     asyncio.get_event_loop().run_until_complete(serve())
