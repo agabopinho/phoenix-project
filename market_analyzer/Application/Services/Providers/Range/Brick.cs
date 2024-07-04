@@ -1,4 +1,6 @@
-﻿namespace Application.Services.Providers.Range;
+﻿using System.Diagnostics;
+
+namespace Application.Services.Providers.Range;
 
 public record class Brick
 {
@@ -11,6 +13,7 @@ public record class Brick
     public int TicksCount { get; set; }
     public double Volume { get; set; }
 
+    [DebuggerHidden]
     public double[] Ohlc => [Open, High, Low, Close];
 
     public double LineUp => Math.Max(Open, Close);

@@ -12,31 +12,29 @@ namespace Application.Models;
 
 public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<OperationOptions> operationSettings)
 {
-    private readonly ConcurrentBag<ErrorOccurrence> _lastErrors = [];
+    private readonly ConcurrentBag<ErrorOccurrence> _errors = [];
+    private readonly ConcurrentDictionary<string, RangeChart> _charts = [];
 
-    private IReadOnlyCollection<Brick> _bricks = [];
-    private Trade? _lastBricksTrade;
     private Position? _position;
     private IReadOnlyCollection<Order> _orders = [];
     private Tick? _lastTick;
 
-    private double _bricksUpdated;
-    private double _positionUpdated;
-    private double _ordersUpdated;
-    private double _lastTickUpdated;
+    private double _chartUpdatedAt;
+    private double _positionUpdatedAt;
+    private double _ordersUpdatedAt;
+    private double _lastTickUpdatedAt;
     private int _sanityTestStatus;
 
-    public IReadOnlyCollection<Brick> Bricks => _bricks;
-    public Trade? LastBricksTrade => _lastBricksTrade;
+    public ConcurrentDictionary<string, RangeChart> Charts => _charts;
     public Position? Position => _position;
     public IReadOnlyCollection<Order> Orders => _orders;
     public Tick? LastTick => _lastTick;
-    public IReadOnlyCollection<ErrorOccurrence> LastErrors => _lastErrors;
+    public IReadOnlyCollection<ErrorOccurrence> LastErrors => _errors;
 
-    public DateTime BricksUpdated => _bricksUpdated.DateTimeFromUnixEpochMilliseconds();
-    public DateTime PositionUpdated => _positionUpdated.DateTimeFromUnixEpochMilliseconds();
-    public DateTime OrdersUpdated => _ordersUpdated.DateTimeFromUnixEpochMilliseconds();
-    public DateTime LastTickUpdated => _lastTickUpdated.DateTimeFromUnixEpochMilliseconds();
+    public DateTime BricksUpdatedAt => _chartUpdatedAt.DateTimeFromUnixEpochMilliseconds();
+    public DateTime PositionUpdatedAt => _positionUpdatedAt.DateTimeFromUnixEpochMilliseconds();
+    public DateTime OrdersUpdatedAt => _ordersUpdatedAt.DateTimeFromUnixEpochMilliseconds();
+    public DateTime LastTickUpdatedAt => _lastTickUpdatedAt.DateTimeFromUnixEpochMilliseconds();
 
     public bool WarnAuction => LastTick?.Bid > LastTick?.Ask;
     public bool OpenMarket => LastTick is not null && LastTick.Time.ToDateTime() > DateTime.Today;
@@ -48,7 +46,7 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
     {
         get
         {
-            var updates = new[] { PositionUpdated, OrdersUpdated, LastTickUpdated };
+            DateTime[] updates = [PositionUpdatedAt, OrdersUpdatedAt, LastTickUpdatedAt];
             return CheckDelayed(updates.Min());
         }
     }
@@ -59,29 +57,28 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
         return delay.TotalMilliseconds > operationSettings.CurrentValue.Order.MaximumInformationDelay;
     }
 
-    public void SetBricks(IReadOnlyCollection<Brick> bricks, Trade? lastTrade)
+    public void SetCharts(string name, RangeChart chart)
     {
-        Interlocked.Exchange(ref _bricks, bricks);
-        Interlocked.Exchange(ref _lastBricksTrade, lastTrade);
-        Interlocked.Exchange(ref _bricksUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
+        _charts.AddOrUpdate(name, chart, (_, _) => chart);
+        Interlocked.Exchange(ref _chartUpdatedAt, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetPosition(Position? position)
     {
         Interlocked.Exchange(ref _position, position);
-        Interlocked.Exchange(ref _positionUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
+        Interlocked.Exchange(ref _positionUpdatedAt, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetOrders(IReadOnlyCollection<Order> orders)
     {
         Interlocked.Exchange(ref _orders, orders);
-        Interlocked.Exchange(ref _ordersUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
+        Interlocked.Exchange(ref _ordersUpdatedAt, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetLastTick(Tick trade)
     {
         Interlocked.Exchange(ref _lastTick, trade);
-        Interlocked.Exchange(ref _lastTickUpdated, DateTime.UtcNow.ToUnixEpochMilliseconds());
+        Interlocked.Exchange(ref _lastTickUpdatedAt, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 
     public void SetSanityTestStatus(SanityTestStatus sanityTestStatus)
@@ -96,7 +93,7 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
             return;
         }
 
-        _lastErrors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus, comment));
+        _errors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus, comment));
 
         logger.LogError("Grpc server error {@data}", new
         {

@@ -55,6 +55,13 @@ public interface IMarketDataWrapper
 
 public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarketDataWrapper
 {
+    public const string FIELD_TIME_MSC = "time_msc";
+    public const string FIELD_BID = "bid";
+    public const string FIELD_ASK = "ask";
+    public const string FIELD_LAST = "last";
+    public const string FIELD_VOLUME_REAL = "volume_real";
+    public const string FIELD_FLAGS = "flags";
+
     public AsyncServerStreamingCall<RatesRangeReply> StreamRatesRangeAsync(
         string symbol,
         DateTime utcFromDate,

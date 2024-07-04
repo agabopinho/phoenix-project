@@ -21,14 +21,11 @@ public class MarketDataLoopService(
 {
     private const int AHEAD_SECONDS = 30;
 
-    private const string FIELD_TIME_MSC = "time_msc";
-    private const string FIELD_BID = "bid";
-    private const string FIELD_ASK = "ask";
-    private const string FIELD_LAST = "last";
-    private const string FIELD_VOLUME_REAL = "volume_real";
-    private const string FIELD_FLAGS = "flags";
+    public const string FAST_BRICKS_KEY = "fast";
+    public const string SLOW_BRICKS_KEY = "slow";
 
-    private readonly RangeChart _rangeCalculation = new(operationSettings.CurrentValue.BrickSize);
+    private readonly RangeChart _slowRangeCalculation = new(operationSettings.CurrentValue.SlowBrickSize);
+    private readonly RangeChart _fastRangeCalculation = new(operationSettings.CurrentValue.FastBrickSize);
 
     private DateTime _currentTime;
     private Trade? _lastTrade;
@@ -54,22 +51,36 @@ public class MarketDataLoopService(
     {
         PreExecution();
 
+        if (_fastRangeCalculation.Bricks.Count == 0)
+        {
+            logger.LogInformation("Loading data from: {fromDate}", GetFromDate());
+        }
+
         await CheckNewPrice(cancellationToken);
 
-        state.SetBricks([.. _rangeCalculation.Bricks], _lastTrade);
+        state.SetCharts(FAST_BRICKS_KEY, _fastRangeCalculation);
+        state.SetCharts(SLOW_BRICKS_KEY, _slowRangeCalculation);
 
         if (_newBricks > 0)
         {
             logger.LogInformation("NewBricks: {newBricks}", _newBricks);
-            logger.LogInformation("LastBrick:Shift(1): {lastBrick}", _rangeCalculation.Bricks.Reverse().Skip(1).FirstOrDefault());
-            logger.LogInformation("LastBrick: {lastBrick}", _rangeCalculation.Bricks.Last());
+
+            var bricks = _fastRangeCalculation.Bricks.ToArray();
+
+            if (bricks.Length >= 3)
+            {
+                logger.LogInformation("Bricks[^3]: {lastBrick}", bricks[^3].LineUp);
+            }
+
+            if (bricks.Length >= 2)
+            {
+                logger.LogInformation("Bricks[^2]: {lastBrick}", bricks[^2].LineUp);
+            }
         }
     }
 
     private async Task CheckNewPrice(CancellationToken cancellationToken)
     {
-        _previousBricksCount = _rangeCalculation.Bricks.Count;
-
         var bytes = await GetNpzTicksBytesAsync(cancellationToken);
 
         if ((bytes?.Length ?? 0) == 0)
@@ -103,14 +114,16 @@ public class MarketDataLoopService(
             data[entry.Name] = np.Load<Array>(entryBytes);
         }
 
-        var time = data[$"{FIELD_TIME_MSC}.npy"];
-        var bid = data[$"{FIELD_BID}.npy"];
-        var ask = data[$"{FIELD_ASK}.npy"];
-        var last = data[$"{FIELD_LAST}.npy"];
-        var volume = data[$"{FIELD_VOLUME_REAL}.npy"];
-        var flags = data[$"{FIELD_FLAGS}.npy"];
+        var time = data[$"{MarketDataWrapper.FIELD_TIME_MSC}.npy"];
+        var bid = data[$"{MarketDataWrapper.FIELD_BID}.npy"];
+        var ask = data[$"{MarketDataWrapper.FIELD_ASK}.npy"];
+        var last = data[$"{MarketDataWrapper.FIELD_LAST}.npy"];
+        var volume = data[$"{MarketDataWrapper.FIELD_VOLUME_REAL}.npy"];
+        var flags = data[$"{MarketDataWrapper.FIELD_FLAGS}.npy"];
 
         var tempLastTrade = default(Trade);
+
+        _previousBricksCount = _fastRangeCalculation.Bricks.Count;
 
         for (var i = 0; i < time.Length - 1; i++)
         {
@@ -121,7 +134,8 @@ public class MarketDataLoopService(
                 continue;
             }
 
-            _rangeCalculation.CheckNewPrice(trade.Time, trade.Last, trade.Volume);
+            _fastRangeCalculation.CheckNewPrice(trade.Time, trade.Last, trade.Volume);
+            _slowRangeCalculation.CheckNewPrice(trade.Time, trade.Last, trade.Volume);
 
             tempLastTrade = trade;
         }
@@ -131,7 +145,7 @@ public class MarketDataLoopService(
             _lastTrade = tempLastTrade;
         }
 
-        _newBricks = _rangeCalculation.Bricks.Count - _previousBricksCount;
+        _newBricks = _fastRangeCalculation.Bricks.Count - _previousBricksCount;
     }
 
     private async Task<byte[]> GetNpzTicksBytesAsync(CancellationToken cancellationToken)
@@ -139,17 +153,12 @@ public class MarketDataLoopService(
         var fromDate = GetFromDate();
         var toDate = _currentTime.AddSeconds(AHEAD_SECONDS);
 
-        if (_previousBricksCount == 0)
-        {
-            logger.LogInformation("Loading data from: {fromDate}", fromDate);
-        }
-
         var ticksReply = await marketDataWrapper.GetTicksRangeBytesAsync(
             operationSettings.CurrentValue.Symbol!,
             fromDate,
             toDate,
             CopyTicks.Trade,
-            [FIELD_TIME_MSC, FIELD_LAST, FIELD_VOLUME_REAL],
+            [MarketDataWrapper.FIELD_TIME_MSC, MarketDataWrapper.FIELD_LAST, MarketDataWrapper.FIELD_VOLUME_REAL],
             cancellationToken);
 
         state.CheckResponseStatus(ResponseType.GetTicks, ticksReply.ResponseStatus);

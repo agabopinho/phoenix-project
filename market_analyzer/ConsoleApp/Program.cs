@@ -3,7 +3,7 @@ using Application.Options;
 using Application.Services;
 using Application.Services.Providers;
 using Application.Services.Providers.Date;
-using Application.Services.Strategy;
+using Application.Services.Strategies;
 using Application.Workers;
 using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Configuration;
@@ -46,12 +46,10 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<ILoopService, MarketDataLoopService>();
     services.AddSingleton<ILoopService, SanityTestLoopService>();
 
-    services.AddSingleton<ILoopService, OpenBuyLimitLoopService>();
-    services.AddSingleton<ILoopService, OpenSellLimitLoopService>();
+    services.AddSingleton<ILoopService, OpenBuyPositionLoopService>();
+    services.AddSingleton<ILoopService, OpenSellPositionLoopService>();
     services.AddSingleton<ILoopService, PositionBuyLoopService>();
     services.AddSingleton<ILoopService, PositionSellLoopService>();
-    services.AddSingleton<ILoopService, CancelBuyLimitLoopService>();
-    services.AddSingleton<ILoopService, CancelSellLimitLoopService>();
 
     services.AddHostedService<LoopBackgroundService>();
 });

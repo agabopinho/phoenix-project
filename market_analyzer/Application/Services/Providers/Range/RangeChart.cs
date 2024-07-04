@@ -2,7 +2,7 @@
 
 public class RangeChart
 {
-    private readonly List<Brick> _bricks = new(1000);
+    private readonly List<Brick> _bricks = new(10_000);
     private double _brickSize;
 
     public RangeChart(double brickSize, List<DateTime>? times = null, List<double>? prices = null, List<double>? volume = null)
@@ -147,6 +147,26 @@ public class RangeChart
         };
 
         _bricks.Add(newItem);
+    }
+
+    public IReadOnlyCollection<Brick> GetUniqueBricks()
+    {
+        var bricks = _bricks.ToArray();
+        var bricksList = new List<Brick>();
+        var lastBrick = default(Brick);
+
+        foreach (var brick in bricks[..^1])
+        {
+            if (lastBrick?.LineUp == brick.LineUp)
+            {
+                continue;
+            }
+
+            bricksList.Add(brick);
+            lastBrick = brick;
+        }
+
+        return [.. bricksList];
     }
 }
 
