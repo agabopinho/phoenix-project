@@ -1,5 +1,6 @@
 ﻿using Application.Models;
 using Application.Options;
+using Application.Services.Providers.Range;
 using Grpc.Terminal.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -62,6 +63,16 @@ public abstract class StrategyLoopService(
     }
 
     protected abstract Task StrategyRunAsync(CancellationToken cancellation);
+
+    protected bool BuySignal(Brick fastIndex1)
+    {
+        return State.LastTick!.Ask <= fastIndex1.LineDown;
+    }
+
+    protected bool SellSignal(Brick fastIndex1)
+    {
+        return State.LastTick!.Bid >= fastIndex1.LineUp;
+    }
 
     protected async Task AwaitPositionAsync(PositionType? positionType, CancellationToken cancellationToken)
     {

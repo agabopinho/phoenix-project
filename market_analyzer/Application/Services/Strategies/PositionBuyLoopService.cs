@@ -75,8 +75,7 @@ public class PositionBuyLoopService(
         var bid = State.LastTick!.Bid!.Value;
         var profitPips = bid - position.PriceOpen;
 
-        return 
-            profitPips >= OperationSettings.CurrentValue.Order.TakeProfitPips || 
+        return
             profitPips <= -OperationSettings.CurrentValue.Order.StopLossPips;
     }
 }

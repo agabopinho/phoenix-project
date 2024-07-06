@@ -1,9 +1,11 @@
-﻿using System.Diagnostics;
+﻿using MiniExcelLibs.Attributes;
+using System.Diagnostics;
 
 namespace Application.Services.Providers.Range;
 
 public record class Brick
 {
+    [ExcelFormat("dd/MM/yyyy HH:mm:ss.fff")]
     public DateTime Date { get; set; }
     public BrickType Type { get; set; } = BrickType.Last;
     public double Open { get; set; }
@@ -13,7 +15,7 @@ public record class Brick
     public int TicksCount { get; set; }
     public double Volume { get; set; }
 
-    [DebuggerHidden]
+    [ExcelIgnore]
     public double[] Ohlc => [Open, High, Low, Close];
 
     public double LineUp => Math.Max(Open, Close);

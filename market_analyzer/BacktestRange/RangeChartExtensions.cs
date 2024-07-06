@@ -44,44 +44,11 @@ public static class RangeChartExtensions
         {
             var trade = Trade.Create(i, time, bid, ask, last, volume, flags);
 
-            if (!IsNewTrade(trade, lastTrade))
-            {
-                continue;
-            }
-
             rangeChart.CheckNewPrice(trade.Time, trade.Last, trade.Volume);
 
             tempLastTrade = trade;
         }
 
         return tempLastTrade;
-    }
-
-    private static bool IsNewTrade(Trade trade, Trade? lastTrade)
-    {
-        if (trade.Time == DateTime.UnixEpoch)
-        {
-            return false;
-        }
-
-        if (lastTrade is null)
-        {
-            return true;
-        }
-
-        if (trade.Time <= lastTrade.Time)
-        {
-            return false;
-        }
-
-        if (trade.Time == lastTrade.Time &&
-            trade.Last == lastTrade.Last &&
-            trade.Flags == lastTrade.Flags &&
-            trade.Volume == lastTrade.Volume)
-        {
-            return false;
-        }
-
-        return true;
     }
 }

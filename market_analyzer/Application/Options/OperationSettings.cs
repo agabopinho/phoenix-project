@@ -4,7 +4,6 @@ public class OperationOptions
 {
     public string? TimeZoneId { get; set; }
     public string? Symbol { get; set; }
-    public double SlowBrickSize { get; set; }
     public double FastBrickSize { get; set; }
     public DateTime? ResumeFrom { get; set; }
     public OrderOptions Order { get; set; } = new();

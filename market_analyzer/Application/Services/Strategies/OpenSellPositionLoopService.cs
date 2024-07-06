@@ -42,16 +42,14 @@ public class OpenSellPositionLoopService(
 
         var fastBricks = fastChart.GetUniqueBricks();
 
-        if (fastBricks.Count < 3)
+        if (fastBricks.Count < 1)
         {
             return;
         }
 
         var fastIndex1 = fastBricks.ElementAt(^1);
-        var fastIndex2 = fastBricks.ElementAt(^2);
-        var fastIndex3 = fastBricks.ElementAt(^3);
 
-        if (!(fastIndex1.LineUp > fastIndex2.LineUp && fastIndex2.LineUp < fastIndex3.LineUp))
+        if (!SellSignal(fastIndex1))
         {
             return;
         }
