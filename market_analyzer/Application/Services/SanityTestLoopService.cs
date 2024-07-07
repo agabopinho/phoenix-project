@@ -10,7 +10,7 @@ using System.Diagnostics;
 namespace Application.Services;
 
 public class SanityTestLoopService(
-    OrderWrapper orderWrapper,
+    IOrderWrapper orderWrapper,
     State state,
     IOptionsMonitor<OperationOptions> operationSettings,
     ILogger<SanityTestLoopService> logger
