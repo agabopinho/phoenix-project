@@ -1,5 +1,5 @@
 grpcio==1.64.0
-MetaTrader5==5.0.4288
+grpcio-tools=1.64.1
 MetaTrader5==5.0.4288
 pandas==2.0.3
 protobuf==5.27.1
