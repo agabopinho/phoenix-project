@@ -8,7 +8,23 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Services.Providers;
 
+public interface IOrderWrapper
+{
+    Task<long?> BuyAsync(double price, double volume, CancellationToken cancellationToken);
+    Task<long?> BuyAsync(double price, double volume, long magic, CancellationToken cancellationToken);
+    Task<long?> BuyLimitAsync(double price, double volume, CancellationToken cancellationToken);
+    Task<long?> BuyLimitAsync(double price, double volume, long magic, CancellationToken cancellationToken);
+    Task<long?> CancelAsync(long orderTicket, CancellationToken cancellationToken);
+    Task<long?> ModifyOrderLimitAsync(long orderTicket, double price, CancellationToken cancellationToken);
+    Task<long?> SellAsync(double price, double volume, CancellationToken cancellationToken);
+    Task<long?> SellAsync(double price, double volume, long magic, CancellationToken cancellationToken);
+    Task<long?> SellLimitAsync(double price, double volume, CancellationToken cancellationToken);
+    Task<long?> SellLimitAsync(double price, double volume, long magic, CancellationToken cancellationToken);
+    Task<SendOrderReply?> SendOrderAsync(OrderRequest order, CancellationToken cancellationToken);
+}
+
 public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State state, IOptionsMonitor<OperationOptions> options, ILogger<OrderWrapper> logger)
+    : IOrderWrapper
 {
     public Task<long?> SellLimitAsync(double price, double volume, CancellationToken cancellationToken)
     {

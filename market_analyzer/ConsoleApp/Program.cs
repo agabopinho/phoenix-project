@@ -38,7 +38,8 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<IDate, OnlineDate>();
 
     services.AddSingleton<State>();
-    services.AddSingleton<OrderWrapper>();
+
+    services.AddSingleton<IOrderWrapper, OrderWrapper>();
 
     services.AddSingleton<ILoopService, PositionLoopService>();
     services.AddSingleton<ILoopService, OrdersLoopService>();

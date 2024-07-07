@@ -21,7 +21,7 @@ public class MarketDataLoopService(
 {
     private const int AHEAD_SECONDS = 30;
 
-    public const string FAST_BRICKS_KEY = "fast";
+    public const string BRICKS_KEY = "bricks";
 
     private readonly RangeChart _fastRangeCalculation = new(operationSettings.CurrentValue.FastBrickSize);
 
@@ -56,7 +56,7 @@ public class MarketDataLoopService(
 
         await CheckNewPrice(cancellationToken);
 
-        state.SetCharts(FAST_BRICKS_KEY, _fastRangeCalculation);
+        state.SetCharts(BRICKS_KEY, _fastRangeCalculation);
 
         if (_newBricks > 0)
         {

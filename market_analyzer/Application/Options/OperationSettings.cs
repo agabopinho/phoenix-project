@@ -15,8 +15,8 @@ public class OrderOptions
     public long Magic { get; set; }
     public int Deviation { get; set; }
     public double Lot { get; set; }
-    public double TakeProfitPips { get; set; }
-    public double StopLossPips { get; set; }
+    public double? TakeProfitPips { get; set; }
+    public double? StopLossPips { get; set; }
     public ProductionMode ProductionMode { get; set; }
     public double MaximumInformationDelay { get; set; }
     public int WhileDelay { get; set; }
