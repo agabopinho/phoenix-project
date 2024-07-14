@@ -110,9 +110,9 @@ public abstract class StrategyLoopService(
         return SignalSell(index1, index2, index3);
     }
 
-    protected async Task BuyAsync(double volume, CancellationToken cancellationToken, PositionType? awaitPositionType = PositionType.Buy)
+    protected async Task BuyAsync(double volume, CancellationToken cancellationToken, PositionType? waitPositionType = PositionType.Buy)
     {
-        if (awaitPositionType is not (PositionType.Buy or null))
+        if (waitPositionType is not (PositionType.Buy or null))
         {
             throw new InvalidOperationException();
         }
@@ -121,13 +121,13 @@ public abstract class StrategyLoopService(
 
         if (deal > 0)
         {
-            await WaitPositionAsync(awaitPositionType, cancellationToken);
+            await WaitPositionAsync(waitPositionType, cancellationToken);
         }
     }
 
-    protected async Task SellAsync(double volume, CancellationToken cancellationToken, PositionType? awaitPositionType = PositionType.Sell)
+    protected async Task SellAsync(double volume, CancellationToken cancellationToken, PositionType? waitPositionType = PositionType.Sell)
     {
-        if (awaitPositionType is not (PositionType.Sell or null))
+        if (waitPositionType is not (PositionType.Sell or null))
         {
             throw new InvalidOperationException();
         }
@@ -136,7 +136,7 @@ public abstract class StrategyLoopService(
 
         if (deal > 0)
         {
-            await WaitPositionAsync(awaitPositionType, cancellationToken);
+            await WaitPositionAsync(waitPositionType, cancellationToken);
         }
     }
 

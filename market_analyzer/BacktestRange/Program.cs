@@ -1,4 +1,5 @@
-﻿using Application.Services.Providers.Range;
+﻿using Application.Models;
+using Application.Services.Providers.Range;
 using BacktestRange;
 using Grpc.Terminal.Enums;
 using Infrastructure.GrpcServerTerminal;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using MiniExcelLibs;
 using Serilog;
 using Spectre.Console;
+using System.Linq;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -33,16 +35,14 @@ var host = builder.Build();
 
 var marketDataWrapper = host.Services.GetRequiredService<IMarketDataWrapper>();
 
-var fromDate = new DateTime(2024, 7, 4, 6, 0, 0, DateTimeKind.Utc);
+var fromDate = new DateTime(2024, 7, 10, 6, 0, 0, DateTimeKind.Utc);
 var toDate = fromDate.Date.AddDays(1);
 
-var symbol = "WINQ24";
-var brickSize = 15D;
+var symbol = "WDOQ24";
+var tradesCount = 1000;
 
 double? takeProfit = null;
 double? stoploss = null;
-
-var rangeChart = new RangeChart(brickSize);
 
 var reply = await marketDataWrapper.GetTicksRangeBytesAsync(
     symbol,
@@ -52,34 +52,39 @@ var reply = await marketDataWrapper.GetTicksRangeBytesAsync(
     [MarketDataWrapper.FIELD_TIME_MSC, MarketDataWrapper.FIELD_LAST, MarketDataWrapper.FIELD_VOLUME_REAL],
     default);
 
-rangeChart.CheckNewPrice(reply.Bytes.Select(it => (byte)it).ToArray());
+var bytes = reply.Bytes.Select(it => (byte)it).ToArray();
+var trades = Trade.CreateFromNpz(bytes).ToArray();
 
-var bricks = rangeChart.Bricks.ToArray();
-var bricksList = rangeChart.GetUniqueBricks().ToArray();
+var bricks = trades
+    .Chunk(tradesCount)
+    .Select(it => new Brick
+    {
+        Date = it[0].Time,
+        Open = it[0].Last,
+        High = it.Max(it => it.Last),
+        Low = it.Min(it => it.Last),
+        Close = it[^1].Last,
+        TicksCount = it.Length,
+        Volume = it.Sum(it => it.Volume),
+    })
+    .ToArray();
 
-var backtest = new Backtest();
+var backtest = new Backtest(slippage: 0.5D);
 
-var lastIndex = 0;
+var index = -1;
 
 foreach (var current in bricks)
 {
-    var index = Array.IndexOf(bricksList, current);
+    index++;
 
-    if (index == -1)
-    {
-        index = lastIndex;
-    }
-
-    if (index < 3)
+    if (index < 4)
     {
         continue;
     }
 
-    lastIndex = index;
-
-    var index3 = bricksList[index - 2];
-    var index2 = bricksList[index - 1];
-    var index1 = bricksList[index];
+    var index3 = bricks[index - 2];
+    var index2 = bricks[index - 1];
+    var index1 = bricks[index];
 
     backtest.AddBrick(current);
 
@@ -93,8 +98,8 @@ foreach (var current in bricks)
         backtest.ClosePosition();
     }
 
-    var signal1 = index1.LineUp < index2.LineUp && index2.LineUp > index3.LineUp;
-    var signal2 = index1.LineUp > index2.LineUp && index2.LineUp < index3.LineUp;
+    var signal2 = index1.LineUp > index2.LineUp;// && index2.LineUp > index3.LineUp;
+    var signal1 = index1.LineUp < index2.LineUp;// && index2.LineUp < index3.LineUp;
 
     if (signal1 && (backtest.CurrentPosition is null || backtest.CurrentPosition.Type is SideType.Sell))
     {
@@ -116,12 +121,11 @@ foreach (var current in bricks)
     Console.WriteLine($"{backtest.Bricks.Last().Date}\t{backtest.CurrentPosition?.Type.ToString() ?? "None"}\tProfit={backtest.CurrentPosition?.Profit.ToString() ?? "None"}\tSum={backtest.Positions.Sum(it => it.Profit)}");
 }
 
-using var stream = File.Open($"bricks-{symbol}-{brickSize}PIPS-{fromDate:yyyy-MM-dd}.xlsx", FileMode.OpenOrCreate);
+using var stream = File.Open($"bricks-{symbol}-{tradesCount}T-{fromDate:yyyy-MM-dd}.xlsx", FileMode.OpenOrCreate);
 
 await stream.SaveAsAsync(new Dictionary<string, object>
 {
     { "bricks", backtest.Bricks },
-    { "unique_bricks", rangeChart.GetUniqueBricks() },
     { "positions", backtest.Positions }
 });
 

@@ -201,3 +201,4 @@ cython_debug/
 *.png
 *.csv
 *.pkl
+*.npz

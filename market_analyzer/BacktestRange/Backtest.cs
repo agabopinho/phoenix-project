@@ -41,8 +41,9 @@ record class Position()
     }
 }
 
-class Backtest
+class Backtest(double slippage)
 {
+    public double Slippage { get; } = slippage;
     public List<Brick> Bricks { get; set; } = [];
     public List<Position> Positions { get; set; } = [];
     public Position? CurrentPosition
@@ -78,7 +79,7 @@ class Backtest
         Positions.Add(new()
         {
             Date = brick.Date,
-            OpenPrice = brick.Close,
+            OpenPrice = type == SideType.Buy ? brick.Close + Slippage : brick.Close - Slippage,
             Type = type
         });
 
@@ -108,6 +109,8 @@ class Backtest
 
         var brick = Bricks.Last();
 
-        lastPosition.Update(brick.Close, closePosition);
+        var closeType = lastPosition.Type == SideType.Buy ? SideType.Sell : SideType.Buy;
+
+        lastPosition.Update(closeType == SideType.Buy ? brick.Close + Slippage : brick.Close - Slippage, closePosition);
     }
 }
