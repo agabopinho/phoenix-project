@@ -23,6 +23,8 @@ service MarketData {
   
   rpc StreamRatesRangeFromTicks (StreamRatesRangeFromTicksRequest) returns (stream RatesRangeReply) {}
   rpc GetRatesRangeFromTicks (GetRatesRangeFromTicksRequest) returns (RatesRangeReply) {} // todo: pendente
+
+  rpc Predict (PredictRequest) returns (PredictReply) {}
 }
 
 message GetSymbolTickRequest {
@@ -71,7 +73,6 @@ message GetTicksRangeBytesRequest {
   repeated string returnFields = 5;
 }
 
-
 message TicksRangeBytesReply {
   repeated int32 bytes = 1;
   ResponseStatus responseStatus = 2;
@@ -92,11 +93,6 @@ message GetRatesRangeRequest {
   Timeframe timeframe = 4;
 }
 
-message RatesRangeReply {
-  repeated Rate rates = 1;
-  ResponseStatus responseStatus = 2;
-}
-
 message StreamRatesRangeFromTicksRequest {
   string symbol = 1;
   google.protobuf.Timestamp fromDate = 2;
@@ -110,6 +106,20 @@ message GetRatesRangeFromTicksRequest {
   google.protobuf.Timestamp fromDate = 2;
   google.protobuf.Timestamp toDate = 3;
   google.protobuf.Duration timeframe = 4;
+}
+
+message RatesRangeReply {
+  repeated Rate rates = 1;
+  ResponseStatus responseStatus = 2;
+}
+
+message PredictRequest {
+  string modelName = 1;
+  google.protobuf.DoubleValue currentChange = 2; 
+}
+
+message PredictReply {
+  google.protobuf.DoubleValue prediction = 1;
 }
 
 message Tick {

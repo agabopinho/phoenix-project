@@ -51,6 +51,8 @@ public interface IMarketDataWrapper
         CancellationToken cancellationToken);
 
     Task<GetSymbolTickReply> GetSymbolTickAsync(string symbol, CancellationToken cancellationToken);
+
+    Task<PredictReply> PredictAsync(string modelName, double currentChange, CancellationToken cancellationToken);
 }
 
 public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarketDataWrapper
@@ -61,6 +63,9 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
     public const string FIELD_LAST = "last";
     public const string FIELD_VOLUME_REAL = "volume_real";
     public const string FIELD_FLAGS = "flags";
+
+    public const string BOUGHT_MODEL = "bought";
+    public const string SOLD_MODEL = "sold";
 
     public AsyncServerStreamingCall<RatesRangeReply> StreamRatesRangeAsync(
         string symbol,
@@ -235,6 +240,27 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
             };
 
             return await client.GetSymbolTickAsync(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
+    }
+
+    public async Task<PredictReply> PredictAsync(string modelName, double currentChange, CancellationToken cancellationToken)
+    {
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
+
+        try
+        {
+            var request = new PredictRequest
+            {
+                ModelName = modelName,
+                CurrentChange = currentChange,
+            };
+
+            return await client.PredictAsync(request, cancellationToken: cancellationToken);
         }
         finally
         {

@@ -9,6 +9,8 @@ import Contracts_pb2 as contractsProtos
 import MarketData_pb2_grpc as services
 import MetaTrader5 as mt5
 import pytz
+import joblib
+import pandas as pd
 
 from terminal.Extensions.MT5Ext import MT5Ext
 
@@ -19,6 +21,12 @@ _NANOS_PER_MILLIS = 1000000
 
 
 class MarketData(services.MarketDataServicer):
+    def __init__(self):
+        self.models = {
+            "bought": joblib.load("./models/bought.joblib"),
+            "sold": joblib.load("./models/sold.joblib"),
+        }
+
     def __copyTicksRange(self, request):
         return mt5.copy_ticks_range(
             request.symbol.upper(),
@@ -46,9 +54,7 @@ class MarketData(services.MarketDataServicer):
             tick=protos.Tick(
                 time=timestampProtos.Timestamp(
                     seconds=int(tick.time_msc / _MILLIS_PER_SECOND),
-                    nanos=int(
-                        (tick.time_msc % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS
-                    ),
+                    nanos=int((tick.time_msc % _MILLIS_PER_SECOND) * _NANOS_PER_MILLIS),
                 ),
                 bid=wrappersProtos.DoubleValue(value=tick.bid),
                 ask=wrappersProtos.DoubleValue(value=tick.ask),
@@ -229,3 +235,10 @@ class MarketData(services.MarketDataServicer):
                 rates=rates[i : i + request.chunkSize],
                 responseStatus=responseStatus,
             )
+
+    def Predict(self, request, _):
+        model = self.models[request.modelName]
+        yPred = model.predict(pd.DataFrame([{"CURRENT_CHANGE": request.currentChange.value}]))
+        return protos.PredictReply(
+            prediction=wrappersProtos.DoubleValue(value=yPred[0])
+        )

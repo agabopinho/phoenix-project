@@ -225,4 +225,4 @@ enum Res {
 message ResponseStatus {
     Res responseCode = 1;                             // response status
     google.protobuf.StringValue responseMessage = 2;  // response message
-  }
+}
