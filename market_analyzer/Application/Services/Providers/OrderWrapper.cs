@@ -104,7 +104,7 @@ public class OrderWrapper(IOrderManagementSystemWrapper orderManagement, State s
     {
         var sendOrderReply = await orderManagement.SendOrderAsync(order, cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.SendOrder, sendOrderReply.ResponseStatus, sendOrderReply.Comment);
+        state.LogGrpcMt5ServerError(ResponseType.SendOrder, sendOrderReply.ResponseStatus, sendOrderReply.Comment);
 
         if (sendOrderReply.Retcode != TradeRetcode.Done)
         {

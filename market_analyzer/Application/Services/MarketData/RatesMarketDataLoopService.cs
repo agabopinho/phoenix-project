@@ -103,7 +103,7 @@ public class RatesMarketDataLoopService(
             operationSettings.CurrentValue.Timeframe,
             cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.GetRatesFromTicks, ratesReply.ResponseStatus);
+        state.LogGrpcMt5ServerError(ResponseType.GetRatesFromTicks, ratesReply.ResponseStatus);
 
         return ratesReply.Rates;
     }

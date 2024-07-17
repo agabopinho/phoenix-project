@@ -109,8 +109,7 @@ public abstract class StrategyLoopService(
             var reply = await MarketData.PredictAsync(MarketDataWrapper.BOUGHT_MODEL, pctChange!.Value, cancellationToken);
             return reply.Prediction == 0 ? PositionType.Sell : null;
         }
-
-        if (index2.Close < index2.Open)
+        else if (index2.Close < index2.Open)
         {
             var reply = await MarketData.PredictAsync(MarketDataWrapper.SOLD_MODEL, pctChange!.Value, cancellationToken);
             return reply.Prediction == 0 ? PositionType.Buy : null;

@@ -37,7 +37,7 @@ public class OrdersLoopService(
             ticket: null,
             cancellationToken: cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.GetOrder, orders.ResponseStatus);
+        state.LogGrpcMt5ServerError(ResponseType.GetOrder, orders.ResponseStatus);
 
         return orders.Orders ?? [];
     }

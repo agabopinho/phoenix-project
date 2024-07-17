@@ -34,7 +34,7 @@ public class LastTickLoopService(
             symbol: operationSettings.CurrentValue.Symbol!,
             cancellationToken: cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.GetLastTick, getSymbolTick.ResponseStatus);
+        state.LogGrpcMt5ServerError(ResponseType.GetLastTick, getSymbolTick.ResponseStatus);
 
         return getSymbolTick.Tick;
     }

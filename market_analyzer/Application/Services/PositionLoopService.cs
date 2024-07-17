@@ -36,7 +36,7 @@ public class PositionLoopService(
             ticket: null,
             cancellationToken: cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.GetPosition, positions.ResponseStatus);
+        state.LogGrpcMt5ServerError(ResponseType.GetPosition, positions.ResponseStatus);
 
         return positions.Positions?.FirstOrDefault();
     }

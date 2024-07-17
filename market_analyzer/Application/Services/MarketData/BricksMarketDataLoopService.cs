@@ -157,7 +157,7 @@ public class BricksMarketDataLoopService(
             [MarketDataWrapper.FIELD_TIME_MSC, MarketDataWrapper.FIELD_LAST, MarketDataWrapper.FIELD_VOLUME_REAL],
             cancellationToken);
 
-        state.CheckResponseStatus(ResponseType.GetTicks, ticksReply.ResponseStatus);
+        state.LogGrpcMt5ServerError(ResponseType.GetTicks, ticksReply.ResponseStatus);
 
         return ticksReply.Bytes.Select(it => (byte)it).ToArray();
     }

@@ -1,6 +1,5 @@
 ﻿using Application.Helpers;
 using Application.Options;
-using Application.Services.Providers.Date;
 using Application.Services.Providers.Range;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
@@ -10,9 +9,8 @@ using System.Collections.Concurrent;
 
 namespace Application.Models;
 
-public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<OperationOptions> operationSettings)
+public class State(ILogger<State> logger, IOptionsMonitor<OperationOptions> operationSettings)
 {
-    private readonly ConcurrentBag<ErrorOccurrence> _errors = [];
     private readonly ConcurrentDictionary<string, RangeChart> _bricksCharts = [];
     private readonly ConcurrentDictionary<string, IReadOnlyCollection<Rate>> _ratesChart = [];
 
@@ -31,7 +29,6 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
     public Position? Position => _position;
     public IReadOnlyCollection<Order> Orders => _orders;
     public Tick? LastTick => _lastTick;
-    public IReadOnlyCollection<ErrorOccurrence> LastErrors => _errors;
 
     public DateTime ChartUpdatedAt => _chartUpdatedAt.DateTimeFromUnixEpochMilliseconds();
     public DateTime PositionUpdatedAt => _positionUpdatedAt.DateTimeFromUnixEpochMilliseconds();
@@ -40,10 +37,9 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
 
     public bool WarnAuction => LastTick?.Bid > LastTick?.Ask;
     public bool OpenMarket => LastTick is not null && LastTick.Time.ToDateTime() > DateTime.Today;
-    public bool ReadyForTrading => ReadyForSanityTest && SanityTestStatus is SanityTestStatus.Skipped or SanityTestStatus.Passed;
     public bool ReadyForSanityTest => OpenMarket && !WarnAuction;
     public SanityTestStatus SanityTestStatus => (SanityTestStatus)_sanityTestStatus;
-
+    public bool ReadyForTrading => ReadyForSanityTest && SanityTestStatus is SanityTestStatus.Skipped or SanityTestStatus.Passed;
     public bool Delayed
     {
         get
@@ -94,20 +90,19 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
         Interlocked.Exchange(ref _sanityTestStatus, (int)sanityTestStatus);
     }
 
-    public void CheckResponseStatus(ResponseType type, ResponseStatus responseStatus, string? comment = null)
+    public void LogGrpcMt5ServerError(ResponseType type, ResponseStatus responseStatus, string? comment = null)
     {
         if (responseStatus.ResponseCode == Res.SOk)
         {
             return;
         }
 
-        _errors.Add(new(dateProvider.LocalDateSpecifiedUtcKind(), type, responseStatus, comment));
-
-        logger.LogError("Grpc server error {@data}", new
+        logger.LogError("Grpc mt5 server error {@data}", new
         {
             ResponseType = type,
             responseStatus.ResponseCode,
-            responseStatus.ResponseMessage
+            responseStatus.ResponseMessage,
+            Comment = comment
         });
     }
 }
