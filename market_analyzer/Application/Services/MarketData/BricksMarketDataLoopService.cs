@@ -9,21 +9,21 @@ using Microsoft.Extensions.Options;
 using NumSharp;
 using System.IO.Compression;
 
-namespace Application.Services;
+namespace Application.Services.MarketData;
 
-public class MarketDataLoopService(
+public class BricksMarketDataLoopService(
     IMarketDataWrapper marketDataWrapper,
     IDate dateProvider,
     State state,
     IOptionsMonitor<OperationOptions> operationSettings,
-    ILogger<MarketDataLoopService> logger
+    ILogger<BricksMarketDataLoopService> logger
 ) : ILoopService
 {
     private const int AHEAD_SECONDS = 30;
 
     public const string BRICKS_KEY = "bricks";
 
-    private readonly RangeChart _fastRangeCalculation = new(operationSettings.CurrentValue.FastBrickSize);
+    private readonly RangeChart _rangeCalculation = new(operationSettings.CurrentValue.BrickSize);
 
     private DateTime _currentTime;
     private Trade? _lastTrade;
@@ -49,20 +49,20 @@ public class MarketDataLoopService(
     {
         PreExecution();
 
-        if (_fastRangeCalculation.Bricks.Count == 0)
+        if (_rangeCalculation.Bricks.Count == 0)
         {
             logger.LogInformation("Loading data from: {fromDate}", GetFromDate());
         }
 
         await CheckNewPrice(cancellationToken);
 
-        state.SetCharts(BRICKS_KEY, _fastRangeCalculation);
+        state.SetBricksCharts(BRICKS_KEY, _rangeCalculation);
 
         if (_newBricks > 0)
         {
             logger.LogInformation("NewBricks: {newBricks}", _newBricks);
 
-            var bricks = _fastRangeCalculation.Bricks.ToArray();
+            var bricks = _rangeCalculation.Bricks.ToArray();
 
             if (bricks.Length >= 3)
             {
@@ -120,7 +120,7 @@ public class MarketDataLoopService(
 
         var tempLastTrade = default(Trade);
 
-        _previousBricksCount = _fastRangeCalculation.Bricks.Count;
+        _previousBricksCount = _rangeCalculation.Bricks.Count;
 
         for (var i = 0; i < time.Length - 1; i++)
         {
@@ -131,7 +131,7 @@ public class MarketDataLoopService(
                 continue;
             }
 
-            _fastRangeCalculation.CheckNewPrice(trade.Time, trade.Last, trade.Volume);
+            _rangeCalculation.CheckNewPrice(trade.Time, trade.Last, trade.Volume);
 
             tempLastTrade = trade;
         }
@@ -141,7 +141,7 @@ public class MarketDataLoopService(
             _lastTrade = tempLastTrade;
         }
 
-        _newBricks = _fastRangeCalculation.Bricks.Count - _previousBricksCount;
+        _newBricks = _rangeCalculation.Bricks.Count - _previousBricksCount;
     }
 
     private async Task<byte[]> GetNpzTicksBytesAsync(CancellationToken cancellationToken)

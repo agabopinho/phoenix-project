@@ -76,7 +76,7 @@ public class Trade(DateTime time, double bid, double ask, double last, double vo
         {
             var trade = Create(i, time, bid, ask, last, volume, flags);
 
-            yield return trade; 
+            yield return trade;
         }
     }
 }

@@ -13,7 +13,8 @@ namespace Application.Models;
 public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<OperationOptions> operationSettings)
 {
     private readonly ConcurrentBag<ErrorOccurrence> _errors = [];
-    private readonly ConcurrentDictionary<string, RangeChart> _charts = [];
+    private readonly ConcurrentDictionary<string, RangeChart> _bricksCharts = [];
+    private readonly ConcurrentDictionary<string, IReadOnlyCollection<Rate>> _ratesChart = [];
 
     private Position? _position;
     private IReadOnlyCollection<Order> _orders = [];
@@ -25,13 +26,14 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
     private double _lastTickUpdatedAt;
     private int _sanityTestStatus;
 
-    public ConcurrentDictionary<string, RangeChart> Charts => _charts;
+    public ConcurrentDictionary<string, RangeChart> BricksCharts => _bricksCharts;
+    public ConcurrentDictionary<string, IReadOnlyCollection<Rate>> RatesCharts => _ratesChart;
     public Position? Position => _position;
     public IReadOnlyCollection<Order> Orders => _orders;
     public Tick? LastTick => _lastTick;
     public IReadOnlyCollection<ErrorOccurrence> LastErrors => _errors;
 
-    public DateTime BricksUpdatedAt => _chartUpdatedAt.DateTimeFromUnixEpochMilliseconds();
+    public DateTime ChartUpdatedAt => _chartUpdatedAt.DateTimeFromUnixEpochMilliseconds();
     public DateTime PositionUpdatedAt => _positionUpdatedAt.DateTimeFromUnixEpochMilliseconds();
     public DateTime OrdersUpdatedAt => _ordersUpdatedAt.DateTimeFromUnixEpochMilliseconds();
     public DateTime LastTickUpdatedAt => _lastTickUpdatedAt.DateTimeFromUnixEpochMilliseconds();
@@ -57,9 +59,15 @@ public class State(IDate dateProvider, ILogger<State> logger, IOptionsMonitor<Op
         return delay.TotalMilliseconds > operationSettings.CurrentValue.Order.MaximumInformationDelay;
     }
 
-    public void SetCharts(string name, RangeChart chart)
+    public void SetBricksCharts(string name, RangeChart bricksChart)
     {
-        _charts.AddOrUpdate(name, chart, (_, _) => chart);
+        _bricksCharts.AddOrUpdate(name, bricksChart, (_, _) => bricksChart);
+        Interlocked.Exchange(ref _chartUpdatedAt, DateTime.UtcNow.ToUnixEpochMilliseconds());
+    }
+
+    public void SetRatesCharts(string name, IReadOnlyCollection<Rate> rateChart)
+    {
+        _ratesChart.AddOrUpdate(name, rateChart, (_, _) => rateChart);
         Interlocked.Exchange(ref _chartUpdatedAt, DateTime.UtcNow.ToUnixEpochMilliseconds());
     }
 

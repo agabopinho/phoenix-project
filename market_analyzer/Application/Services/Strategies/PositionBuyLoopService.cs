@@ -2,6 +2,7 @@
 using Application.Options;
 using Application.Services.Providers;
 using Grpc.Terminal.Enums;
+using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -9,10 +10,11 @@ namespace Application.Services.Strategies;
 
 public class PositionBuyLoopService(
     State state,
-    IOrderWrapper orderWrapper,
+    IMarketDataWrapper marketData,
+    IOrderWrapper order,
     IOptionsMonitor<OperationOptions> operationSettings,
     ILogger<PositionBuyLoopService> logger
-) : StrategyLoopService(state, orderWrapper, operationSettings, logger)
+) : StrategyLoopService(state, marketData, order, operationSettings, logger)
 {
     protected override async Task StrategyRunAsync(CancellationToken cancellationToken)
     {
@@ -21,7 +23,7 @@ public class PositionBuyLoopService(
             return;
         }
 
-        if (State.CheckDelayed(State.BricksUpdatedAt))
+        if (State.CheckDelayed(State.ChartUpdatedAt))
         {
             return;
         }
@@ -33,7 +35,7 @@ public class PositionBuyLoopService(
             return;
         }
 
-        var signalSell = SignalSell();
+        var signalSell = await SignalAsync(cancellationToken) == PositionType.Sell;
 
         if (!signalSell && !LossOrProfit(position))
         {

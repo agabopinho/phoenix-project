@@ -1,9 +1,10 @@
 ﻿using Application.Models;
 using Application.Options;
+using Application.Services.MarketData;
 using Application.Services.Providers;
-using Application.Services.Providers.Range;
 using Grpc.Terminal;
 using Grpc.Terminal.Enums;
+using Infrastructure.GrpcServerTerminal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
@@ -12,13 +13,17 @@ namespace Application.Services.Strategies;
 
 public abstract class StrategyLoopService(
     State state,
-    IOrderWrapper orderWrapper,
+    IMarketDataWrapper marketData,
+    IOrderWrapper order,
     IOptionsMonitor<OperationOptions> operationSettings,
     ILogger<StrategyLoopService> logger
 ) : ILoopService
 {
+    private int _lastChartCount;
+
     protected State State { get; } = state;
-    public IOrderWrapper OrderWrapper { get; } = orderWrapper;
+    protected IMarketDataWrapper MarketData { get; } = marketData;
+    protected IOrderWrapper Order { get; } = order;
     protected IOptionsMonitor<OperationOptions> OperationSettings { get; } = operationSettings;
     protected ILogger Logger { get; } = logger;
 
@@ -53,11 +58,11 @@ public abstract class StrategyLoopService(
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        if (State.BricksUpdatedAt <= DateTime.UnixEpoch)
+        if (State.ChartUpdatedAt <= DateTime.UnixEpoch)
         {
-            Logger.LogInformation("Waiting for bricks to load...");
+            Logger.LogInformation("Waiting for chart to load...");
 
-            while (State.BricksUpdatedAt <= DateTime.UnixEpoch)
+            while (State.ChartUpdatedAt <= DateTime.UnixEpoch)
             {
                 await Task.Delay(OperationSettings.CurrentValue.Order.WhileDelay, cancellationToken);
             }
@@ -68,46 +73,50 @@ public abstract class StrategyLoopService(
 
     protected abstract Task StrategyRunAsync(CancellationToken cancellation);
 
-    protected bool SignalBuy()
+    protected async Task<PositionType?> SignalAsync(CancellationToken cancellationToken)
     {
-        if (!State.Charts.TryGetValue(MarketDataLoopService.BRICKS_KEY, out var chart))
+        if (!State.RatesCharts.TryGetValue(RatesMarketDataLoopService.RATES_KEY, out var rates))
         {
-            return false;
+            return null;
         }
 
-        var bricks = chart.GetUniqueBricks();
-
-        if (bricks.Count < 3)
+        if (_lastChartCount == 0)
         {
-            return false;
+            _lastChartCount = rates.Count;
+
+            return null;
         }
 
-        var index1 = bricks.ElementAt(^1);
-        var index2 = bricks.ElementAt(^2);
-        var index3 = bricks.ElementAt(^3);
-
-        return SignalBuy(index1, index2, index3);
-    }
-
-    protected bool SignalSell()
-    {
-        if (!State.Charts.TryGetValue(MarketDataLoopService.BRICKS_KEY, out var chart))
+        if (rates.Count - _lastChartCount == 0)
         {
-            return false;
+            return null;
         }
 
-        var bricks = chart.GetUniqueBricks();
-
-        if (bricks.Count < 3)
+        if (rates.Count < 2)
         {
-            return false;
+            return null;
         }
 
-        var index1 = bricks.ElementAt(^1);
-        var index2 = bricks.ElementAt(^2);
-        var index3 = bricks.ElementAt(^3);
+        _lastChartCount = rates.Count;
 
-        return SignalSell(index1, index2, index3);
+        var index2 = rates.ElementAt(^2);
+        var index3 = rates.ElementAt(^3);
+
+        var pctChange = GetPctChange(index2, index3);
+
+        if (index2.Close > index2.Open)
+        {
+            var reply = await MarketData.PredictAsync(MarketDataWrapper.BOUGHT_MODEL, pctChange!.Value, cancellationToken);
+            return reply.Prediction == 0 ? PositionType.Sell : null;
+        }
+
+        if (index2.Close < index2.Open)
+        {
+            var reply = await MarketData.PredictAsync(MarketDataWrapper.SOLD_MODEL, pctChange!.Value, cancellationToken);
+            return reply.Prediction == 0 ? PositionType.Buy : null;
+        }
+
+        return null;
     }
 
     protected async Task BuyAsync(double volume, CancellationToken cancellationToken, PositionType? waitPositionType = PositionType.Buy)
@@ -117,7 +126,7 @@ public abstract class StrategyLoopService(
             throw new InvalidOperationException();
         }
 
-        var deal = await OrderWrapper.BuyAsync(State.LastTick!.Ask!.Value, volume, cancellationToken);
+        var deal = await Order.BuyAsync(State.LastTick!.Ask!.Value, volume, cancellationToken);
 
         if (deal > 0)
         {
@@ -132,7 +141,7 @@ public abstract class StrategyLoopService(
             throw new InvalidOperationException();
         }
 
-        var deal = await OrderWrapper.SellAsync(State.LastTick!.Bid!.Value, volume, cancellationToken);
+        var deal = await Order.SellAsync(State.LastTick!.Bid!.Value, volume, cancellationToken);
 
         if (deal > 0)
         {
@@ -168,23 +177,8 @@ public abstract class StrategyLoopService(
         }
     }
 
-    private bool SignalBuy(Brick index1, Brick index2, Brick index3)
+    private static double? GetPctChange(Rate index2, Rate index3)
     {
-        if (!(State.LastTick!.Ask!.Value <= index1.LineDown))
-        {
-            return false;
-        }
-
-        return index1.LineUp < index2.LineUp && index2.LineUp > index3.LineUp;
-    }
-
-    private bool SignalSell(Brick index1, Brick index2, Brick index3)
-    {
-        if (!(State.LastTick!.Bid!.Value >= index1.LineUp))
-        {
-            return false;
-        }
-
-        return index1.LineUp > index2.LineUp && index2.LineUp < index3.LineUp;
+        return (index2.Close - index3.Close) / index3.Close;
     }
 }

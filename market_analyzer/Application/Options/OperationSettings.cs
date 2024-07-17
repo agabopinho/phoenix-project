@@ -4,7 +4,8 @@ public class OperationOptions
 {
     public string? TimeZoneId { get; set; }
     public string? Symbol { get; set; }
-    public double FastBrickSize { get; set; }
+    public double BrickSize { get; set; }
+    public TimeSpan Timeframe { get; set; }
     public DateTime? ResumeFrom { get; set; }
     public OrderOptions Order { get; set; } = new();
     public SanityTestOptions SanityTest { get; set; } = new();

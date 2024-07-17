@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using MiniExcelLibs;
 using Serilog;
 using Spectre.Console;
-using System.Linq;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()

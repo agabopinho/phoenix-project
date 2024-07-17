@@ -43,6 +43,42 @@ class MarketData(services.MarketDataServicer):
             request.toDate.ToDatetime(tzinfo=pytz.utc),
         )
 
+    def __ratesRangeFromTicks(self, request): 
+        data = self.__copyTicksRange(
+            protos.StreamTicksRangeRequest(
+                symbol=request.symbol,
+                fromDate=request.fromDate,
+                toDate=request.toDate,
+                type=int(mt5.COPY_TICKS_TRADE),
+            )
+        )
+        responseStatus = MT5Ext.check_conn()
+
+        if responseStatus.responseCode != contractsProtos.RES_S_OK:
+            return (responseStatus, None)
+
+        ohlc = MT5Ext.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
+
+        del data
+
+        rates = [
+            protos.Rate(
+                time=timestampProtos.Timestamp(seconds=int(index.timestamp())),
+                open=wrappersProtos.DoubleValue(value=rate["open"]),
+                high=wrappersProtos.DoubleValue(value=rate["high"]),
+                low=wrappersProtos.DoubleValue(value=rate["low"]),
+                close=wrappersProtos.DoubleValue(value=rate["close"]),
+                tickVolume=wrappersProtos.DoubleValue(value=rate["tick_volume"]),
+                spread=wrappersProtos.DoubleValue(value=0),
+                volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
+            )
+            for index, rate in ohlc.iterrows()
+        ]
+
+        del ohlc
+        
+        return (responseStatus, rates)
+    
     def GetSymbolTick(self, request, _):
         tick = mt5.symbol_info_tick(request.symbol)
         responseStatus = MT5Ext.check_conn()
@@ -71,7 +107,7 @@ class MarketData(services.MarketDataServicer):
         responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.TicksRangeReply(responseStatus=responseStatus)
+            return protos.TicksRangeReply(responseStatus=responseStatus)
 
         logger.debug("StreamTicksRange: %s", len(data))
 
@@ -108,7 +144,7 @@ class MarketData(services.MarketDataServicer):
         responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.TicksRangeBytesReply(responseStatus=responseStatus)
+            return protos.TicksRangeBytesReply(responseStatus=responseStatus)
 
         logger.debug("StreamTicksRangeBytes: %s", len(data))
 
@@ -172,7 +208,7 @@ class MarketData(services.MarketDataServicer):
         responseStatus = MT5Ext.check_conn()
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.RatesRangeReply(responseStatus=responseStatus)
+            return protos.RatesRangeReply(responseStatus=responseStatus)
 
         rates = [
             protos.Rate(
@@ -197,44 +233,24 @@ class MarketData(services.MarketDataServicer):
             )
 
     def StreamRatesRangeFromTicks(self, request, _):
-        data = self.__copyTicksRange(
-            protos.StreamTicksRangeRequest(
-                symbol=request.symbol,
-                fromDate=request.fromDate,
-                toDate=request.toDate,
-                type=int(mt5.COPY_TICKS_TRADE),
-            )
-        )
-        responseStatus = MT5Ext.check_conn()
+        responseStatus, rates = self.__ratesRangeFromTicks(request)
 
         if responseStatus.responseCode != contractsProtos.RES_S_OK:
-            yield protos.RatesRangeReply(responseStatus=responseStatus)
-
-        ohlc = MT5Ext.create_ohlc_from_ticks(data, request.timeframe.ToTimedelta())
-
-        del data
-
-        rates = [
-            protos.Rate(
-                time=timestampProtos.Timestamp(seconds=int(index.timestamp())),
-                open=wrappersProtos.DoubleValue(value=rate["open"]),
-                high=wrappersProtos.DoubleValue(value=rate["high"]),
-                low=wrappersProtos.DoubleValue(value=rate["low"]),
-                close=wrappersProtos.DoubleValue(value=rate["close"]),
-                tickVolume=wrappersProtos.DoubleValue(value=rate["tick_volume"]),
-                spread=wrappersProtos.DoubleValue(value=0),
-                volume=wrappersProtos.DoubleValue(value=rate["real_volume"]),
-            )
-            for index, rate in ohlc.iterrows()
-        ]
-
-        del ohlc
-
+            return protos.RatesRangeReply(responseStatus, None)
+        
         for i in range(0, len(rates), request.chunkSize):
             yield protos.RatesRangeReply(
                 rates=rates[i : i + request.chunkSize],
                 responseStatus=responseStatus,
             )
+            
+    def GetRatesRangeFromTicks(self, request, _):
+        responseStatus, rates = self.__ratesRangeFromTicks(request)
+        
+        return protos.RatesRangeReply(
+            rates=rates,
+            responseStatus=responseStatus,
+        )
 
     def Predict(self, request, _):
         model = self.models[request.modelName]

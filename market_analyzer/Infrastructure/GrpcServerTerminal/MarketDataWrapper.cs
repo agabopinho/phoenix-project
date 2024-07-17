@@ -25,6 +25,13 @@ public interface IMarketDataWrapper
         int chunkSize,
         CancellationToken cancellationToken);
 
+    Task<RatesRangeReply> GetRatesRangeFromTicksAsync(
+        string symbol,
+        DateTime utcFromDate,
+        DateTime utcToDate,
+        TimeSpan timeframe,
+        CancellationToken cancellationToken);
+
     AsyncServerStreamingCall<TicksRangeBytesReply> StreamTicksRangeBytesAsync(
         string symbol,
         DateTime utcFromDate,
@@ -120,6 +127,34 @@ public class MarketDataWrapper(ObjectPool<GrpcChannel> grpcChannelPool) : IMarke
             };
 
             return client.StreamRatesRangeFromTicks(request, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            grpcChannelPool.Return(channel);
+        }
+    }
+
+    public async Task<RatesRangeReply> GetRatesRangeFromTicksAsync(
+        string symbol,
+        DateTime utcFromDate,
+        DateTime utcToDate,
+        TimeSpan timeframe,
+        CancellationToken cancellationToken)
+    {
+        var channel = grpcChannelPool.Get();
+        var client = CreateClient(channel);
+
+        try
+        {
+            var request = new GetRatesRangeFromTicksRequest
+            {
+                Symbol = symbol,
+                FromDate = Timestamp.FromDateTime(utcFromDate),
+                ToDate = Timestamp.FromDateTime(utcToDate),
+                Timeframe = Duration.FromTimeSpan(timeframe),
+            };
+
+            return await client.GetRatesRangeFromTicksAsync(request, cancellationToken: cancellationToken);
         }
         finally
         {

@@ -1,6 +1,7 @@
 ﻿using Application.Models;
 using Application.Options;
 using Application.Services;
+using Application.Services.MarketData;
 using Application.Services.Providers;
 using Application.Services.Providers.Date;
 using Application.Services.Strategies;
@@ -44,7 +45,7 @@ builder.ConfigureServices((context, services) =>
     services.AddSingleton<ILoopService, PositionLoopService>();
     services.AddSingleton<ILoopService, OrdersLoopService>();
     services.AddSingleton<ILoopService, LastTickLoopService>();
-    services.AddSingleton<ILoopService, MarketDataLoopService>();
+    services.AddSingleton<ILoopService, RatesMarketDataLoopService>();
     services.AddSingleton<ILoopService, SanityTestLoopService>();
 
     services.AddSingleton<ILoopService, OpenBuyPositionLoopService>();
