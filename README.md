@@ -1,4 +1,4 @@
-# Phoenix Project - Sistema de Trading Automatizado
+# Phoenix Project - Automated Trading System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -6,152 +6,154 @@
 [![gRPC](https://img.shields.io/badge/gRPC-latest-green.svg)](https://grpc.io/)
 [![MetaTrader](https://img.shields.io/badge/MetaTrader-5-orange.svg)](https://www.metatrader5.com/)
 
-## 📑 Índice
+> 🌐 **Language**: [English](README.md) | [Português](README_pt-BR.md)
 
-- [📋 Visão Geral](#-visão-geral)
-- [🏗️ Arquitetura do Sistema](#️-arquitetura-do-sistema)
-- [🚀 Funcionalidades Principais](#-funcionalidades-principais)
-- [📁 Estrutura do Projeto](#-estrutura-do-projeto)
-- [🛠️ Tecnologias Utilizadas](#️-tecnologias-utilizadas)
-- [⚙️ Configuração e Instalação](#️-configuração-e-instalação)
-- [📊 Configurações Principais](#-configurações-principais)
-- [🔌 API e Scripts](#-api-e-scripts)
-- [🏭 Arquitetura e Estratégias](#-arquitetura-e-estratégias)
-- [🔍 Monitoramento e Performance](#-monitoramento-e-performance)
+## 📑 Table of Contents
+
+- [📋 Overview](#-overview)
+- [🏗️ System Architecture](#️-system-architecture)
+- [🚀 Key Features](#-key-features)
+- [📁 Project Structure](#-project-structure)
+- [🛠️ Technologies Used](#️-technologies-used)
+- [⚙️ Setup and Installation](#️-setup-and-installation)
+- [📊 Main Configurations](#-main-configurations)
+- [🔌 API and Scripts](#-api-and-scripts)
+- [🏭 Architecture and Strategies](#-architecture-and-strategies)
+- [🔍 Monitoring and Performance](#-monitoring-and-performance)
 - [❗ Troubleshooting](#-troubleshooting)
-- [🚀 Próximos Passos](#-próximos-passos)
-- [🔒 Segurança e Compliance](#-segurança-e-compliance)
-- [📝 Licença de Uso](#-licença-de-uso)
-- [👥 Contribuição](#-contribuição)
-- [📞 Suporte e Comunidade](#-suporte-e-comunidade)
+- [🚀 Roadmap](#-roadmap)
+- [🔒 Security and Compliance](#-security-and-compliance)
+- [📝 License](#-license)
+- [👥 Contributing](#-contributing)
+- [📞 Support and Community](#-support-and-community)
 
-## 📋 Visão Geral
+## 📋 Overview
 
-O Phoenix Project é um sistema avançado de trading automatizado que integra múltiplas tecnologias para análise de mercado financeiro e execução de estratégias de trading. O projeto combina um servidor gRPC em Python conectado ao MetaTrader 5 com aplicações .NET Core para análise de dados e backtesting.
+The Phoenix Project is an advanced automated trading system that integrates multiple technologies for financial market analysis and trading strategy execution. The project combines a Python gRPC server connected to MetaTrader 5 with .NET Core applications for data analysis and backtesting.
 
-## 🏗️ Arquitetura do Sistema
+## 🏗️ System Architecture
 
-O projeto está organizado em duas partes principais:
+The project is organized into two main parts:
 
 ### 1. **gRPC Server** (Python)
-- **Localização**: `grpc_server/`
-- **Função**: Interface com MetaTrader 5 via gRPC
-- **Tecnologias**: Python, gRPC, MetaTrader5, NumPy, Pandas
-- **Serviços**:
-  - **MarketData**: Streaming de dados de mercado, ticks, rates
-  - **OrderManagementSystem**: Gestão de posições, ordens e histórico
-- **Funcionalidades**:
-  - Streaming de dados em tempo real
-  - Compressão de dados com NumPy
-  - Gestão de múltiplas conexões simultâneas
-  - Integração direta com MT5 API
+- **Location**: `grpc_server/`
+- **Function**: Interface with MetaTrader 5 via gRPC
+- **Technologies**: Python, gRPC, MetaTrader5, NumPy, Pandas
+- **Services**:
+  - **MarketData**: Market data streaming, ticks, rates
+  - **OrderManagementSystem**: Position, order and history management
+- **Features**:
+  - Real-time data streaming
+  - NumPy data compression
+  - Multiple simultaneous connection management
+  - Direct MT5 API integration
 
 ### 2. **Market Analyzer** (C#/.NET)
-- **Localização**: `market_analyzer/`
-- **Função**: Análise de dados de mercado e backtesting
-- **Tecnologias**: .NET 8, gRPC Client, Docker, Redis
-- **Módulos**:
-  - **ConsoleApp**: Aplicação principal de trading em tempo real
-  - **BacktestRange**: Backtesting especializado em Range Charts
-  - **BacktestTimeframe**: Backtesting tradicional por tempo
-  - **Application**: Lógica de negócio e estratégias
-  - **Infrastructure**: Comunicação gRPC e infraestrutura
+- **Location**: `market_analyzer/`
+- **Function**: Market data analysis and backtesting
+- **Technologies**: .NET 8, gRPC Client, Docker, Redis
+- **Modules**:
+  - **ConsoleApp**: Main real-time trading application
+  - **BacktestRange**: Range Charts specialized backtesting
+  - **BacktestTimeframe**: Traditional time-based backtesting
+  - **Application**: Business logic and strategies
+  - **Infrastructure**: gRPC communication and infrastructure
 
-## 🚀 Funcionalidades Principais
+## 🚀 Key Features
 
-### **Coleta de Dados de Mercado**
-- Conexão direta com MetaTrader 5
-- Streaming de dados de ticks em tempo real
-- Histórico de preços e volumes
-- Suporte a múltiplos símbolos financeiros
+### **Market Data Collection**
+- Direct connection to MetaTrader 5
+- Real-time tick data streaming
+- Price and volume history
+- Multiple financial symbols support
 
-### **Análise Técnica**
-- Indicadores técnicos avançados (ATR, SMA, etc.)
-- Gráficos Range Charts
-- Análise de padrões de preço
-- Sinais de compra e venda automatizados
+### **Technical Analysis**
+- Advanced technical indicators (ATR, SMA, etc.)
+- Range Charts
+- Price pattern analysis
+- Automated buy/sell signals
 
 ### **Backtesting**
-- Teste de estratégias em dados históricos
-- Análise de performance e lucratividade
-- Relatórios detalhados em Excel
-- Simulação de slippage e custos de transação
+- Strategy testing on historical data
+- Performance and profitability analysis
+- Detailed Excel reports
+- Slippage and transaction cost simulation
 
-### **Trading Automatizado**
-- Gestão automática de ordens
-- Controle de posições
-- Gestão de risco
-- Monitoramento em tempo real
+### **Automated Trading**
+- Automatic order management
+- Position control
+- Risk management
+- Real-time monitoring
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```
 phoenix-project/
-├── grpc_server/                          # Servidor Python/gRPC
-│   ├── main.py                           # Servidor principal
-│   ├── multiserver.py                    # Gerenciador de múltiplos servidores
-│   ├── backtest.py                       # Script de backtesting
-│   ├── requirements.txt                  # Dependências Python
-│   ├── protos/                           # Definições Protocol Buffers
-│   │   ├── MarketData.proto              # Serviços de dados de mercado
-│   │   ├── OrderManagementSystem.proto   # Gestão de ordens
-│   │   └── Contracts.proto               # Contratos base
-│   ├── terminal/                         # Módulos de integração MT5
-│   │   ├── MarketData.py                 # Implementação serviços de dados
-│   │   ├── OrderManagementSystem.py      # Implementação gestão ordens
-│   │   └── Extensions/                   # Extensões e utilitários
-│   └── notebooks/                        # Jupyter notebooks para análise
+├── grpc_server/                          # Python/gRPC Server
+│   ├── main.py                           # Main server
+│   ├── multiserver.py                    # Multiple server manager
+│   ├── backtest.py                       # Backtesting script
+│   ├── requirements.txt                  # Python dependencies
+│   ├── protos/                           # Protocol Buffers definitions
+│   │   ├── MarketData.proto              # Market data services
+│   │   ├── OrderManagementSystem.proto   # Order management
+│   │   └── Contracts.proto               # Base contracts
+│   ├── terminal/                         # MT5 integration modules
+│   │   ├── MarketData.py                 # Data services implementation
+│   │   ├── OrderManagementSystem.py      # Order management implementation
+│   │   └── Extensions/                   # Extensions and utilities
+│   └── notebooks/                        # Jupyter notebooks for analysis
 │
-└── market_analyzer/                      # Aplicações .NET
-    ├── ConsoleApp/                       # Aplicação principal de trading
-    ├── BacktestRange/                    # Backtesting com Range Charts
-    ├── BacktestTimeframe/                # Backtesting por timeframe
-    ├── Application/                      # Lógica de negócio
-    │   ├── Models/                       # Modelos de dados
-    │   ├── Services/                     # Serviços de aplicação
-    │   └── Helpers/                      # Utilitários e extensões
-    ├── Infrastructure/                   # Infraestrutura e integrações
-    └── docker-compose.yml                # Configuração Docker
+└── market_analyzer/                      # .NET Applications
+    ├── ConsoleApp/                       # Main trading application
+    ├── BacktestRange/                    # Range Charts backtesting
+    ├── BacktestTimeframe/                # Traditional backtesting
+    ├── Application/                      # Business logic
+    │   ├── Models/                       # Data models
+    │   ├── Services/                     # Application services
+    │   └── Helpers/                      # Utilities and extensions
+    ├── Infrastructure/                   # Infrastructure and integrations
+    └── docker-compose.yml                # Docker configuration
 ```
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Technologies Used
 
 ### **Backend (Python)**
-- **MetaTrader5**: Integração com terminal de trading
-- **gRPC**: Comunicação de alta performance
-- **NumPy/Pandas**: Processamento de dados numéricos
-- **Backtrader**: Framework de backtesting
-- **Plotly**: Visualização de dados
-- **PyTZ**: Gerenciamento de fuso horário
-- **Protocol Buffers**: Serialização eficiente
+- **MetaTrader5**: Trading terminal integration
+- **gRPC**: High-performance communication
+- **NumPy/Pandas**: Numerical data processing
+- **Backtrader**: Backtesting framework
+- **Plotly**: Data visualization
+- **PyTZ**: Timezone management
+- **Protocol Buffers**: Efficient serialization
 
-### **Frontend/Análise (C#/.NET)**
-- **.NET 8**: Framework principal
-- **gRPC Client**: Comunicação com servidor Python
-- **Serilog**: Sistema de logging estruturado
-- **Dapper**: ORM para banco de dados
-- **Skender.Stock.Indicators**: Indicadores técnicos avançados
-- **OoplesFinance.StockIndicators**: Análise financeira adicional
-- **MiniExcel**: Geração de relatórios Excel
-- **NumSharp**: Processamento numérico em .NET
-- **Spectre.Console**: Interface de linha de comando avançada
+### **Frontend/Analysis (C#/.NET)**
+- **.NET 8**: Main framework
+- **gRPC Client**: Communication with Python server
+- **Serilog**: Structured logging system
+- **Dapper**: Database ORM
+- **Skender.Stock.Indicators**: Advanced technical indicators
+- **OoplesFinance.StockIndicators**: Additional financial analysis
+- **MiniExcel**: Excel report generation
+- **NumSharp**: Numerical processing in .NET
+- **Spectre.Console**: Advanced command line interface
 
-### **Infraestrutura**
-- **Docker**: Containerização e orquestração
-- **Redis**: Cache, sessões e dados temporários
-- **Protocol Buffers**: Serialização eficiente
-- **Object Pool**: Gerenciamento eficiente de conexões gRPC
+### **Infrastructure**
+- **Docker**: Containerization and orchestration
+- **Redis**: Cache, sessions and temporary data
+- **Protocol Buffers**: Efficient serialization
+- **Object Pool**: Efficient gRPC connection management
 
-## ⚙️ Configuração e Instalação
+## ⚙️ Setup and Installation
 
-### **Pré-requisitos**
+### **Prerequisites**
 - Python 3.8+
 - .NET 8 SDK
-- MetaTrader 5 instalado
-- Docker (opcional)
-- Redis (para cache)
+- MetaTrader 5 installed
+- Docker (optional)
+- Redis (for caching)
 
-### **Instalação Rápida**
+### **Quick Installation**
 
 **gRPC Server (Python):**
 ```bash
@@ -166,26 +168,26 @@ python main.py 5051
 ```bash
 cd market_analyzer
 dotnet restore && dotnet build
-dotnet run --project ConsoleApp                    # Trading em tempo real
-dotnet run --project BacktestRange                 # Backtesting Range Charts
-dotnet run --project BacktestTimeframe             # Backtesting tradicional
+dotnet run --project ConsoleApp                    # Real-time trading
+dotnet run --project BacktestRange                 # Range Charts backtesting
+dotnet run --project BacktestTimeframe             # Traditional backtesting
 ```
 
-### **Docker (Opcional)**
+### **Docker (Optional)**
 ```bash
 cd market_analyzer
-docker-compose up -d        # Iniciar serviços
-docker-compose logs -f      # Ver logs
-docker-compose down         # Parar serviços
+docker-compose up -d        # Start services
+docker-compose logs -f      # View logs
+docker-compose down         # Stop services
 ```
 
-### **Dependências Essenciais**
-- **MetaTrader 5**: [Download oficial](https://www.metatrader5.com/) + configurar conta
-- **Redis**: `choco install redis-64` (Windows) ou usar Docker
+### **Essential Dependencies**
+- **MetaTrader 5**: [Official download](https://www.metatrader5.com/) + configure account
+- **Redis**: `choco install redis-64` (Windows) or use Docker
 
-## 📊 Configurações Principais
+## 📊 Main Configurations
 
-### **Configuração do Trading (appsettings.json)**
+### **Trading Configuration (appsettings.json)**
 
 ```json
 {
@@ -193,182 +195,182 @@ docker-compose down         # Parar serviços
     "Hosts": ["http://localhost:5051+19"]
   },
   "Operation": {
-    "Symbol": "WINQ24",           // Símbolo a ser negociado
-    "BrickSize": 30,              // Tamanho do brick para Range Chart
+    "Symbol": "WINQ24",           // Symbol to be traded
+    "BrickSize": 30,              // Brick size for Range Chart
     "TimeZoneId": "America/Sao_Paulo",
     "Order": {
-      "Magic": 467276,            // Número mágico para identificação
-      "Lot": 1,                   // Tamanho da posição
-      "Deviation": 0,             // Desvio máximo
-      "ProductionMode": "Off"     // Modo de produção
+      "Magic": 467276,            // Magic number for identification
+      "Lot": 1,                   // Position size
+      "Deviation": 0,             // Maximum deviation
+      "ProductionMode": "Off"     // Production mode
     }
   }
 }
 ```
 
-### **Parâmetros de Backtesting**
+### **Backtesting Parameters**
 
-- **Período de análise**: Configurável por datas (UTC)
-- **Slippage**: Simulação de custos de transação e escorregamento
-- **Indicadores**: ATR, SMA, Range Charts, Volume Analysis
-- **Símbolos suportados**: WIN (Mini Índice), WDO (Mini Dólar), stocks, forex
+- **Analysis period**: Configurable by dates (UTC)
+- **Slippage**: Transaction cost and slippage simulation
+- **Indicators**: ATR, SMA, Range Charts, Volume Analysis
+- **Supported symbols**: WIN (Mini Index), WDO (Mini Dollar), stocks, forex
 - **Timeframes**: 1s, 5s, 10s, 1m, 5m, 15m, 1h, 1D
-- **Métricas**: Sharpe Ratio, Sortino Ratio, Maximum Drawdown, Win Rate
+- **Metrics**: Sharpe Ratio, Sortino Ratio, Maximum Drawdown, Win Rate
 
-## 🔌 API e Scripts
+## 🔌 API and Scripts
 
 ### **gRPC Services**
-- **MarketData**: Streaming de ticks, rates, dados históricos
-- **OrderManagement**: Gestão de posições, ordens e histórico de negociações
+- **MarketData**: Streaming of ticks, rates, historical data
+- **OrderManagement**: Position, order and trading history management
 
-### **Scripts Principais**
+### **Main Scripts**
 ```bash
-python multiserver.py 5051+4 5060+2    # Múltiplos servidores para carga
-python backtest.py                      # Backtesting standalone
+python multiserver.py 5051+4 5060+2    # Multiple servers for load balancing
+python backtest.py                      # Standalone backtesting
 ```
 
-### **Relatórios Automáticos**
-- Arquivos Excel com métricas de performance (Sharpe, Sortino, Max Drawdown)
-- Histórico detalhado de trades e equity curves
+### **Automatic Reports**
+- Excel files with performance metrics (Sharpe, Sortino, Max Drawdown)
+- Detailed trade history and equity curves
 
-## 🏭 Arquitetura e Estratégias
+## 🏭 Architecture and Strategies
 
-### **Padrão de Serviços**
-O sistema utiliza loops especializados para:
-- **Monitoramento**: Posições, ordens, integridade do sistema
-- **Processamento**: Dados de mercado em tempo real
-- **Execução**: Estratégias de compra/venda automatizadas
+### **Service Pattern**
+The system uses specialized loops for:
+- **Monitoring**: Positions, orders, system integrity
+- **Processing**: Real-time market data
+- **Execution**: Automated buy/sell strategies
 
-### **Estratégias Implementadas**
+### **Implemented Strategies**
 
 **Range Chart Strategy**
-- Baseada em movimentação de preços por pontos fixos (brick size configurável)
-- Ideal para mercados voláteis como WIN e WDO
+- Based on fixed point price movements (configurable brick size)
+- Ideal for volatile markets like WIN and WDO
 
 **Moving Average Strategy**  
-- Cruzamento de médias móveis com confirmação ATR
-- Período configurável (padrão: 50 períodos)
+- Moving average crossover with ATR confirmation
+- Configurable period (default: 50 periods)
 
 **ATR Dynamic Strategy**
-- Stop loss e take profit dinâmicos baseados na volatilidade
-- Relação risco/retorno 1:2 ajustável
+- Dynamic stop loss and take profit based on volatility
+- Adjustable 1:2 risk/reward ratio
 
-## 🔍 Monitoramento e Performance
+## 🔍 Monitoring and Performance
 
 ### **Logging**
-- **Serilog** com níveis configuráveis (Debug, Info, Warning, Error)
-- Saídas: Console, arquivos rotacionais, Elasticsearch (opcional)
-- Métricas: Performance, latência, taxa de erro
+- **Serilog** with configurable levels (Debug, Info, Warning, Error)
+- Outputs: Console, rotating files, Elasticsearch (optional)
+- Metrics: Performance, latency, error rate
 
-### **Otimizações**
-- **gRPC**: Object pooling, streaming, compressão NumPy
-- **Memory**: Garbage collection otimizada, buffer pooling
-- **Benchmarks**: < 5ms latência, > 10k ticks/segundo, < 500MB RAM
+### **Optimizations**
+- **gRPC**: Object pooling, streaming, NumPy compression
+- **Memory**: Optimized garbage collection, buffer pooling
+- **Benchmarks**: < 5ms latency, > 10k ticks/second, < 500MB RAM
 
 ## ❗ Troubleshooting
 
-### **Problemas Comuns**
+### **Common Issues**
 
-**MetaTrader 5 não conecta:**
+**MetaTrader 5 won't connect:**
 ```bash
-# Verificar se MT5 está rodando e testar Python API
+# Check if MT5 is running and test Python API
 python -c "import MetaTrader5 as mt5; print(mt5.initialize())"
 ```
 
 **gRPC Connection Refused:**
 ```bash
-# Verificar se servidor está ativo na porta
+# Check if server is active on port
 netstat -an | grep :5051
 ```
 
 **Protocol Buffers Error:**
 ```bash
-# Regenerar arquivos proto e recompilar
+# Regenerate proto files and recompile
 cd grpc_server && ./codegen.bat
 cd ../market_analyzer && dotnet clean && dotnet build
 ```
 
-## 🚀 Próximos Passos
+## 🚀 Roadmap
 
-### **Roadmap Principal**
-- **Interface Web**: Dashboard em tempo real com SignalR
-- **Machine Learning**: Otimização automática de parâmetros
+### **Main Roadmap**
+- **Web Interface**: Real-time dashboard with SignalR
+- **Machine Learning**: Automatic parameter optimization
 - **Multi-Broker**: Interactive Brokers, Binance
-- **Mobile App**: Monitoramento via smartphone
-- **Microserviços**: Arquitetura cloud-native com Kubernetes
+- **Mobile App**: Smartphone monitoring
+- **Microservices**: Cloud-native architecture with Kubernetes
 
-## 🔒 Segurança e Compliance
+## 🔒 Security and Compliance
 
-### **Medidas de Segurança**
-- **Comunicação**: TLS 1.3 criptografado para todas as conexões
-- **Autenticação**: JWT tokens e controle de acesso baseado em função
-- **Auditoria**: Log completo de operações e audit trail
+### **Security Measures**
+- **Communication**: TLS 1.3 encrypted for all connections
+- **Authentication**: JWT tokens and role-based access control
+- **Auditing**: Complete operation logs and audit trail
 
-### **Gestão de Risco**
-- **Stop Loss obrigatório** e position sizing baseado em Kelly Criterion
-- **Controle de drawdown** com parada automática em perdas excessivas
-- **Backup automático** de configurações e estado do sistema
+### **Risk Management**
+- **Mandatory stop loss** and Kelly Criterion-based position sizing
+- **Drawdown control** with automatic stop on excessive losses
+- **Automatic backup** of configurations and system state
 
-## 📝 Licença de Uso
+## 📝 License
 
 ### **MIT License**
 **Copyright © 2024-2025 Phoenix Project**
 
-Este projeto está licenciado sob a **MIT License** - permissiva para uso comercial, distribuição e modificação.
+This project is licensed under the **MIT License** - permissive for commercial use, distribution and modification.
 
-### **⚠️ AVISO IMPORTANTE - RISCOS FINANCEIROS**
+### **⚠️ IMPORTANT WARNING - FINANCIAL RISKS**
 
-**Trading automatizado envolve riscos substanciais:**
-- **Alto Risco**: Pode resultar em perda total do capital investido
-- **Sem Garantias**: Performance passada não garante resultados futuros
-- **Teste Obrigatório**: Sempre teste em ambiente de demonstração primeiro
-- **Não é Consultoria**: Este é um software, não consultoria financeira
+**Automated trading involves substantial risks:**
+- **High Risk**: May result in total loss of invested capital
+- **No Guarantees**: Past performance does not guarantee future results
+- **Mandatory Testing**: Always test in demo environment first
+- **Not Financial Advice**: This is software, not financial advice
 
-### **Uso Responsável**
-**USE POR SUA PRÓPRIA CONTA E RISCO E APENAS COM CAPITAL QUE PODE PERDER.**
+### **Responsible Use**
+**USE AT YOUR OWN RISK AND ONLY WITH CAPITAL YOU CAN AFFORD TO LOSE.**
 
-**📄 Licença completa: [LICENSE.md](LICENSE.md)**
+**📄 Full license: [LICENSE.md](LICENSE.md)**
 
-## 👥 Contribuição
+## 👥 Contributing
 
-**Contribuições são bem-vindas!** 
+**Contributions are welcome!** 
 
-### **Como Contribuir**
+### **How to Contribute**
 ```bash
 git clone https://github.com/agabopinho/phoenix-project.git
-git checkout -b feature/nova-funcionalidade
-# Faça suas alterações
-git commit -m "Adiciona nova funcionalidade"
-git push origin feature/nova-funcionalidade
-# Abra um Pull Request
+git checkout -b feature/new-feature
+# Make your changes
+git commit -m "Add new feature"
+git push origin feature/new-feature
+# Open a Pull Request
 ```
 
-### **Tipos de Contribuição**
-- 🐛 **Correção de bugs** e melhorias de código
-- ✨ **Novas estratégias** e indicadores técnicos  
-- 📚 **Documentação** e exemplos práticos
-- 🧪 **Testes** unitários e de integração
-- ⚡ **Otimizações** de performance
+### **Types of Contributions**
+- 🐛 **Bug fixes** and code improvements
+- ✨ **New strategies** and technical indicators  
+- 📚 **Documentation** and practical examples
+- 🧪 **Unit and integration tests**
+- ⚡ **Performance optimizations**
 
-### **Diretrizes**
-- Siga as convenções de código do projeto
-- Adicione testes para novas funcionalidades
-- Documente mudanças significativas
-- Use mensagens de commit descritivas
+### **Guidelines**
+- Follow project code conventions
+- Add tests for new features
+- Document significant changes
+- Use descriptive commit messages
 
-## 📞 Suporte e Comunidade
+## 📞 Support and Community
 
-### **Obtendo Ajuda**
-- **🐛 Bugs e Features**: [GitHub Issues](https://github.com/agabopinho/phoenix-project/issues)
-- **💬 Discussões**: [GitHub Discussions](https://github.com/agabopinho/phoenix-project/discussions)
-- **📖 Documentação**: README.md e comentários no código
+### **Getting Help**
+- **🐛 Bugs and Features**: [GitHub Issues](https://github.com/agabopinho/phoenix-project/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/agabopinho/phoenix-project/discussions)
+- **📖 Documentation**: README.md and code comments
 
-### **Comunidade**
-- ⭐ **Star** o projeto para apoiar o desenvolvimento
-- 👀 **Watch** para receber notificações de atualizações
-- 🍴 **Fork** para suas próprias modificações
-- 🤝 **Contribua** ajudando outros usuários e reportando bugs
+### **Community**
+- ⭐ **Star** the project to support development
+- 👀 **Watch** to receive update notifications
+- 🍴 **Fork** for your own modifications
+- 🤝 **Contribute** by helping other users and reporting bugs
 
 ---
 
-**⚠️ Aviso**: Este sistema é destinado para fins educacionais e de pesquisa. Trading automatizado envolve riscos significativos. Use com responsabilidade e sempre teste em ambiente de demonstração antes de operar com dinheiro real.
+**⚠️ Disclaimer**: This system is intended for educational and research purposes. Automated trading involves significant risks. Use responsibly and always test in a demo environment before operating with real money.
