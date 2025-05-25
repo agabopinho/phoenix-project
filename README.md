@@ -90,7 +90,7 @@ O projeto está organizado em duas partes principais:
 
 ```
 phoenix-project/
-├── grpc_server/                           # Servidor Python/gRPC
+├── grpc_server/                          # Servidor Python/gRPC
 │   ├── main.py                           # Servidor principal
 │   ├── multiserver.py                    # Gerenciador de múltiplos servidores
 │   ├── backtest.py                       # Script de backtesting
@@ -105,7 +105,7 @@ phoenix-project/
 │   │   └── Extensions/                   # Extensões e utilitários
 │   └── notebooks/                        # Jupyter notebooks para análise
 │
-└── market_analyzer/                       # Aplicações .NET
+└── market_analyzer/                      # Aplicações .NET
     ├── ConsoleApp/                       # Aplicação principal de trading
     ├── BacktestRange/                    # Backtesting com Range Charts
     ├── BacktestTimeframe/                # Backtesting por timeframe
@@ -114,7 +114,7 @@ phoenix-project/
     │   ├── Services/                     # Serviços de aplicação
     │   └── Helpers/                      # Utilitários e extensões
     ├── Infrastructure/                   # Infraestrutura e integrações
-    └── docker-compose.yml               # Configuração Docker
+    └── docker-compose.yml                # Configuração Docker
 ```
 
 ## 🛠️ Tecnologias Utilizadas
